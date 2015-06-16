@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <assert.h>
 
 #if __cplusplus >= 201103L
 #include <unordered_map>
@@ -68,7 +67,7 @@ public:
   class pair
   {
   public:
-    const char *get_key ();
+    const char *get_key () const;
     value * get_value ();
 
   private:
@@ -161,7 +160,7 @@ public:
     value *       element (sz_t index) const;
 
     // map variant ops
-    pair *        find (const char *keyStr) const;
+    pair *        find (const char *key) const;
     pair *        insert (const char *key, int64_t number);
     pair *        insert (const char *key, double number);
     pair *        insert (const char *key, bool boolean);
@@ -171,6 +170,9 @@ public:
     pair *        insert_null (const char *key);    
     bool          remove (pair *node);
     cursor        fcursor () const;
+
+    // path search
+    value *       search (const char **path, sz_t len);
     
   private:
 
@@ -402,7 +404,7 @@ private:
   ///////////////////////////////////////////////////////////////
   
 #if 0
-  class allocator // key, value, node, string
+  class allocator // key, value, string
   {
   public:
     bool init () { return true; }
@@ -416,7 +418,7 @@ private:
     {
       OBJECT_TYPE_KEY,
       OBJECT_TYPE_VALUE,
-      OBJECT_TYPE_MAP_NODE,
+      OBJECT_TYPE_STRING,
       OBJECT_TYPE_COUNT,
     };
 

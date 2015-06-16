@@ -3,8 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "kvr.h"
-//#include <assert.h>
-//#include "pool.hpp"
+#include <assert.h>
 
 #define KVR_SAFE_ASSERT_ON                1
 
@@ -56,7 +55,7 @@ kvr::pair::~pair ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-const char *kvr::pair::get_key ()
+const char *kvr::pair::get_key () const
 {
   KVR_ASSERT (m_k);
 
@@ -1428,6 +1427,52 @@ void kvr::value::clear ()
   // clear type flag
   const uint32_t typeFlagsMask = 0xffffff00;
   m_flags &= typeFlagsMask;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value * kvr::value::search (const char **path, sz_t pathLen)
+{
+  KVR_ASSERT (path);
+
+  value *v = (pathLen > 0) ? this : NULL;
+  
+  sz_t pc = 0; 
+
+  while (v && (pc < pathLen))
+  {
+    const char *key = path [pc++];
+
+    if (v->is_array ())
+    {
+      char k0 = key [0];
+
+      switch (k0)
+      {
+        case '*': // reserved for basic pattern matching
+        {
+          v = NULL;
+          break;
+        }
+
+        default: 
+        {
+          sz_t ki = (sz_t) atoi (key);
+          v = v->element (ki);
+          break;
+        }
+      }
+    }
+    else if (v->is_map ())
+    {
+      pair *p = v->find (key);
+      v = p ? p->get_value () : NULL;
+    }
+  }
+  
+  return v;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
