@@ -67,15 +67,17 @@ public:
   class pair
   {
   public:
+
     const char *get_key () const;
     value * get_value ();
 
   private:
-    key   *m_k;
-    value *m_v;
 
     pair ();
     ~pair ();
+
+    key   *m_k;
+    value *m_v;
 
     friend class kvr;
   };
@@ -87,14 +89,16 @@ public:
   class key
   {
   public:
+
     const char *get_string () const;
 
   private:
-    char *m_str;    
-    sz_t  m_ref;
 
     key (const char *str);
     ~key ();
+
+    char *m_str;
+    sz_t  m_ref;
 
     friend class kvr;
   };
@@ -125,7 +129,7 @@ public:
     bool          is_map () const;
     bool          is_array () const;
     
-    // explicit type conversion
+    // type conversion
     void          conv_null ();
     void          conv_map ();
     void          conv_array ();
@@ -139,7 +143,6 @@ public:
     void          set_boolean (bool b);
     void          set_number_i (int64_t n);
     void          set_number_f (double n);
-
     const char *  get_string () const;
     bool          get_boolean () const;
     int64_t       get_number_i () const;
@@ -173,27 +176,14 @@ public:
 
     // path search
     value *       search (const char **path, sz_t len);
-    
+
+    // copy
+    void          copy (const value *rhs);
+
+    // debug log
+    void          dump () const;
+
   private:
-
-    ///////////////////////////////////////////
-    ///////////////////////////////////////////
-    ///////////////////////////////////////////
-
-    bool is_string_dynamic () const;
-    bool is_string_static () const;
-    bool is_number_integer () const;
-    bool is_number_float () const;
-
-    void copy (const value *rhs);
-    void clear ();
-    
-    ///////////////////////////////////////////
-    ///////////////////////////////////////////
-    ///////////////////////////////////////////
-
-    value (uint32_t flags, kvr *ctx);
-    ~value ();
 
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -239,6 +229,8 @@ public:
       void    deinit ();
       void    push (value *v);
       value  *pop ();
+
+      static const sz_t SIZE_INCR = 8;
     };
 
     ///////////////////////////////////////////
@@ -256,6 +248,8 @@ public:
       pair *m_ptr;
       sz_t  m_size;
       sz_t  m_cap;
+
+      static const sz_t SIZE_INCR = 8;
     };
 
   public:
@@ -299,11 +293,43 @@ public:
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
+    void _dump (size_t lpad, const char *key) const;
+    void _conv_map (sz_t size = map::SIZE_INCR);
+    void _conv_array (sz_t size = array::SIZE_INCR);
+
+    void clear ();
+
+    bool is_string_dynamic () const;
+    bool is_string_static () const;
+    bool is_number_integer () const;
+    bool is_number_float () const;
+
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+
+    value (kvr *ctx, uint32_t flags);
+    ~value ();
+
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+
     data      m_data; 
     uint32_t  m_flags;
     kvr     * m_ctx;
     
     friend class kvr;
+  };
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  enum encoding_type
+  {
+    ENCODING_TYPE_JSON,
+    ENCODING_TYPE_MSGPACK,
   };
 
   ///////////////////////////////////////////////////////////////
@@ -328,8 +354,8 @@ public:
 
   value * diff (const value *va, const value *vb);
   value * patch (value *vout, const value *vpatch);
-  size_t  serialize (const value *v, char *data, size_t size);
-  value * deserialize (const char *data, size_t size);
+  size_t  serialize (encoding_type encoding, const value *v, char *data, size_t size);
+  value * deserialize (encoding_type encoding, const char *data, size_t size);
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -361,13 +387,6 @@ private:
     VALUE_FLAG_PARENT_MAP           = (1 << 9),
     VALUE_FLAG_PARENT_ARRAY         = (1 << 10),
   };
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-
-  static const sz_t SIZE_INCR_MAP = 8;
-  static const sz_t SIZE_INCR_ARRAY = 8;
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -456,8 +475,8 @@ private:
   ///////////////////////////////////////////////////////////////
 
   value * _create_value_null (uint32_t parentType);
-  value * _create_value_map (uint32_t parentType, sz_t size = SIZE_INCR_MAP);
-  value * _create_value_array (uint32_t parentType, sz_t size = SIZE_INCR_ARRAY);
+  value * _create_value_map (uint32_t parentType);
+  value * _create_value_array (uint32_t parentType);
   value * _create_value (uint32_t parentType, int64_t number);
   value * _create_value (uint32_t parentType, double number);
   value * _create_value (uint32_t parentType, bool boolean);
