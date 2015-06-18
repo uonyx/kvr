@@ -5,13 +5,26 @@
 #include "kvr.h"
 #include <assert.h>
 
-#define KVR_SAFE_ASSERT_ON                1
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if 1 // debug
+#if defined (_MSC_VER)
+#define KVR_DEBUG          _DEBUG
+#else
+#define KVR_DEBUG          DEBUG
+#endif
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define KVR_SAFE_ASSERT_ON                1
+#if KVR_DEBUG
 #define KVR_ASSERT(X) assert(X)
 #else
 #if KVR_SAFE_ASSERT_ON
-#define KVR_ASSERT(X) do { if (!X) { return; } } while (0) // can't just return void in all funcs
+#define KVR_ASSERT(X) do { if (!X) { return; } } while (0) // dumb: can't just return void in all funcs
 #else
 #define KVR_ASSERT(X) (void)(X)
 #endif
@@ -32,54 +45,6 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-// kvr::pair
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::pair::pair () : m_k (NULL), m_v (NULL) 
-{
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::pair::~pair () 
-{ 
-  m_k = NULL; 
-  m_v = NULL; 
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-const char *kvr::pair::get_key () const
-{
-  KVR_ASSERT (m_k);
-
-  const char *keystr = m_k ? m_k->get_string () : NULL;
-
-  return keystr;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::pair::get_value ()
-{
-  KVR_ASSERT (m_v);
-
-  value *v = m_v;
-
-  return v;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
 // kvr::Key
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,9 +52,10 @@ kvr::value * kvr::pair::get_value ()
 
 kvr::key::key (const char *str) : m_ref (1)
 {
-  size_t sz = strlen (str) + 1;
-  m_str = new char [sz];  
+  KVR_ASSERT (str);
 
+  size_t sz = strlen (str) + 1;
+  m_str = new char [sz];
   kvr_strcpy (m_str, str, sz);
 }
 
@@ -119,10 +85,11 @@ void kvr::value::array::init (sz_t size)
 {
   KVR_ASSERT (size > 0);
 
-  sz_t allocsz = (size + (SIZE_INCR - 1)) & ~(SIZE_INCR - 1);
-
+  sz_t allocsz = (size + (CAP_INCR - 1)) & ~(CAP_INCR - 1);
   m_ptr = new value * [allocsz];
+#if KVR_DEBUG
   memset (m_ptr, 0, sizeof (kvr::value *) * allocsz); // debug-only
+#endif
   m_cap = allocsz;
   m_len = 0;
 }
@@ -152,9 +119,11 @@ void kvr::value::array::push (value *v)
     KVR_ASSERT (m_ptr);
 
     // resize
-    sz_t newCap = m_cap + SIZE_INCR;
+    sz_t newCap = m_cap + CAP_INCR;
     value ** newPtr = new value * [newCap];
-    memset (newPtr, 0, sizeof (kvr::value *) * newCap); // debug-only
+#if KVR_DEBUG
+    memset (newPtr, 0, sizeof (kvr::value *) * newCap); 
+#endif
     memcpy (newPtr, m_ptr, sizeof (kvr::value *) * m_len);
     delete [] m_ptr;
 
@@ -171,13 +140,16 @@ void kvr::value::array::push (value *v)
 
 kvr::value *kvr::value::array::pop ()
 {
-  value *v = NULL; // (m_len > 0) ? m_ptr [m_len--] : NULL;
-
-  if (m_len)
+#if KVR_DEBUG
+  value *v = NULL;
+  if (m_len > 0)
   {
-    v = m_ptr [m_len - 1];
-    m_len--;
+    v = m_ptr [--m_len];
+    m_ptr [m_len] = NULL;
   }
+#else
+  value *v = (m_len > 0) ? m_ptr [--m_len] : NULL;
+#endif
 
   return v;
 }
@@ -194,8 +166,7 @@ void kvr::value::map::init (sz_t size)
 {
   KVR_ASSERT (size > 0);
 
-  sz_t allocsz = (size + (SIZE_INCR - 1)) & ~(SIZE_INCR - 1);
-
+  sz_t allocsz = (size + (CAP_INCR - 1)) & ~(CAP_INCR - 1);
   m_ptr = new pair [allocsz];
   m_cap = allocsz;
   m_size = 0;  
@@ -225,7 +196,7 @@ kvr::pair *kvr::value::map::insert (key *k, value *v)
     KVR_ASSERT (m_ptr);
 
     // resize
-    sz_t newCap = m_cap + SIZE_INCR;
+    sz_t newCap = m_cap + CAP_INCR;
     pair *newPtr = new pair [newCap];
     memcpy (newPtr, m_ptr, sizeof (pair) * m_cap);
     delete [] m_ptr;
@@ -254,30 +225,33 @@ bool kvr::value::map::remove (pair *p)
 
   bool rm = false;
 
-#if KVR_OPTIMIZATION_FAST_MAP_REMOVE_ON 
-  p->m_k = NULL;
-  p->m_v = NULL;
-
-  m_size--;
-  rm = true;
-#else
-  for (sz_t i = 0, c = m_cap; i < c; ++i)
+  if (m_size > 0)
   {
-    pair *pp = &m_ptr [i];
-    if ((pp == p) && pp->m_k)
+#if KVR_OPTIMIZATION_FAST_MAP_REMOVE_ON 
+    p->m_k = NULL;
+    p->m_v = NULL;
+
+    m_size--;
+    rm = true;
+#else
+    for (sz_t i = 0, c = m_cap; i < c; ++i)
     {
-      KVR_ASSERT (pp->m_v);
-      
-      p->m_k = NULL;
-      p->m_v = NULL;
+      pair *pp = &m_ptr [i];
+      if ((pp == p) && pp->m_k)
+      {
+        KVR_ASSERT (pp->m_v);
 
-      m_size--;
-      rm = true;
+        p->m_k = NULL;
+        p->m_v = NULL;
 
-      break;
+        m_size--;
+        rm = true;
+
+        break;
+      }
     }
-  }
 #endif
+  }
   
   return rm;
 }
@@ -296,7 +270,7 @@ kvr::pair *kvr::value::map::find (const key *k) const
   {
     pair *pp = &m_ptr [i];
 
-#if 0 // implicitly checked in next 'if' as k cannot be null
+#if 0 // implicitly checked in next 'if' as k should not be null
     if (!pp->m_k)
     {
       continue;
@@ -375,6 +349,8 @@ kvr * kvr::init (uint32_t flags)
 
 void kvr::deinit (kvr *ctx)
 {
+  KVR_ASSERT (ctx);
+
   delete ctx;
 }
 
@@ -589,6 +565,8 @@ kvr::value * kvr::_create_value (uint32_t parentType, bool boolean)
 
 kvr::value * kvr::_create_value (uint32_t parentType, const char *str)
 {
+  KVR_ASSERT (str);
+
   value *v = new value (this, parentType);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
@@ -690,7 +668,7 @@ kvr::value::value (kvr *ctx, uint32_t flags) : m_flags (flags), m_ctx (ctx)
 
 kvr::value::~value () 
 {
-  this->clear (); 
+  this->destruct (); 
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -783,6 +761,8 @@ void kvr::value::conv_number_f ()
 
 void kvr::value::set_string (const char *str)
 {
+  KVR_ASSERT (str);
+
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF  
   KVR_ASSERT (is_string ());
 #else
@@ -797,14 +777,14 @@ void kvr::value::set_string (const char *str)
   if (isThisStatic)
   {
     m_flags |= VALUE_FLAG_TYPE_STT_STRING;    
-    kvr_strcpy (m_data.s.stt.data, str, cap);
+    kvr_strcpy (m_data.s.m_stt.data, str, cap);
     //m_data.s.stt.data [cap - 1] = 0;
   }
   else
   {
     m_flags |= VALUE_FLAG_TYPE_DYN_STRING;
-    m_data.s.dyn.data = kvr_strdup (str, len);
-    m_data.s.dyn.size = len;
+    m_data.s.m_dyn.data = kvr_strdup (str, len);
+    m_data.s.m_dyn.size = len;
   }
 }
 
@@ -860,7 +840,7 @@ void kvr::value::set_number_f (double n)
 const char * kvr::value::get_string () const
 {
   KVR_ASSERT (is_string ());
-  return is_string_dynamic () ? m_data.s.dyn.data : m_data.s.stt.data;
+  return is_string_dynamic () ? m_data.s.m_dyn.data : m_data.s.m_stt.data;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -975,6 +955,8 @@ kvr::value * kvr::value::push (bool boolean)
 
 kvr::value * kvr::value::push (const char *str)
 {
+  KVR_ASSERT (str);
+
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_array ());
 #else
@@ -1080,6 +1062,8 @@ kvr::value * kvr::value::element (kvr::sz_t index) const
 
 kvr::pair * kvr::value::insert (const char *keystr, int64_t number)
 {
+  KVR_ASSERT (keystr);
+
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
 #else
@@ -1101,9 +1085,8 @@ kvr::pair * kvr::value::insert (const char *keystr, int64_t number)
   else
 #endif
   {
-    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number);
-    KVR_ASSERT (v);
-    p = this->m_data.m.insert (k, v);
+    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number);    
+    p = m_data.m.insert (k, v);
   }
 
   return p;
@@ -1115,6 +1098,8 @@ kvr::pair * kvr::value::insert (const char *keystr, int64_t number)
 
 kvr::pair * kvr::value::insert (const char *keystr, double number)
 {
+  KVR_ASSERT (keystr);
+
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());  
 #else
@@ -1136,9 +1121,8 @@ kvr::pair * kvr::value::insert (const char *keystr, double number)
   else
 #endif
   {
-    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number);
-    KVR_ASSERT (v);
-    p = this->m_data.m.insert (k, v);
+    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number);    
+    p = m_data.m.insert (k, v);
   }
 
   return p;
@@ -1150,6 +1134,8 @@ kvr::pair * kvr::value::insert (const char *keystr, double number)
 
 kvr::pair * kvr::value::insert (const char *keystr, bool boolean)
 {
+  KVR_ASSERT (keystr);
+
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
 #else
@@ -1171,9 +1157,8 @@ kvr::pair * kvr::value::insert (const char *keystr, bool boolean)
   else
 #endif
   {
-    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, boolean);
-    KVR_ASSERT (v);
-    p = this->m_data.m.insert (k, v);
+    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, boolean);    
+    p = m_data.m.insert (k, v);
   }
 
   return p;
@@ -1185,6 +1170,8 @@ kvr::pair * kvr::value::insert (const char *keystr, bool boolean)
 
 kvr::pair * kvr::value::insert (const char *keystr, const char *str)
 {
+  KVR_ASSERT (keystr);
+
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
 #else
@@ -1206,9 +1193,8 @@ kvr::pair * kvr::value::insert (const char *keystr, const char *str)
   else
 #endif
   {
-    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, str);
-    KVR_ASSERT (v);
-    p = this->m_data.m.insert (k, v);    
+    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, str);    
+    p = m_data.m.insert (k, v);
   }
 
   return p;
@@ -1220,6 +1206,8 @@ kvr::pair * kvr::value::insert (const char *keystr, const char *str)
 
 kvr::pair * kvr::value::insert_map (const char *keystr)
 {
+  KVR_ASSERT (keystr);
+
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
 #else
@@ -1240,9 +1228,8 @@ kvr::pair * kvr::value::insert_map (const char *keystr)
   else
 #endif
   {
-    value *v = m_ctx->_create_value_map (VALUE_FLAG_PARENT_MAP);
-    KVR_ASSERT (v);
-    p = this->m_data.m.insert (k, v);
+    value *v = m_ctx->_create_value_map (VALUE_FLAG_PARENT_MAP);    
+    p = m_data.m.insert (k, v);
   }
 
   return p;
@@ -1254,6 +1241,8 @@ kvr::pair * kvr::value::insert_map (const char *keystr)
 
 kvr::pair * kvr::value::insert_array (const char *keystr)
 {
+  KVR_ASSERT (keystr);
+
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
 #else
@@ -1274,9 +1263,8 @@ kvr::pair * kvr::value::insert_array (const char *keystr)
   else
 #endif
   {
-    value *v = m_ctx->_create_value_array (VALUE_FLAG_PARENT_MAP);
-    KVR_ASSERT (v);
-    p = this->m_data.m.insert (k, v);
+    value *v = m_ctx->_create_value_array (VALUE_FLAG_PARENT_MAP);    
+    p = m_data.m.insert (k, v);
   }
 
   return p;
@@ -1288,6 +1276,8 @@ kvr::pair * kvr::value::insert_array (const char *keystr)
 
 kvr::pair * kvr::value::insert_null (const char *keystr)
 {
+  KVR_ASSERT (keystr);
+
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
 #else
@@ -1308,9 +1298,8 @@ kvr::pair * kvr::value::insert_null (const char *keystr)
   else
 #endif
   {
-    value *v = m_ctx->_create_value_null (VALUE_FLAG_PARENT_MAP);
-    KVR_ASSERT (v);
-    p = this->m_data.m.insert (k, v);
+    value *v = m_ctx->_create_value_null (VALUE_FLAG_PARENT_MAP);    
+    p = m_data.m.insert (k, v);
   }
 
   return p;
@@ -1322,6 +1311,7 @@ kvr::pair * kvr::value::insert_null (const char *keystr)
 
 bool kvr::value::remove (kvr::pair *pair)
 {
+  KVR_ASSERT (pair);
   KVR_ASSERT (is_map ());
 
   bool rm = false;
@@ -1345,13 +1335,14 @@ bool kvr::value::remove (kvr::pair *pair)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::pair * kvr::value::find (const char *keyStr) const
+kvr::pair * kvr::value::find (const char *keystr) const
 {
+  KVR_ASSERT (keystr);
   KVR_ASSERT (is_map ());
 
   pair *p = NULL;
 
-  key *k = m_ctx->find_key (keyStr);
+  key *k = m_ctx->find_key (keystr);
 
   if (k)
   {
@@ -1379,6 +1370,7 @@ kvr::value::cursor kvr::value::fcursor () const
 kvr::value * kvr::value::search (const char **path, sz_t pathLen)
 {
   KVR_ASSERT (path);
+  KVR_ASSERT (pathLen > 0);
 
   value *v = (pathLen > 0) ? this : NULL;
 
@@ -1428,26 +1420,24 @@ void kvr::value::copy (const value *rhs)
 
   if (this != rhs)
   {
-    this->clear ();
-
-    // recursively iterate through rhs and copy to this
     /////////////////////////
     if (rhs->is_map ())
     /////////////////////////
     {
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
       this->_conv_map (rhs->size ());
-
+#endif
       cursor c = rhs->fcursor ();
       pair  *rp = c.get_pair ();
       while (rp)
       {
-        const char *rk = rp->get_key (); KVR_ASSERT (rk);
+        const char *rk = rp->get_key ();
         pair *lp = this->insert_null (rk);
 
         value *rv = rp->get_value ();
         value *lv = lp->get_value ();
+        lv->copy (rv);
 
-        lv->copy (rv);               
         rp = c.get_pair ();
       }
     }
@@ -1455,8 +1445,9 @@ void kvr::value::copy (const value *rhs)
     else if (rhs->is_array ())
     /////////////////////////
     {
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
       this->_conv_array (rhs->size ());
-
+#endif
       for (sz_t i = 0, c = rhs->size (); i < c; ++i)
       {
         value *rv = rhs->element (i);
@@ -1471,7 +1462,6 @@ void kvr::value::copy (const value *rhs)
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
       this->conv_string ();
 #endif
-
       const char *str = rhs->get_string ();
       this->set_string (str);
     }
@@ -1551,7 +1541,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
     {
       const char *k = p->get_key ();
       value *v = p->get_value ();
-      v->_dump (lpad + 2, k);
+      v->_dump (lpad + 1, k);
 
       p = c.get_pair ();
     }
@@ -1639,9 +1629,8 @@ void kvr::value::_conv_array (sz_t size)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::clear ()
+void kvr::value::destruct ()
 {
-  // release memory
   if (is_map ())
   {
     cursor c = fcursor ();
@@ -1651,7 +1640,7 @@ void kvr::value::clear ()
       m_ctx->destroy_key (p->m_k);
       m_ctx->_destroy_value (VALUE_FLAG_PARENT_MAP, p->m_v);
       p = c.get_pair ();
-    }    
+    }
     m_data.m.deinit ();
   }
   else if (is_array ())
@@ -1665,9 +1654,19 @@ void kvr::value::clear ()
     m_data.a.deinit ();
   }
   else if (is_string_dynamic ())
-  {  
-    free ((void *) m_data.s.dyn.data);
+  {
+    free ((void *) m_data.s.m_dyn.data);
   }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::clear ()
+{
+  // release memory
+  this->destruct ();
 
   // zero data
   memset (&m_data, 0, sizeof (m_data));
