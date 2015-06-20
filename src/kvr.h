@@ -17,6 +17,12 @@
 #define KVR_PLATFORM_WINDOWS
 #endif
 
+#if defined (_MSC_VER)
+#define KVR_DEBUG          _DEBUG
+#else
+#define KVR_DEBUG          DEBUG
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -24,6 +30,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if __cplusplus >= 201103L
 #include <unordered_map>
@@ -50,11 +60,24 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+#define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
+#define KVR_CONSTANT_MAX_KEY_LENGTH                     (255)
+#define KVR_CONSTANT_MAX_TREE_DEPTH                     (256)
+#define KVR_CONSTANT_PATH_DELIMITER                     '.'
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 class kvr
 {
 public:
   
   typedef uint16_t sz_t;
+
+#if KVR_DEBUG
+  static const uint64_t MAX_SZ_T = (1 << (sizeof (sz_t) * 8)) - 1;
+#endif
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -78,8 +101,8 @@ public:
 
     pair () : m_k (NULL), m_v (NULL) {}
 
-    key   *m_k;
-    value *m_v;
+    key   * m_k;
+    value * m_v;
 
     friend class kvr;
   };
@@ -96,11 +119,11 @@ public:
 
   private:
 
-    key (const char *str);
+    key (const char *str, bool dcopy);
     ~key ();
 
-    char *m_str;
-    sz_t  m_ref;
+    char *  m_str;
+    sz_t    m_ref;
 
     friend class kvr;
   };
@@ -177,14 +200,15 @@ public:
     cursor        fcursor () const;
 
     // path search
-    value *       search (const char **path, sz_t len);
+    value *       search (const char *path) const;
+    value *       search (const char **path, sz_t pathsz) const;
 
     // copy
     void          copy (const value *rhs);
 
     // debug log
     void          dump () const;
-
+    
   private:
 
     ///////////////////////////////////////////
@@ -195,14 +219,17 @@ public:
     {
       struct dyn_str
       {
-        const char *data;
+        static const sz_t PAD = 8;
+
+        char *  data;
         sz_t    size;
-        sz_t    len;
+        sz_t    pad;
       } m_dyn;
 
       struct stt_str
       {
         static const sz_t CAP = ((sizeof (sz_t) * 2) + sizeof (char *));
+
         char data [CAP];
       } m_stt;
     };
@@ -223,6 +250,8 @@ public:
 
     struct array
     {
+      static const sz_t CAP_INCR = 8;
+
       void    init (sz_t size);
       void    deinit ();
       void    push (value *v);
@@ -231,8 +260,6 @@ public:
       value **m_ptr;
       sz_t    m_len;
       sz_t    m_cap;
-
-      static const sz_t CAP_INCR = 8;
     };
 
     ///////////////////////////////////////////
@@ -241,6 +268,8 @@ public:
 
     struct map
     {
+      static const sz_t CAP_INCR = 8;
+
       void    init (sz_t size);
       void    deinit ();
       pair *  insert (key *k, value *v);
@@ -249,9 +278,7 @@ public:
 
       pair *  m_ptr;
       sz_t    m_size;
-      sz_t    m_cap;
-
-      static const sz_t CAP_INCR = 8;
+      sz_t    m_cap;     
     };
 
   public:
@@ -297,17 +324,26 @@ public:
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
-    void _dump (size_t lpad, const char *key) const;
-    void _conv_map (sz_t size = map::CAP_INCR);
-    void _conv_array (sz_t size = array::CAP_INCR);
+    void    _conv_map (sz_t size = map::CAP_INCR);
+    void    _conv_array (sz_t size = array::CAP_INCR);
 
-    void destruct ();
-    void clear ();
+    void    _set_string_stt (const char *str);
+    void    _set_string_dyn (const char *str, sz_t size);
+    void    _move_string_dyn (char *str, sz_t size);
 
-    bool is_string_dynamic () const;
-    bool is_string_static () const;
-    bool is_number_integer () const;
-    bool is_number_float () const;
+    pair  * _insert_kv (key *k, value *v);
+    void    _push_v (value *v);
+    value * _search_key (const char *key) const;
+    void    _dump (size_t lpad, const char *key) const;
+    
+    void    _destruct ();
+    void    _clear ();
+    uint8_t _type () const;
+
+    bool    _is_number_integer () const;
+    bool    _is_number_float () const;
+    bool    _is_string_dynamic () const;
+    bool    _is_string_static () const;
 
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -343,7 +379,7 @@ public:
 
   static kvr *  init (uint32_t flags = 0);
   static void   deinit (kvr *ctx);
-
+  
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -357,8 +393,8 @@ public:
   value * create_value (const char *str);
   void    destroy_value (value *v);
 
-  value * diff (const value *va, const value *vb);
-  value * patch (value *vout, const value *vpatch);
+  value * diff (const value *original, const value *modified);
+  value * patch (value *original, const value *patch);
   size_t  serialize (encoding_type encoding, const value *v, char *data, size_t size);
   value * deserialize (encoding_type encoding, const char *data, size_t size);
 
@@ -471,9 +507,9 @@ private:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  key * find_key (const char *str);
-  key * create_key (const char *str);
-  void  destroy_key (key *k);
+  key *   _find_key (const char *str);
+  key *   _create_key (const char *str, bool dcopy = true);
+  void    _destroy_key (key *k);
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -487,6 +523,23 @@ private:
   value * _create_value (uint32_t parentType, bool boolean);
   value * _create_value (uint32_t parentType, const char *str);
   void    _destroy_value (uint32_t parentType, value *v);
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  void    _diff_set (value *set, value *rem, const value *og, const value *md,
+                     const char **path, const sz_t pathsz, sz_t pathcnt);
+
+  void    _diff_add (value *add, const value *og, const value *md,
+                     const char **path, const sz_t pathsz, sz_t pathcnt);
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  const char * _create_path_key (const char **path, sz_t pathsz, sz_t *ksz = NULL) const;
+  void    _destroy_path_key (const char *key);
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -553,25 +606,7 @@ inline bool kvr::value::is_null () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_string_dynamic () const
-{
-  return (m_flags & VALUE_FLAG_TYPE_DYN_STRING) != 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-inline bool kvr::value::is_string_static () const
-{
-  return (m_flags & VALUE_FLAG_TYPE_STT_STRING) != 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-inline bool kvr::value::is_number_integer () const
+inline bool kvr::value::_is_number_integer () const
 {
   return (m_flags & VALUE_FLAG_TYPE_NUMBER_INTEGER) != 0;
 }
@@ -580,9 +615,27 @@ inline bool kvr::value::is_number_integer () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_number_float () const
+inline bool kvr::value::_is_number_float () const
 {
   return (m_flags & VALUE_FLAG_TYPE_NUMBER_FLOAT) != 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline bool kvr::value::_is_string_dynamic () const
+{
+  return (m_flags & VALUE_FLAG_TYPE_DYN_STRING) != 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline bool kvr::value::_is_string_static () const
+{
+  return (m_flags & VALUE_FLAG_TYPE_STT_STRING) != 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
