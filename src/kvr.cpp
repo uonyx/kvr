@@ -1896,9 +1896,8 @@ void kvr::value::copy (const value *rhs)
     if (rhs->is_map ())
     //////////////////////////////////
     {
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      this->_conv_map (rhs->size ());
-#endif
+      this->_conv_map (rhs->m_data.m.m_cap);
+
       cursor c = rhs->fcursor ();
       pair  *rp = c.get_pair ();
       while (rp)
@@ -1918,9 +1917,8 @@ void kvr::value::copy (const value *rhs)
     else if (rhs->is_array ())
     //////////////////////////////////
     {
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
       this->_conv_array (rhs->size ());
-#endif
+
       for (sz_t i = 0, c = rhs->size (); i < c; ++i)
       {
         value *rv = rhs->element (i);
@@ -2169,6 +2167,8 @@ kvr::value * kvr::value::_search_path_key (const char *path, const char **key, v
 
 kvr::value * kvr::value::_search_key (const char *key) const
 {
+  KVR_ASSERT (key);
+
   value *v = NULL;
 
   //////////////////////////////////
@@ -2582,7 +2582,7 @@ kvr::pair *kvr::value::map::find (const key *k) const
 
 kvr::pair * kvr::value::cursor::get_pair ()
 {
-#if 0
+#if 1
   pair *p = NULL;
 
   if (m_index < m_map->m_cap)
@@ -2595,7 +2595,7 @@ kvr::pair * kvr::value::cursor::get_pair ()
     }
   }
 #else
-  pair dummy;
+  static pair dummy;
   pair *p = &dummy;
 
   while (p && !p->m_k)

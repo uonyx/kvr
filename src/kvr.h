@@ -415,6 +415,7 @@ private:
   enum value_flags
   {
     VALUE_FLAG_NONE                 = 0,
+
     VALUE_FLAG_TYPE_NULL            = (1 << 0),
     VALUE_FLAG_TYPE_MAP             = (1 << 1),
     VALUE_FLAG_TYPE_ARRAY           = (1 << 2),
