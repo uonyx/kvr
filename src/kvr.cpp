@@ -9,14 +9,14 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define KVR_SAFE_ASSERT_ON                1
+#define KVR_SAFE_ASSERT_ON                0
 #if KVR_DEBUG
 #define KVR_ASSERT(X) assert(X)
 #else
 #if KVR_SAFE_ASSERT_ON
 #define KVR_ASSERT(X) do { if (!X) { return; } } while (0) // dumb: can't just return void in all funcs
 #else
-#define KVR_ASSERT(X) (void)(X)
+#define KVR_ASSERT(X) 
 #endif
 #endif
 
@@ -29,7 +29,7 @@
 #define kvr_strncpy(dst, src, n) strncpy_s (dst, src, n)
 #define kvr_strdup(src, sz) _strdup (src)
 #else
-#define kvr_strcpy(dst, dsz, src) { strncpy (dst, src, dsz); dst [sz - 1] = 0; }
+#define kvr_strcpy(dst, dsz, src) { strncpy (dst, src, dsz); dst [dsz - 1] = 0; }
 #define kvr_strncpy(dst, src, n) strncpy (dst, src, n)
 #define kvr_strdup(src, sz) strndup (src, sz)
 #endif
