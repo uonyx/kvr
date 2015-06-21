@@ -2059,6 +2059,9 @@ void kvr::value::_set_string_dyn (const char *str, sz_t size)
 
 void kvr::value::_move_string_dyn (char *str, sz_t size)
 {
+  KVR_ASSERT (str);
+  KVR_ASSERT (size > 0);
+
   char *&sdata = m_data.s.m_dyn.data;
   sz_t &ssize = m_data.s.m_dyn.size;
 
@@ -2549,22 +2552,25 @@ kvr::pair *kvr::value::map::find (const key *k) const
 
   pair *p = NULL;
 
-  for (sz_t i = 0, c = m_cap; i < c; ++i)
+  if (k)
   {
-    pair *pp = &m_ptr [i];
-
-#if 0 // implicitly checked in next 'if' as k should not be null
-    if (!pp->m_k)
+    for (sz_t i = 0, c = m_cap; i < c; ++i)
     {
-      continue;
-    }
+      pair *pp = &m_ptr [i];
+
+#if 0 // implicitly checked in next 'if' as k cannot be null
+      if (!pp->m_k)
+      {
+        continue;
+      }
 #endif    
 
-    if (pp->m_k == k)
-    {
-      KVR_ASSERT (pp->m_v);
-      p = pp;
-      break;
+      if (pp->m_k == k)
+      {
+        KVR_ASSERT (pp->m_v);
+        p = pp;
+        break;
+      }
     }
   }
 
