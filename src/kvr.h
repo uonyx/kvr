@@ -119,7 +119,7 @@ public:
 
   private:
 
-    key (const char *str, bool dcopy);
+    key (const char *str, bool move);
     ~key ();
 
     char *  m_str;
@@ -172,10 +172,7 @@ public:
     bool          get_boolean () const;
     int64_t       get_number_i () const;
     double        get_number_f () const;
-
-    // container (array or map) variant ops:     
-    sz_t          size () const;
-
+    
     // array variant ops
     value *       push (int64_t number);
     value *       push (double number);
@@ -186,6 +183,7 @@ public:
     value *       push_null ();
     bool          pop ();
     value *       element (sz_t index) const;
+    sz_t          size () const;
 
     // map variant ops
     pair *        find (const char *key) const;
@@ -199,8 +197,7 @@ public:
     bool          remove (pair *node);
     cursor        fcursor () const;
 
-    // path search
-    value *       search (const char *path) const;
+    // path search    
     value *       search (const char **path, sz_t pathsz) const;
 
     // copy
@@ -333,6 +330,8 @@ public:
 
     pair  * _insert_kv (key *k, value *v);
     void    _push_v (value *v);
+
+    value * _search_path_key (const char *path, const char **key = NULL, value **parent = NULL) const;
     value * _search_key (const char *key) const;
     void    _dump (size_t lpad, const char *key) const;
     
@@ -393,8 +392,9 @@ public:
   value * create_value (const char *str);
   void    destroy_value (value *v);
 
-  value * diff (const value *original, const value *modified);
-  value * patch (value *original, const value *patch);
+  value * diff (const value *original, const value *modified);  
+  value * patch (const value *diff, value *original);
+
   size_t  serialize (encoding_type encoding, const value *v, char *data, size_t size);
   value * deserialize (encoding_type encoding, const char *data, size_t size);
 
@@ -462,53 +462,9 @@ private:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
-  
-#if 0
-  class allocator // key, value, string
-  {
-  public:
-    bool init () { return true; }
-    void deinit () {}
-  };
-
-  class pool_alloc
-  {
-  public:
-    enum object_type
-    {
-      OBJECT_TYPE_KEY,
-      OBJECT_TYPE_VALUE,
-      OBJECT_TYPE_STRING,
-      OBJECT_TYPE_COUNT,
-    };
-
-    void *malloc (object_type type);
-    void free (void *block);
-
-  private:
-    void *m_pools [OBJECT_TYPE_COUNT];
-
-  private:
-    class pool
-    {
-    public:
-      pool (size_t blockSize);
-
-    private:
-      void *m_ptr;
-      size_t m_size;
-      // free list
-      // used list
-    };
-  };
-#endif
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
 
   key *   _find_key (const char *str);
-  key *   _create_key (const char *str, bool dcopy = true);
+  key *   _create_key (const char *str, bool move = false);
   void    _destroy_key (key *k);
 
   ///////////////////////////////////////////////////////////////
@@ -530,9 +486,11 @@ private:
 
   void    _diff_set (value *set, value *rem, const value *og, const value *md,
                      const char **path, const sz_t pathsz, sz_t pathcnt);
-
   void    _diff_add (value *add, const value *og, const value *md,
                      const char **path, const sz_t pathsz, sz_t pathcnt);
+  void    _patch_set (const value *set, value *tg);
+  void    _patch_add (const value *add, value *tg);
+  void    _patch_rem (const value *rem, value *tg);
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -638,10 +596,6 @@ inline bool kvr::value::_is_string_static () const
   return (m_flags & VALUE_FLAG_TYPE_STT_STRING) != 0;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-// kvr::pair
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
