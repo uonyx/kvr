@@ -63,7 +63,8 @@
 #define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
 #define KVR_CONSTANT_MAX_KEY_LENGTH                     (255)
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (256)
-#define KVR_CONSTANT_PATH_DELIMITER                     '.'
+#define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
+#define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +84,10 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
+private:
   class key;
+
+public:
   class value;
 
   ///////////////////////////////////////////////////////////////
@@ -111,6 +115,8 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
+private:
+
   class key
   {
   public:
@@ -127,6 +133,8 @@ public:
 
     friend class kvr;
   };
+
+public:
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -197,7 +205,8 @@ public:
     bool          remove (pair *node);
     cursor        fcursor () const;
 
-    // path search    
+    // path search (map or array)
+    value *       search (const char *pathkey) const;
     value *       search (const char **path, sz_t pathsz) const;
 
     // copy

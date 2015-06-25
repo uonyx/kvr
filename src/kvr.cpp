@@ -37,6 +37,14 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
+
+static const char *kvr_const_str_null   = "null";
+static const char *kvr_const_str_true   = "true";
+static const char *kvr_const_str_false  = "false";
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 // kvr
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,7 +88,7 @@ kvr::~kvr ()
   printf ("load_factor:       %f\n", m_keystore.load_factor ());
   printf ("bucket_count:      %d\n", m_keystore.bucket_count ());
   printf ("max_size:          %d\n", m_keystore.max_size ());
-  printf ("max_load_factor:   %d\n", m_keystore.max_load_factor ());
+  printf ("max_load_factor:   %f\n", m_keystore.max_load_factor ());
   printf ("max_bucket_count:  %d\n", m_keystore.max_bucket_count ());
 
 #else
@@ -624,7 +632,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
       for (sz_t i = 0, c = og->size (); i < c; ++i)
       {
         snprintf (k, 16, "%u", i);
-
+        
         KVR_ASSERT (pathcnt < pathsz);
         path [pathcnt++] = k;
         
@@ -641,6 +649,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
     else if (og->is_string ())
     //////////////////////////////////
     {
+      KVR_ASSERT (pathcnt > 0);
       KVR_ASSERT (md->is_string ());
 
       const char *ogstr = og->get_string ();
@@ -649,11 +658,11 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
       if (strcmp (ogstr, mdstr) != 0)
       {
         key *k = NULL;
-        if ((pathcnt == 1) && (og->m_ctx == this)) // path key must already be in the key store
+        if ((pathcnt == 1) && (og->m_ctx == this))
         {
           const char *pk = path [0];
           KVR_ASSERT (this->_find_key (pk));
-          k = this->_create_key (pk); // increment reference count
+          k = this->_create_key (pk);
         }
         else
         {
@@ -672,6 +681,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
     else if (og->_is_number_integer ())
     //////////////////////////////////
     {
+      KVR_ASSERT (pathcnt > 0);
       KVR_ASSERT (md->is_number ());
 
       if (md->_is_number_integer ())
@@ -732,6 +742,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
     else if (og->_is_number_float ())
     //////////////////////////////////
     {
+      KVR_ASSERT (pathcnt > 0);
       KVR_ASSERT (md->is_number ());
 
       double ogn = og->get_number_f ();
@@ -763,6 +774,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
     else if (og->is_boolean ())
     //////////////////////////////////
     {
+      KVR_ASSERT (pathcnt > 0);
       KVR_ASSERT (md->is_boolean ());
 
       bool ogb = og->get_boolean ();
@@ -1059,7 +1071,7 @@ const char * kvr::_create_path_key (const char **path, sz_t pathsz, sz_t *ksz) c
       pathkey = new char [keysz];
 
       char *dst = pathkey;
-      const char delim = KVR_CONSTANT_PATH_DELIMITER;
+      const char delim = KVR_CONSTANT_TOKEN_DELIMITER;
 
       for (sz_t i = 0; i < pathsz; ++i)
       {
@@ -1863,8 +1875,23 @@ kvr::value::cursor kvr::value::fcursor () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+kvr::value * kvr::value::search (const char *pathkey) const
+{
+  KVR_ASSERT (is_map () || is_array ());
+  KVR_ASSERT (pathkey);
+
+  value *v = this->_search_path_key (pathkey);
+
+  return v;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 kvr::value * kvr::value::search (const char **path, sz_t pathsz) const
 {
+  KVR_ASSERT (is_map () || is_array ());
   KVR_ASSERT (path);
   KVR_ASSERT (pathsz > 0);
 
@@ -2126,7 +2153,7 @@ kvr::value * kvr::value::_search_path_key (const char *path, const char **key, v
 
   value *v = (path [0] != 0) ? (value *) this : NULL;
 
-  const char delim = KVR_CONSTANT_PATH_DELIMITER;
+  const char delim = KVR_CONSTANT_TOKEN_DELIMITER;
   const char *p1 = path;
   const char *p2 = strchr (p1, delim);
 
@@ -2137,7 +2164,6 @@ kvr::value * kvr::value::_search_path_key (const char *path, const char **key, v
     sz_t klen = p2 - p1;
     KVR_ASSERT (klen <= KVR_CONSTANT_MAX_KEY_LENGTH);
     kvr_strncpy (k, p1, klen);
-
     v = v->_search_key (k);
 
     p1 = ++p2;
@@ -2189,9 +2215,104 @@ kvr::value * kvr::value::_search_key (const char *key) const
     char k0 = key [0];
     switch (k0)
     {
-      case '*': // reserved for basic pattern matching
+      case KVR_CONSTANT_TOKEN_MAP_GREP: // pattern match in array of maps
       {
-        v = NULL;
+        const char eq = '=';
+        const char *pattern = &key [1];
+        const char *s = strchr (pattern, eq);
+
+        if (s)
+        {
+          char sk [KVR_CONSTANT_MAX_KEY_LENGTH + 1];
+
+          sz_t klen = s - pattern;
+          KVR_ASSERT (klen <= KVR_CONSTANT_MAX_KEY_LENGTH);
+          kvr_strncpy  (sk, pattern, klen);
+
+          const char *sv = s + 1;
+
+          for (sz_t i = 0, c = this->size (), f = 0; (i < c) && !f; ++i)
+          {
+            value *m = this->element (i);
+
+            if (m && m->is_map ())
+            {
+              cursor cur = m->fcursor ();
+              pair *p = cur.get_pair ();
+
+              while (p)
+              {
+                const char *pk = p->get_key ();                
+                if (pk && (strcmp (pk, sk) == 0))
+                {
+                  // got key, now check value
+                  value *pv = p->get_value ();
+                  KVR_ASSERT (pv);
+
+                  if (pv->is_string ())
+                  {
+                    const char *pvstr = pv->get_string ();
+                    if (strcmp (sv, pvstr) == 0)
+                    {
+                      v = pv;
+                      f = 1;
+                      break;
+                    }
+                  }
+                  else if (pv->_is_number_float ())
+                  {
+                    double svf = strtod (sv, NULL); //atof (sv);
+                    double pvf = pv->get_number_f ();                    
+                    if (fabs (svf - pvf) <= KVR_CONSTANT_ZERO_TOLERANCE)
+                    {
+                      v = pv;
+                      f = 1;
+                      break;
+                    }
+                  }
+                  else if (pv->_is_number_integer ())
+                  {
+                    int64_t svi = atoi (sv);
+                    int64_t pvi = pv->get_number_i ();
+                    if (svi == pvi)
+                    {
+                      v = pv;
+                      f = 1;
+                      break;
+                    }
+                  }
+                  else if (pv->is_boolean ())
+                  {
+                    int valid = (strcmp (sv, kvr_const_str_false) == 0) ? 0 : (strcmp (sv, kvr_const_str_true) == 0) ? 1 : -1;
+                    if (valid != -1)
+                    {
+                      bool svb = valid ? true : false;
+                      bool pvb = pv->get_boolean ();
+                      if (svb == pvb)
+                      {
+                        v = pv;
+                        f = 1;
+                        break;
+                      }
+                    }
+                  }
+                  else if (pv->is_null ())
+                  {
+                    bool svnull = (strcmp (sv, kvr_const_str_null) == 0);
+                    if (svnull)
+                    {
+                      v = pv;
+                      f = 1;
+                      break;
+                    }
+                  }
+                }
+
+                p = cur.get_pair ();
+              }
+            }
+          }
+        }        
         break;
       }
 
@@ -2286,14 +2407,14 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   //////////////////////////////////
   {
     bool b = get_boolean ();
-    fprintf (stderr, "value = %s -> [bool]\n", b ? "true" : "false");
+    fprintf (stderr, "value = %s -> [bool]\n", b ? kvr_const_str_true : kvr_const_str_false);
   }
 
   //////////////////////////////////
   else if (this->is_null ())
   //////////////////////////////////
   {
-    fprintf (stderr, "value = %s -> [null]\n", "null");
+    fprintf (stderr, "value = %s -> [null]\n", kvr_const_str_null);
   }
 }
 
@@ -2552,31 +2673,27 @@ kvr::pair *kvr::value::map::find (const key *k) const
 
   pair *p = NULL;
 
-  if (k)
+  for (sz_t i = 0, c = m_cap; i < c; ++i)
   {
-    for (sz_t i = 0, c = m_cap; i < c; ++i)
-    {
-      pair *pp = &m_ptr [i];
+    pair *pp = &m_ptr [i];
 
 #if 0 // implicitly checked in next 'if' as k cannot be null
-      if (!pp->m_k)
-      {
-        continue;
-      }
+    if (!pp->m_k)
+    {
+      continue;
+    }
 #endif    
 
-      if (pp->m_k == k)
-      {
-        KVR_ASSERT (pp->m_v);
-        p = pp;
-        break;
-      }
+    if (pp->m_k == k)
+    {
+      KVR_ASSERT (pp->m_v);
+      p = pp;
+      break;
     }
   }
-
+ 
   return p;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
