@@ -402,7 +402,7 @@ public:
   void    destroy_value (value *v);
 
   value * diff (const value *original, const value *modified);  
-  value * patch (const value *diff, value *original);
+  value * patch (value *original, const value *diff);
 
   size_t  serialize (encoding_type encoding, const value *v, char *data, size_t size);
   value * deserialize (encoding_type encoding, const char *data, size_t size);

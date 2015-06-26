@@ -38,12 +38,12 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-static const char *kvr_const_str_null   = "null";
-static const char *kvr_const_str_true   = "true";
-static const char *kvr_const_str_false  = "false";
-static const char *kvr_const_str_set    = "set";
-static const char *kvr_const_str_add    = "add";
-static const char *kvr_const_str_rem    = "rem";
+static const char * const kvr_const_str_null   = "null";
+static const char * const kvr_const_str_true   = "true";
+static const char * const kvr_const_str_false  = "false";
+static const char * const kvr_const_str_set    = "set";
+static const char * const kvr_const_str_add    = "add";
+static const char * const kvr_const_str_rem    = "rem";
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,7 +199,7 @@ void kvr::destroy_value (value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::diff (const value *original, const value *modified)
+kvr::value * kvr::diff (const value * original, const value *modified)
 {
   KVR_ASSERT (original);
   KVR_ASSERT (modified);
@@ -313,10 +313,10 @@ kvr::value * kvr::diff (const value *original, const value *modified)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::patch (const value *diff, value *original)
+kvr::value * kvr::patch (value *original, const value *diff)
 {
-  KVR_ASSERT (diff);
   KVR_ASSERT (original);
+  KVR_ASSERT (diff);  
 
   value *tg = original;
 
