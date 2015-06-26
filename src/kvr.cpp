@@ -41,6 +41,9 @@
 static const char *kvr_const_str_null   = "null";
 static const char *kvr_const_str_true   = "true";
 static const char *kvr_const_str_false  = "false";
+static const char *kvr_const_str_set    = "set";
+static const char *kvr_const_str_add    = "add";
+static const char *kvr_const_str_rem    = "rem";
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -214,9 +217,9 @@ kvr::value * kvr::diff (const value *original, const value *modified)
     {
       diff = this->_create_value_map (VALUE_FLAG_PARENT_CTX);
 
-      pair *set = diff->insert_map ("set");
-      pair *add = diff->insert_map ("add");
-      pair *rem = diff->insert_array ("rem");
+      pair *set = diff->insert_map (kvr_const_str_set);
+      pair *add = diff->insert_map (kvr_const_str_add);
+      pair *rem = diff->insert_array (kvr_const_str_rem);
 
       KVR_ASSERT (set);
       KVR_ASSERT (add);
@@ -320,9 +323,9 @@ kvr::value * kvr::patch (const value *diff, value *original)
   if (diff->is_map () && (tg->is_map () || tg->is_array ()))
   {
     // patch
-    pair *set = diff->find ("set");
-    pair *add = diff->find ("add");
-    pair *rem = diff->find ("rem");
+    pair *set = diff->find (kvr_const_str_set);
+    pair *add = diff->find (kvr_const_str_add);
+    pair *rem = diff->find (kvr_const_str_rem);
 
     KVR_ASSERT (set);
     KVR_ASSERT (add);
@@ -933,7 +936,7 @@ void kvr::_patch_set (const value *set, value *tg)
   {
     const char *skey = p->get_key ();
     value *sval = p->get_value ();
-    value *tgv = tg->_search_path_key (skey);
+    value *tgv = tg->_search_path_exp (skey);
 
     if (tgv)
     {
@@ -963,7 +966,7 @@ void kvr::_patch_add (const value *add, value *tg)
 
     const char *tgk = NULL;
     value *tgp = NULL;    
-    value *tgv = tg->_search_path_key (akey, &tgk, &tgp);
+    value *tgv = tg->_search_path_exp (akey, &tgk, &tgp);
     KVR_ASSERT (tgv == NULL);
 
     if (tgk && tgp)
@@ -1014,7 +1017,7 @@ void kvr::_patch_rem (const value *rem, value *tg)
 
     const char *tgk = NULL;
     value *tgp = NULL;
-    value *tgv = tg->_search_path_key (rkey, &tgk, &tgp);
+    value *tgv = tg->_search_path_exp (rkey, &tgk, &tgp);
 
     if (tgp && tgv)
     {
@@ -1875,12 +1878,12 @@ kvr::value::cursor kvr::value::fcursor () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::search (const char *pathkey) const
+kvr::value * kvr::value::search (const char *pathexp) const
 {
   KVR_ASSERT (is_map () || is_array ());
-  KVR_ASSERT (pathkey);
+  KVR_ASSERT (pathexp);
 
-  value *v = this->_search_path_key (pathkey);
+  value *v = this->_search_path_exp (pathexp);
 
   return v;
 }
@@ -2144,45 +2147,45 @@ void kvr::value::_push_v (value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::_search_path_key (const char *path, const char **key, value **parent) const
+kvr::value * kvr::value::_search_path_exp (const char *exp, const char **lastkey, value **lastparent) const
 {
-  KVR_ASSERT (path);
-  KVR_ASSERT (strlen (path) > 0);
+  KVR_ASSERT (exp);
+  KVR_ASSERT (strlen (exp) > 0);
 
-  // TODO: convert path to unicode first
+  // TODO: unicode parsing
 
-  value *v = (path [0] != 0) ? (value *) this : NULL;
+  value *v = (exp [0] != 0) ? (value *) this : NULL;
 
   const char delim = KVR_CONSTANT_TOKEN_DELIMITER;
-  const char *p1 = path;
-  const char *p2 = strchr (p1, delim);
+  const char *e1 = exp;
+  const char *e2 = strchr (e1, delim);
 
   char k [KVR_CONSTANT_MAX_KEY_LENGTH + 1];
 
-  while (v && p2)
+  while (v && e2)
   {
-    sz_t klen = p2 - p1;
+    sz_t klen = e2 - e1;
     KVR_ASSERT (klen <= KVR_CONSTANT_MAX_KEY_LENGTH);
-    kvr_strncpy (k, p1, klen);
+    kvr_strncpy (k, e1, klen);
     v = v->_search_key (k);
 
-    p1 = ++p2;
-    p2 = strchr (p1, delim);
+    e1 = ++e2;
+    e2 = strchr (e1, delim);
   }
 
-  if (parent)
+  if (lastparent)
   {
-    *parent = v;
+    *lastparent = v;
   }
 
-  if (key)
+  if (lastkey)
   {
-    *key = p1;
+    *lastkey = e1;
   }
 
-  if (v && p1 && (*p1 != 0))
+  if (v && e1 && (*e1 != 0))
   {
-    kvr_strcpy (k, KVR_CONSTANT_MAX_KEY_LENGTH, p1);
+    kvr_strcpy (k, KVR_CONSTANT_MAX_KEY_LENGTH, e1);
 
     v = v->_search_key (k);
   }

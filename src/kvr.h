@@ -206,7 +206,7 @@ public:
     cursor        fcursor () const;
 
     // path search (map or array)
-    value *       search (const char *pathkey) const;
+    value *       search (const char *pathexp) const;
     value *       search (const char **path, sz_t pathsz) const;
 
     // copy
@@ -340,7 +340,7 @@ public:
     pair  * _insert_kv (key *k, value *v);
     void    _push_v (value *v);
 
-    value * _search_path_key (const char *path, const char **key = NULL, value **parent = NULL) const;
+    value * _search_path_exp (const char *exp, const char **lastkey = NULL, value **lastparent = NULL) const;
     value * _search_key (const char *key) const;
     void    _dump (size_t lpad, const char *key) const;
     
