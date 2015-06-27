@@ -53,7 +53,7 @@ static const char * const kvr_const_str_rem    = "rem";
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr * kvr::init (uint32_t flags)
+kvr * kvr::create_context (uint32_t flags)
 {
   kvr *ctx = new kvr ();
 
@@ -64,7 +64,7 @@ kvr * kvr::init (uint32_t flags)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::deinit (kvr *ctx)
+void kvr::destroy_context (kvr *ctx)
 {
   KVR_ASSERT (ctx);
 
@@ -557,7 +557,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
       else
       {
         sz_t pksz = 0;
-        const char *pk = _create_path_key (path, pathcnt, &pksz);
+        const char *pk = _create_path_expr (path, pathcnt, &pksz);
         v->_move_string_dyn ((char *) pk, pksz);
       }
 
@@ -581,14 +581,14 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
       }
       else
       {
-        const char *pk = _create_path_key (path, pathcnt);
+        const char *pk = _create_path_expr (path, pathcnt);
         k = this->_create_key (pk, false);
-        if (k->m_ref > 1) { _destroy_path_key (pk); pk = NULL; }
+        if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
       }
 #else
-      const char *pk = _create_path_key (path, pathcnt);
+      const char *pk = _create_path_expr (path, pathcnt);
       key *k = this->_create_key (pk, false);
-      if (k->m_ref > 1) { _destroy_path_key (pk); pk = NULL; }
+      if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
 #endif
       value *v = this->_create_value_null (VALUE_FLAG_PARENT_MAP);
       v->copy (md);
@@ -669,9 +669,9 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
         }
         else
         {
-          const char *pk = _create_path_key (path, pathcnt);
+          const char *pk = _create_path_expr (path, pathcnt);
           k = this->_create_key (pk, false);
-          if (k->m_ref > 1) { _destroy_path_key (pk); pk = NULL; }
+          if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
         }
 
         value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdstr);
@@ -703,9 +703,9 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
           }
           else
           {
-            const char *pk = _create_path_key (path, pathcnt);
+            const char *pk = _create_path_expr (path, pathcnt);
             k = this->_create_key (pk, true);
-            if (k->m_ref > 1) { _destroy_path_key (pk); pk = NULL; }
+            if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
           }         
       
           value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
@@ -729,9 +729,9 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
           }
           else
           {
-            const char *pk = _create_path_key (path, pathcnt);
+            const char *pk = _create_path_expr (path, pathcnt);
             k = this->_create_key (pk, true);
-            if (k->m_ref > 1) { _destroy_path_key (pk); pk = NULL; }
+            if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
           }
 
           value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
@@ -762,9 +762,9 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
         }
         else
         {
-          const char *pk = _create_path_key (path, pathcnt);
+          const char *pk = _create_path_expr (path, pathcnt);
           k = this->_create_key (pk, true);
-          if (k->m_ref > 1) { _destroy_path_key (pk); pk = NULL; }
+          if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
         }
 
         value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
@@ -794,9 +794,9 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
         }
         else
         {
-          const char *pk = _create_path_key (path, pathcnt);
+          const char *pk = _create_path_expr (path, pathcnt);
           k = this->_create_key (pk, true);
-          if (k->m_ref > 1) { _destroy_path_key (pk); pk = NULL; }
+          if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
         }
 
         value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdb);
@@ -845,9 +845,9 @@ void kvr::_diff_add (value *add, const value *og, const value *md, const char **
       }
       else
       {
-        const char *pk = _create_path_key (path, pathcnt);
+        const char *pk = _create_path_expr (path, pathcnt);
         k = this->_create_key (pk, true);
-        if (k->m_ref > 1) { _destroy_path_key (pk); pk = NULL; }
+        if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
       }
 
       value *v = this->_create_value_null (VALUE_FLAG_PARENT_MAP);
@@ -936,7 +936,7 @@ void kvr::_patch_set (const value *set, value *tg)
   {
     const char *skey = p->get_key ();
     value *sval = p->get_value ();
-    value *tgv = tg->_search_path_exp (skey);
+    value *tgv = tg->_search_path_expr (skey);
 
     if (tgv)
     {
@@ -966,7 +966,7 @@ void kvr::_patch_add (const value *add, value *tg)
 
     const char *tgk = NULL;
     value *tgp = NULL;    
-    value *tgv = tg->_search_path_exp (akey, &tgk, &tgp);
+    value *tgv = tg->_search_path_expr (akey, &tgk, &tgp);
     KVR_ASSERT (tgv == NULL);
 
     if (tgk && tgp)
@@ -1017,7 +1017,7 @@ void kvr::_patch_rem (const value *rem, value *tg)
 
     const char *tgk = NULL;
     value *tgp = NULL;
-    value *tgv = tg->_search_path_exp (rkey, &tgk, &tgp);
+    value *tgv = tg->_search_path_expr (rkey, &tgk, &tgp);
 
     if (tgp && tgv)
     {
@@ -1046,16 +1046,16 @@ void kvr::_patch_rem (const value *rem, value *tg)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-const char * kvr::_create_path_key (const char **path, sz_t pathsz, sz_t *ksz) const
+const char * kvr::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) const
 {
   KVR_ASSERT (pathsz > 0);
 
-  char *pathkey = NULL;
+  char *expr = NULL;
 
   if (pathsz > 0)
   {
     // pre-calculate key buffer size
-    sz_t keysz = 0;
+    sz_t expsz = 0;
     for (sz_t i = 0; i < pathsz; ++i)
     {
       const char *p = path [i];
@@ -1064,16 +1064,16 @@ const char * kvr::_create_path_key (const char **path, sz_t pathsz, sz_t *ksz) c
       size_t plen = strlen (p);
       KVR_ASSERT (plen < MAX_SZ_T);
 
-      keysz += (sz_t) plen;
-      keysz += 1; // for delimiter/null character
+      expsz += (sz_t) plen;
+      expsz += 1; // for delimiter/null character
     }
 
-    if (keysz > 0)
+    if (expsz > 0)
     {
       // create key
-      pathkey = new char [keysz];
+      expr = new char [expsz];
 
-      char *dst = pathkey;
+      char *dst = expr;
       const char delim = KVR_CONSTANT_TOKEN_DELIMITER;
 
       for (sz_t i = 0; i < pathsz; ++i)
@@ -1088,22 +1088,22 @@ const char * kvr::_create_path_key (const char **path, sz_t pathsz, sz_t *ksz) c
       *(dst - 1) = 0;
     }
 
-    if (ksz)
+    if (exprsz)
     {
-      *ksz = keysz;
+      *exprsz = expsz;
     }
   }
 
-  return pathkey;
+  return expr;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::_destroy_path_key (const char *key)
+void kvr::_destroy_path_expr (const char *expr)
 {
-  delete [] key;
+  delete [] expr;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1541,8 +1541,8 @@ bool kvr::value::pop ()
 kvr::value * kvr::value::element (kvr::sz_t index) const
 {
   KVR_ASSERT (is_array ());
-
-  value *v = this->m_data.a.m_ptr [index];
+  
+  value *v = this->m_data.a.elem (index);
 
   return v;
 }
@@ -1878,12 +1878,12 @@ kvr::value::cursor kvr::value::fcursor () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::search (const char *pathexp) const
+kvr::value * kvr::value::search (const char *pathexpr) const
 {
   KVR_ASSERT (is_map () || is_array ());
-  KVR_ASSERT (pathexp);
+  KVR_ASSERT (pathexpr);
 
-  value *v = this->_search_path_exp (pathexp);
+  value *v = this->_search_path_expr (pathexpr);
 
   return v;
 }
@@ -2147,17 +2147,17 @@ void kvr::value::_push_v (value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::_search_path_exp (const char *exp, const char **lastkey, value **lastparent) const
+kvr::value * kvr::value::_search_path_expr (const char *expr, const char **lastkey, value **lastparent) const
 {
-  KVR_ASSERT (exp);
-  KVR_ASSERT (strlen (exp) > 0);
+  KVR_ASSERT (expr);
+  KVR_ASSERT (strlen (expr) > 0);
 
   // TODO: unicode parsing
 
-  value *v = (exp [0] != 0) ? (value *) this : NULL;
+  value *v = (expr [0] != 0) ? (value *) this : NULL;
 
   const char delim = KVR_CONSTANT_TOKEN_DELIMITER;
-  const char *e1 = exp;
+  const char *e1 = expr;
   const char *e2 = strchr (e1, delim);
 
   char k [KVR_CONSTANT_MAX_KEY_LENGTH + 1];
@@ -2555,6 +2555,7 @@ kvr::value *kvr::value::array::pop ()
 {
 #if KVR_DEBUG
   value *v = NULL;
+
   if (m_len > 0)
   {
     v = m_ptr [--m_len];
@@ -2563,6 +2564,40 @@ kvr::value *kvr::value::array::pop ()
 #else
   value *v = (m_len > 0) ? m_ptr [--m_len] : NULL;
 #endif
+
+  return v;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+#if 0 // unused
+kvr::value * kvr::value::array::pop (sz_t index)
+{
+  value *v = NULL;
+
+  if (index < m_len) // implies m_len > 0
+  {
+    v = m_ptr [index];
+
+    for (sz_t i = index + 1; i < m_len; ++i)
+    {
+      m_ptr [i - 1] = m_ptr [i];
+    }
+
+    m_ptr [--m_len] = NULL;
+  }
+
+  return v;
+}
+#endif
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value * kvr::value::array::elem (sz_t index) const
+{
+  value *v = (index < m_len) ? m_ptr [index] : NULL;
 
   return v;
 }
@@ -2711,13 +2746,13 @@ kvr::pair * kvr::value::cursor::get_pair ()
 #if 1
   pair *p = NULL;
 
-  if (m_index < m_map->m_cap)
+  if (m_index < m_map->m_size)
   {
     p = &m_map->m_ptr [m_index++];
 
     while (p && !p->m_k)
     {
-      p = (m_index < m_map->m_cap) ? &m_map->m_ptr [m_index++] : NULL;
+      p = (m_index < m_map->m_size) ? &m_map->m_ptr [m_index++] : NULL;
     }
   }
 #else
@@ -2726,7 +2761,7 @@ kvr::pair * kvr::value::cursor::get_pair ()
 
   while (p && !p->m_k)
   {
-    p = (m_index < m_map->m_cap) ? &m_map->m_ptr [m_index++] : NULL;
+    p = (m_index < m_map->m_size) ? &m_map->m_ptr [m_index++] : NULL;
   }
 #endif
 

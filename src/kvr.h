@@ -206,7 +206,7 @@ public:
     cursor        fcursor () const;
 
     // path search (map or array)
-    value *       search (const char *pathexp) const;
+    value *       search (const char *pathexpr) const;
     value *       search (const char **path, sz_t pathsz) const;
 
     // copy
@@ -262,6 +262,8 @@ public:
       void    deinit ();
       void    push (value *v);
       value * pop ();
+      value * pop (sz_t index);
+      value * elem (sz_t index) const;
 
       value **m_ptr;
       sz_t    m_len;
@@ -340,7 +342,8 @@ public:
     pair  * _insert_kv (key *k, value *v);
     void    _push_v (value *v);
 
-    value * _search_path_exp (const char *exp, const char **lastkey = NULL, value **lastparent = NULL) const;
+    value * _search_path_expr (const char *expr, const char **lastkey = NULL, 
+                               value **lastparent = NULL) const;
     value * _search_key (const char *key) const;
     void    _dump (size_t lpad, const char *key) const;
     
@@ -385,8 +388,8 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  static kvr *  init (uint32_t flags = 0);
-  static void   deinit (kvr *ctx);
+  static kvr *  create_context (uint32_t flags = 0);
+  static void   destroy_context (kvr *ctx);
   
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -506,8 +509,8 @@ private:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  const char * _create_path_key (const char **path, sz_t pathsz, sz_t *ksz = NULL) const;
-  void    _destroy_path_key (const char *key);
+  const char * _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz = NULL) const;
+  void    _destroy_path_expr (const char *expr);
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
