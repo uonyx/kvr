@@ -320,7 +320,6 @@ private:
     {
       KVR_ASSERT (m_data);
       KVR_ASSERT (m_pos < m_cap);
-
       m_data [m_pos++] = ch;
     }
 
@@ -337,7 +336,9 @@ private:
       m_pos -= count;
     }
 
-    void Flush () {}
+    void Flush () 
+    {
+    }
 
     const char *GetString () const
     {
@@ -369,7 +370,7 @@ private:
     {
       size += 2;
       kvr::value::cursor c = val->fcursor ();
-      kvr::pair  *p = c.get_pair ();
+      kvr::pair  *p = c.get ();
       while (p)
       {
         const char *k = p->get_key ();
@@ -379,7 +380,7 @@ private:
         size += kvr_internal::json_write_approx_size (v);
         size += 2;
 
-        p = c.get_pair ();
+        p = c.get ();
       }
     }
 
@@ -391,7 +392,7 @@ private:
       for (kvr::sz_t i = 0, c = val->size (); i < c; ++i)
       {
         kvr::value *v = val->element (i);        
-        size += kvr_internal::count_digits (i);
+        size += kvr_internal::u32digits (i);
         size += kvr_internal::json_write_approx_size (v);
         size += 1;
       }
@@ -410,7 +411,7 @@ private:
     //////////////////////////////////
     {
       int64_t n = val->get_number_i ();
-      size += kvr_internal::count_digits (n); 
+      size += kvr_internal::i64digits (n); 
     }
 
     //////////////////////////////////
@@ -454,7 +455,7 @@ private:
       bool ok = writer.StartObject ();
 
       kvr::value::cursor c = val->fcursor ();
-      kvr::pair *p = c.get_pair ();
+      kvr::pair *p = c.get ();
       while (p && ok)
       {
         const char *k = p->get_key ();        
@@ -463,7 +464,7 @@ private:
         kvr::value *v = p->get_value ();
         ok = kvr_internal::json_write_stream (v, writer);
 
-        p = c.get_pair ();
+        p = c.get ();
       }
 
       success = ok && writer.EndObject ();
@@ -634,19 +635,22 @@ public:
   //////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////
 
-  static uint32_t count_digits (int64_t i64)
+  static uint32_t u32digits (uint32_t u32)
   {
-#if 0
+    uint32_t count = kvr_rapidjson::internal::CountDecimalDigit32 (u32);
+    return count;
+  }
+
+  static uint32_t i64digits (int64_t i64)
+  {
     int64_t n = i64;
     uint32_t count = (n < 0) ? 1 : 0; // sign
     do
     {
       count++;
-      n /= 10;      
+      n /= 10;
     } while (n);
-#else
-    uint32_t count = kvr_rapidjson::internal::CountDecimalDigit32 ((uint32_t) i64);
-#endif
+
     return count;
   }
 

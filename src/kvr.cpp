@@ -10,12 +10,12 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-static const char * const kvr_const_str_null   = "null";
-static const char * const kvr_const_str_true   = "true";
-static const char * const kvr_const_str_false  = "false";
-static const char * const kvr_const_str_set    = "set";
-static const char * const kvr_const_str_add    = "add";
-static const char * const kvr_const_str_rem    = "rem";
+static const char * const kvr_const_str_null  = "null";
+static const char * const kvr_const_str_true  = "true";
+static const char * const kvr_const_str_false = "false";
+static const char * const kvr_const_str_set   = "set";
+static const char * const kvr_const_str_add   = "add";
+static const char * const kvr_const_str_rem   = "rem";
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -355,7 +355,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
       KVR_ASSERT (md->is_map ());
 
       value::cursor c = og->fcursor ();
-      pair  *ogp = c.get_pair ();
+      pair  *ogp = c.get ();
 
       while (ogp)
       {
@@ -373,7 +373,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
         
         path [--pathcnt] = NULL;
 
-        ogp = c.get_pair ();
+        ogp = c.get ();
       }
     }
 
@@ -626,7 +626,7 @@ void kvr::_diff_add (value *add, const value *og, const value *md, const char **
       KVR_ASSERT (og->is_map ());
 
       value::cursor c = md->fcursor ();
-      pair  *mdp = c.get_pair ();
+      pair  *mdp = c.get ();
 
       while (mdp)
       {
@@ -644,7 +644,7 @@ void kvr::_diff_add (value *add, const value *og, const value *md, const char **
 
         path [--pathcnt] = NULL;
 
-        mdp = c.get_pair ();
+        mdp = c.get ();
       }
     }
 
@@ -1534,7 +1534,7 @@ void kvr::value::copy (const value *rhs)
       this->_conv_map (rhs->m_data.m.m_cap);
 
       cursor c = rhs->fcursor ();
-      pair  *rp = c.get_pair ();
+      pair  *rp = c.get ();
       while (rp)
       {
         const char *rk = rp->get_key ();
@@ -1544,7 +1544,7 @@ void kvr::value::copy (const value *rhs)
         value *lv = lp->get_value ();
         lv->copy (rv);
 
-        rp = c.get_pair ();
+        rp = c.get ();
       }
     }
 
@@ -2161,7 +2161,7 @@ kvr::value * kvr::value::_search_key (const char *key) const
             if (m && m->is_map ())
             {
               cursor cur = m->fcursor ();
-              pair *p = cur.get_pair ();
+              pair *p = cur.get ();
 
               while (p)
               {
@@ -2231,7 +2231,7 @@ kvr::value * kvr::value::_search_key (const char *key) const
                   }
                 }
 
-                p = cur.get_pair ();
+                p = cur.get ();
               }
             }
           }
@@ -2273,12 +2273,12 @@ void kvr::value::_destruct ()
   if (is_map ())
   {
     cursor c = fcursor ();
-    pair  *p = c.get_pair ();
+    pair  *p = c.get ();
     while (p)
     {
       m_ctx->_destroy_key (p->m_k);
       m_ctx->_destroy_value (VALUE_FLAG_PARENT_MAP, p->m_v);
-      p = c.get_pair ();
+      p = c.get ();
     }
     m_data.m.deinit ();
   }
@@ -2340,14 +2340,14 @@ void kvr::value::_dump (size_t lpad, const char *key) const
     fprintf (stderr, "value = -> [map]\n");
 
     cursor c = fcursor ();
-    pair  *p = c.get_pair ();
+    pair  *p = c.get ();
     while (p)
     {
       const char *k = p->get_key ();
       value *v = p->get_value ();
       v->_dump (lpad + 1, k);
 
-      p = c.get_pair ();
+      p = c.get ();
     }
   }
 
@@ -2419,7 +2419,7 @@ void kvr::value::_patch_set (const value *set)
   value *tg = this;
 
   kvr::value::cursor cursor = set->fcursor ();
-  kvr::pair *p = cursor.get_pair ();
+  kvr::pair *p = cursor.get ();
 
   while (p)
   {
@@ -2432,7 +2432,7 @@ void kvr::value::_patch_set (const value *set)
       tgv->copy (sval);
     }
 
-    p = cursor.get_pair ();
+    p = cursor.get ();
   }
 }
 
@@ -2447,7 +2447,7 @@ void kvr::value::_patch_add (const value *add)
   value *tg = this;
 
   kvr::value::cursor cursor = add->fcursor ();
-  kvr::pair *p = cursor.get_pair ();
+  kvr::pair *p = cursor.get ();
 
   while (p)
   {
@@ -2481,7 +2481,7 @@ void kvr::value::_patch_add (const value *add)
       }
     }
 
-    p = cursor.get_pair ();
+    p = cursor.get ();
   }
 }
 
@@ -2787,7 +2787,7 @@ kvr::pair *kvr::value::map::find (const key *k) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::pair * kvr::value::cursor::get_pair ()
+kvr::pair * kvr::value::cursor::get ()
 {
 #if 1
   pair *p = NULL;

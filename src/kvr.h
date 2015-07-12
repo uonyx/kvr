@@ -321,7 +321,7 @@ public:
     {
     public:
 
-      pair *  get_pair ();
+      pair *  get ();
 
     private:
 
