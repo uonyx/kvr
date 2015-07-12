@@ -9,14 +9,6 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
-#define KVR_PLATFORM_POSIX
-#endif
-
-#if defined (_WIN32) || (defined (_WIN64))
-#define KVR_PLATFORM_WINDOWS
-#endif
-
 #if defined (_MSC_VER)
 #define KVR_DEBUG          _DEBUG
 #else
@@ -60,9 +52,11 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+// ideal to have the first 3 constants constants statically bound by client (aka templates)
+
 #define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
 #define KVR_CONSTANT_MAX_KEY_LENGTH                     (255)
-#define KVR_CONSTANT_MAX_TREE_DEPTH                     (128)
+#define KVR_CONSTANT_MAX_TREE_DEPTH                     (64)
 #define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 #define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
 
@@ -90,17 +84,12 @@ public:
     DATA_FORMAT_MSGPACK,
   };
 
-private:
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
   class key;
-
-public:
   class value;
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  
-public:
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -110,7 +99,7 @@ public:
   {
   public:
 
-    const char *  get_key () const;
+    key   *       get_key () const;
     value *       get_value ();
 
   private:
@@ -127,20 +116,21 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-private:
-
   class key
   {
   public:
 
     const char *  get_string () const;
+    sz_t          get_length () const;
 
   private:
 
-    key (const char *str, bool move);
+    key (const char *str);
+    key (char *str, sz_t len);
     ~key ();
 
     char *  m_str;
+    sz_t    m_len;
     sz_t    m_ref;
 
     friend class kvr;
@@ -219,14 +209,14 @@ public:
     bool          remove (pair *node);
     cursor        fcursor () const;
 
+    // copy
+    void          copy (const value *rhs);
+
     // path search (map or array)
     value *       search (const char *pathexpr) const;
     value *       search (const char **path, sz_t pathsz) const;
 
-    // copy
-    void          copy (const value *rhs);
-
-    // read/write
+    // serialize/deserialize
     bool          serialize (data_format format, strbuffer *strbuf) const;
     bool          deserialize (data_format format, const char *str);
 
@@ -376,8 +366,6 @@ public:
       array     a;
       string    s;
       bool      b;
-
-      data () {}
     };
 
     ///////////////////////////////////////////
@@ -469,7 +457,6 @@ private:
   enum value_flags
   {
     VALUE_FLAG_NONE                 = 0,
-
     VALUE_FLAG_TYPE_NULL            = (1 << 0),
     VALUE_FLAG_TYPE_MAP             = (1 << 1),
     VALUE_FLAG_TYPE_ARRAY           = (1 << 2),
@@ -478,7 +465,6 @@ private:
     VALUE_FLAG_TYPE_NUMBER_INTEGER  = (1 << 5),
     VALUE_FLAG_TYPE_NUMBER_FLOAT    = (1 << 6),
     VALUE_FLAG_TYPE_BOOLEAN         = (1 << 7),
-
     VALUE_FLAG_PARENT_CTX           = (1 << 8),
     VALUE_FLAG_PARENT_MAP           = (1 << 9),
     VALUE_FLAG_PARENT_ARRAY         = (1 << 10),
@@ -531,8 +517,9 @@ private:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  key *   _find_key (const char *str);
-  key *   _create_key (const char *str, bool move = false);
+  key *   _find_key (const char *str);  
+  key *   _create_key_copy (const char *str);
+  key *   _create_key_move (char *str, sz_t len);
   void    _destroy_key (key *k);
 
   ///////////////////////////////////////////////////////////////
@@ -643,9 +630,9 @@ inline bool kvr::value::_is_string_static () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline const char *kvr::pair::get_key () const
+inline kvr::key * kvr::pair::get_key () const
 {
-  return m_k ? m_k->get_string () : NULL;
+  return m_k;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

@@ -12,6 +12,7 @@
 #include "../kvr.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/writer.h"
+#include <assert.h>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -373,10 +374,10 @@ private:
       kvr::pair  *p = c.get ();
       while (p)
       {
-        const char *k = p->get_key ();
+        kvr::key *k = p->get_key ();
         kvr::value *v = p->get_value ();
 
-        size += strlen (k) + 2;
+        size += k->get_length () + 2;
         size += kvr_internal::json_write_approx_size (v);
         size += 2;
 
@@ -458,8 +459,8 @@ private:
       kvr::pair *p = c.get ();
       while (p && ok)
       {
-        const char *k = p->get_key ();        
-        writer.Key (k, strlen (k));
+        kvr::key *k = p->get_key ();
+        writer.Key (k->get_string (), k->get_length ());
 
         kvr::value *v = p->get_value ();
         ok = kvr_internal::json_write_stream (v, writer);
