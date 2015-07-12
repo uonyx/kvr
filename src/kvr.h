@@ -62,7 +62,7 @@
 
 #define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
 #define KVR_CONSTANT_MAX_KEY_LENGTH                     (255)
-#define KVR_CONSTANT_MAX_TREE_DEPTH                     (256)
+#define KVR_CONSTANT_MAX_TREE_DEPTH                     (128)
 #define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 #define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
 
@@ -84,6 +84,12 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
+  enum data_format
+  {
+    DATA_FORMAT_JSON,
+    DATA_FORMAT_MSGPACK,
+  };
+
 private:
   class key;
 
@@ -94,6 +100,12 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   
+public:
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
   class pair
   {
   public:
@@ -149,6 +161,7 @@ public:
     ///////////////////////////////////////////
     
     class cursor;
+    class strbuffer;
 
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -158,19 +171,20 @@ public:
     bool          is_null () const;
     bool          is_string () const;
     bool          is_boolean () const;
-    bool          is_number () const;
+    bool          is_number_i () const;
+    bool          is_number_f () const;    
     bool          is_map () const;
     bool          is_array () const;
     
     // type conversion
     void          conv_null ();
-    void          conv_map ();
-    void          conv_array ();
+    value *       conv_map ();
+    value *       conv_array ();
     void          conv_string ();
     void          conv_boolean ();
     void          conv_number_i ();
     void          conv_number_f ();
- 
+
     // native variant ops
     void          set_string (const char *str);
     void          set_boolean (bool b);
@@ -212,8 +226,16 @@ public:
     // copy
     void          copy (const value *rhs);
 
-    // debug log
+    // debug output
     void          dump () const;
+
+    // read/write
+    bool          serialize (data_format format, strbuffer *strbuf) const;
+    bool          deserialize (data_format format, const char *str);
+
+    // diff/patch
+    bool          diff (const value *original, const value *modified); 
+    bool          patch (const value *diff);
     
   private:
 
@@ -311,6 +333,33 @@ public:
       friend class value;
     };
 
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+
+    class strbuffer
+    {
+    public:
+
+      const char *  get_string () const;
+      size_t        get_length () const;
+
+      strbuffer ();
+      ~strbuffer ();
+
+    private:
+
+      strbuffer (const strbuffer &);
+      strbuffer &operator= (const strbuffer &);
+
+      void _reset ();
+
+      char  * m_str;
+      size_t  m_len;
+
+      friend class value;
+    };
+
   private:
 
     ///////////////////////////////////////////
@@ -345,17 +394,20 @@ public:
     value * _search_path_expr (const char *expr, const char **lastkey = NULL, 
                                value **lastparent = NULL) const;
     value * _search_key (const char *key) const;
-    void    _dump (size_t lpad, const char *key) const;
     
-    void    _destruct ();
-    void    _clear ();
     uint8_t _type () const;
+    void    _destruct ();
+    void    _clear ();    
+    void    _dump (size_t lpad, const char *key) const;
 
-    bool    _is_number_integer () const;
-    bool    _is_number_float () const;
+    void    _patch_set (const value *set);
+    void    _patch_add (const value *add);
+    void    _patch_rem (const value *rem);
+
     bool    _is_string_dynamic () const;
     bool    _is_string_static () const;
-
+    bool    _is_number () const;
+    
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -378,38 +430,16 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  enum encoding_type
-  {
-    ENCODING_TYPE_JSON,
-    ENCODING_TYPE_MSGPACK,
-  };
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-
   static kvr *  create_context (uint32_t flags = 0);
   static void   destroy_context (kvr *ctx);
   
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
-
-  value * create_value_null ();
-  value * create_value_map ();
-  value * create_value_array ();
-  value * create_value (int64_t number);
-  value * create_value (double number);
-  value * create_value (bool boolean);
-  value * create_value (const char *str);
+  
+  value * create_value ();
   void    destroy_value (value *v);
-
-  value * diff (const value *original, const value *modified);  
-  value * patch (value *original, const value *diff);
-
-  size_t  serialize (encoding_type encoding, const value *v, char *data, size_t size);
-  value * deserialize (encoding_type encoding, const char *data, size_t size);
-
+   
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -492,7 +522,7 @@ private:
   value * _create_value (uint32_t parentType, bool boolean);
   value * _create_value (uint32_t parentType, const char *str);
   void    _destroy_value (uint32_t parentType, value *v);
-
+  
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -501,16 +531,13 @@ private:
                      const char **path, const sz_t pathsz, sz_t pathcnt);
   void    _diff_add (value *add, const value *og, const value *md,
                      const char **path, const sz_t pathsz, sz_t pathcnt);
-  void    _patch_set (const value *set, value *tg);
-  void    _patch_add (const value *add, value *tg);
-  void    _patch_rem (const value *rem, value *tg);
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  const char * _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz = NULL) const;
-  void    _destroy_path_expr (const char *expr);
+  char *  _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz = NULL) const;
+  void    _destroy_path_expr (char *expr);
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -559,7 +586,7 @@ inline bool kvr::value::is_boolean () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_number () const
+inline bool kvr::value::_is_number () const
 {
   return (m_flags & (VALUE_FLAG_TYPE_NUMBER_INTEGER | VALUE_FLAG_TYPE_NUMBER_FLOAT)) != 0;
 }
@@ -577,7 +604,7 @@ inline bool kvr::value::is_null () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::_is_number_integer () const
+inline bool kvr::value::is_number_i () const
 {
   return (m_flags & VALUE_FLAG_TYPE_NUMBER_INTEGER) != 0;
 }
@@ -586,7 +613,7 @@ inline bool kvr::value::_is_number_integer () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::_is_number_float () const
+inline bool kvr::value::is_number_f () const
 {
   return (m_flags & VALUE_FLAG_TYPE_NUMBER_FLOAT) != 0;
 }

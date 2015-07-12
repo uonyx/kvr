@@ -3,36 +3,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "kvr.h"
+#include "internal/kvr_internal.h"
 #include <assert.h>
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-#define KVR_SAFE_ASSERT_ON                0
-#if KVR_DEBUG
-#define KVR_ASSERT(X) assert(X)
-#else
-#if KVR_SAFE_ASSERT_ON
-#define KVR_ASSERT(X) do { if (!X) { return; } } while (0) // dumb: can't just return void in all funcs
-#else
-#define KVR_ASSERT(X) 
-#endif
-#endif
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-#if defined (_MSC_VER)
-#define kvr_strcpy(dst, dsz, src) strcpy_s (dst, dsz, src)
-#define kvr_strncpy(dst, src, n) strncpy_s (dst, src, n)
-#define kvr_strdup(src, sz) _strdup (src)
-#else
-#define kvr_strcpy(dst, dsz, src) { strncpy (dst, src, dsz); dst [dsz - 1] = 0; }
-#define kvr_strncpy(dst, src, n) strncpy (dst, src, n)
-#define kvr_strdup(src, sz) strndup (src, sz)
-#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,75 +85,9 @@ kvr::~kvr ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::create_value_null ()
+kvr::value * kvr::create_value ()
 {
   value *v = this->_create_value_null (VALUE_FLAG_PARENT_CTX);
-
-  return v;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::create_value_map ()
-{
-  value *v = this->_create_value_map (VALUE_FLAG_PARENT_CTX);
-
-  return v;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::create_value_array ()
-{
-  value *v = this->_create_value_array (VALUE_FLAG_PARENT_CTX);
-  
-  return v;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::create_value (int64_t number)
-{
-  value *v = this->_create_value (VALUE_FLAG_PARENT_CTX, number);
-
-  return v;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::create_value (double number)
-{
-  value *v = this->_create_value (VALUE_FLAG_PARENT_CTX, number);
-
-  return v;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::create_value (bool boolean)
-{
-  value *v = this->_create_value (VALUE_FLAG_PARENT_CTX, boolean);
-
-  return v;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::create_value (const char *str)
-{
-  value *v = this->_create_value (VALUE_FLAG_PARENT_CTX, str);
 
   return v;
 }
@@ -193,158 +99,6 @@ kvr::value * kvr::create_value (const char *str)
 void kvr::destroy_value (value *v)
 {
   this->_destroy_value (VALUE_FLAG_PARENT_CTX, v);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::diff (const value * original, const value *modified)
-{
-  KVR_ASSERT (original);
-  KVR_ASSERT (modified);
-
-  value *diff = NULL;
-
-  const value *og = original;
-  const value *md = modified;
-
-  if (og && md && (og != md) && ((og->_type () == md->_type ()) || (og->is_number () && md->is_number ())))
-  {
-    //////////////////////////////////
-    if (og->is_map () || og->is_array ())
-    //////////////////////////////////
-    {
-      diff = this->_create_value_map (VALUE_FLAG_PARENT_CTX);
-
-      pair *set = diff->insert_map (kvr_const_str_set);
-      pair *add = diff->insert_map (kvr_const_str_add);
-      pair *rem = diff->insert_array (kvr_const_str_rem);
-
-      KVR_ASSERT (set);
-      KVR_ASSERT (add);
-      KVR_ASSERT (rem);
-
-      const char * path [KVR_CONSTANT_MAX_TREE_DEPTH];
-
-#if KVR_DEBUG
-      memset (path, 0, sizeof (path));
-#endif
-      this->_diff_set (set->get_value (), rem->get_value (), og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
-
-#if KVR_DEBUG
-      memset (path, 0, sizeof (path));
-#endif
-      this->_diff_add (add->get_value (), og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
-    }
-    
-    //////////////////////////////////
-    else if (og->is_string ())
-    //////////////////////////////////
-    {
-      const char *ogstr = og->get_string ();
-      const char *mdstr = md->get_string ();
-
-      if (strcmp (ogstr, mdstr) != 0)
-      {
-        diff = this->_create_value (VALUE_FLAG_PARENT_CTX, mdstr);
-      }
-    }
-
-    //////////////////////////////////
-    else if (og->_is_number_integer ())
-    //////////////////////////////////
-    {
-      KVR_ASSERT (md->is_number ());
-
-      if (md->_is_number_integer ())
-      {
-        int64_t ogn = og->get_number_i ();
-        int64_t mdn = md->get_number_i ();
-
-        if (ogn != mdn)
-        {
-          diff = this->_create_value (VALUE_FLAG_PARENT_CTX, mdn);
-        }
-      }
-      else if (md->_is_number_float ())
-      {
-        double ogn = og->get_number_f ();
-        double mdn = md->get_number_f ();
-
-        if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
-        {
-          diff = this->_create_value (VALUE_FLAG_PARENT_CTX, mdn);
-        }
-      }
-    }
-
-    //////////////////////////////////
-    else if (og->_is_number_float ())
-    //////////////////////////////////
-    {
-      double ogn = og->get_number_f ();
-      double mdn = md->get_number_f ();
-
-      if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
-      {
-        diff = this->_create_value (VALUE_FLAG_PARENT_CTX, mdn);
-      }
-    }
-
-    //////////////////////////////////
-    else if (og->is_boolean ())
-    //////////////////////////////////
-    {
-      bool ogb = og->get_boolean ();
-      bool mdb = md->get_boolean ();
-
-      if (ogb != mdb)
-      {
-        diff = this->_create_value (VALUE_FLAG_PARENT_CTX, mdb);
-      }
-    }
-  }
-
-  return diff;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::patch (value *original, const value *diff)
-{
-  KVR_ASSERT (original);
-  KVR_ASSERT (diff);  
-
-  value *tg = original;
-
-  if (diff->is_map () && (tg->is_map () || tg->is_array ()))
-  {
-    // patch
-    pair *set = diff->find (kvr_const_str_set);
-    pair *add = diff->find (kvr_const_str_add);
-    pair *rem = diff->find (kvr_const_str_rem);
-
-    KVR_ASSERT (set);
-    KVR_ASSERT (add);
-    KVR_ASSERT (rem);
-
-    this->_patch_set (set->get_value (), tg);
-    this->_patch_add (add->get_value (), tg);
-    this->_patch_rem (rem->get_value (), tg);
-  }
-  else if (diff->is_array ())
-  {
-    // do nothing.
-  }
-  else if ((diff->_type () == diff->_type ()) || (diff->is_number () && tg->is_number ()))
-  {
-    tg->copy (diff);
-  }
-
-  return tg;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -557,15 +311,15 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
       else
       {
         sz_t pksz = 0;
-        const char *pk = _create_path_expr (path, pathcnt, &pksz);
-        v->_move_string_dyn ((char *) pk, pksz);
+        char *pk = _create_path_expr (path, pathcnt, &pksz);
+        v->_move_string_dyn (pk, pksz);
       }
 
       rem->_push_v (v);
     }
 
     //////////////////////////////////
-    else if (!(og->is_number () && md->is_number ()) && (og->_type () != md->_type ()))
+    else if (!(og->_is_number () && md->_is_number ()) && (og->_type () != md->_type ()))
     //////////////////////////////////
     {
       // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
@@ -581,12 +335,12 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
       }
       else
       {
-        const char *pk = _create_path_expr (path, pathcnt);
+        char *pk = _create_path_expr (path, pathcnt);
         k = this->_create_key (pk, false);
         if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
       }
 #else
-      const char *pk = _create_path_expr (path, pathcnt);
+      char *pk = _create_path_expr (path, pathcnt);
       key *k = this->_create_key (pk, false);
       if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
 #endif
@@ -634,7 +388,8 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
       char k [16];
       for (sz_t i = 0, c = og->size (); i < c; ++i)
       {
-        snprintf (k, 16, "%u", i);
+        size_t kl = kvr_internal::u32toa (i, k);
+        k [kl] = 0;
         
         KVR_ASSERT (pathcnt < pathsz);
         path [pathcnt++] = k;
@@ -669,7 +424,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
         }
         else
         {
-          const char *pk = _create_path_expr (path, pathcnt);
+          char *pk = _create_path_expr (path, pathcnt);
           k = this->_create_key (pk, false);
           if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
         }
@@ -681,13 +436,13 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
     }
 
     //////////////////////////////////
-    else if (og->_is_number_integer ())
+    else if (og->is_number_i ())
     //////////////////////////////////
     {
       KVR_ASSERT (pathcnt > 0);
-      KVR_ASSERT (md->is_number ());
+      KVR_ASSERT (md->_is_number ());
 
-      if (md->_is_number_integer ())
+      if (md->is_number_i ())
       {
         int64_t ogn = og->get_number_i ();
         int64_t mdn = md->get_number_i ();
@@ -703,7 +458,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
           }
           else
           {
-            const char *pk = _create_path_expr (path, pathcnt);
+            char *pk = _create_path_expr (path, pathcnt);
             k = this->_create_key (pk, true);
             if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
           }         
@@ -713,7 +468,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
           set->_insert_kv (k, v);
         }
       }
-      else if (md->_is_number_float ())
+      else if (md->is_number_f ())
       {
         double ogn = og->get_number_f ();
         double mdn = md->get_number_f ();
@@ -729,7 +484,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
           }
           else
           {
-            const char *pk = _create_path_expr (path, pathcnt);
+            char *pk = _create_path_expr (path, pathcnt);
             k = this->_create_key (pk, true);
             if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
           }
@@ -742,11 +497,11 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
     }
 
     //////////////////////////////////
-    else if (og->_is_number_float ())
+    else if (og->is_number_f ())
     //////////////////////////////////
     {
       KVR_ASSERT (pathcnt > 0);
-      KVR_ASSERT (md->is_number ());
+      KVR_ASSERT (md->_is_number ());
 
       double ogn = og->get_number_f ();
       double mdn = md->get_number_f ();
@@ -762,7 +517,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
         }
         else
         {
-          const char *pk = _create_path_expr (path, pathcnt);
+          char *pk = _create_path_expr (path, pathcnt);
           k = this->_create_key (pk, true);
           if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
         }
@@ -794,7 +549,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
         }
         else
         {
-          const char *pk = _create_path_expr (path, pathcnt);
+          char *pk = _create_path_expr (path, pathcnt);
           k = this->_create_key (pk, true);
           if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
         }
@@ -845,7 +600,7 @@ void kvr::_diff_add (value *add, const value *og, const value *md, const char **
       }
       else
       {
-        const char *pk = _create_path_expr (path, pathcnt);
+        char *pk = _create_path_expr (path, pathcnt);
         k = this->_create_key (pk, true);
         if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
       }
@@ -904,8 +659,9 @@ void kvr::_diff_add (value *add, const value *og, const value *md, const char **
 
       for (sz_t i = 0, c = md->size (); i < c; ++i)
       {
-        snprintf (k, 16, "%u", i);
-
+        size_t kl = kvr_internal::u32toa (i, k);
+        k [kl] = 0;
+        
         KVR_ASSERT (pathcnt < pathsz);
         path [pathcnt++] = k;
 
@@ -924,129 +680,7 @@ void kvr::_diff_add (value *add, const value *og, const value *md, const char **
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::_patch_set (const value *set, value *tg)
-{
-  KVR_ASSERT (set);
-  KVR_ASSERT (tg);
-
-  kvr::value::cursor cursor = set->fcursor ();
-  kvr::pair *p = cursor.get_pair ();
-
-  while (p)
-  {
-    const char *skey = p->get_key ();
-    value *sval = p->get_value ();
-    value *tgv = tg->_search_path_expr (skey);
-
-    if (tgv)
-    {
-      tgv->copy (sval);
-    }
-
-    p = cursor.get_pair ();
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::_patch_add (const value *add, value *tg)
-{
-  KVR_ASSERT (add);
-  KVR_ASSERT (tg);
-
-  kvr::value::cursor cursor = add->fcursor ();
-  kvr::pair *p = cursor.get_pair ();
-
-  while (p)
-  {
-    const char *akey = p->get_key ();
-    value *aval = p->get_value ();
-
-    const char *tgk = NULL;
-    value *tgp = NULL;    
-    value *tgv = tg->_search_path_expr (akey, &tgk, &tgp);
-    KVR_ASSERT (tgv == NULL);
-
-    if (tgk && tgp)
-    {
-      KVR_ASSERT (tgp->is_map () || tgp->is_array ());
-
-      if (tgp->is_map ())
-      {
-        pair *p = tgp->insert_null (tgk);
-        value *v = p->get_value ();
-        v->copy (aval);
-      }
-      else if (tgp->is_array ())
-      {
-#if KVR_DEBUG
-        sz_t ki = atoi (tgk);
-        sz_t sz = tgp->size ();
-        KVR_ASSERT (ki == sz);
-#endif
-        value *v = tgp->push_null ();
-        v->copy (aval);
-      }
-    }
-
-    p = cursor.get_pair ();
-  }
-
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::_patch_rem (const value *rem, value *tg)
-{
-  KVR_ASSERT (rem);
-  KVR_ASSERT (tg);
-
-  for (sz_t c = rem->size (); c >= 1; --c) // start from bottom (for array removal)
-  {
-    sz_t i = c - 1;
-
-    value *rval = rem->element (i);
-    KVR_ASSERT (rval);
-
-    const char *rkey = rval->get_string ();
-    KVR_ASSERT (rkey);
-
-    const char *tgk = NULL;
-    value *tgp = NULL;
-    value *tgv = tg->_search_path_expr (rkey, &tgk, &tgp);
-
-    if (tgp && tgv)
-    {
-      KVR_ASSERT (tgp->is_map () || tgp->is_array ());
-
-      if (tgp->is_map ())
-      {
-        pair *p = tgp->find (tgk);
-        KVR_ASSERT (tgv == p->get_value ());
-        tgp->remove (p);
-      }
-      else if (tgp->is_array ())
-      {
-#if KVR_DEBUG
-        sz_t ki = atoi (tgk);
-        sz_t sz = tgp->size ();
-        KVR_ASSERT ((ki + 1) == sz);
-#endif
-        tgp->pop ();
-      }
-    }
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-const char * kvr::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) const
+char * kvr::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) const
 {
   KVR_ASSERT (pathsz > 0);
 
@@ -1101,7 +735,7 @@ const char * kvr::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprs
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::_destroy_path_expr (const char *expr)
+void kvr::_destroy_path_expr (char *expr)
 {
   delete [] expr;
 }
@@ -1186,18 +820,20 @@ void kvr::value::conv_null ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::conv_map ()
+kvr::value * kvr::value::conv_map ()
 {
   this->_conv_map ();
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::conv_array ()
+kvr::value * kvr::value::conv_array ()
 {
   this->_conv_array ();
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1232,7 +868,7 @@ void kvr::value::conv_boolean ()
 
 void kvr::value::conv_number_i ()
 {
-  if (!_is_number_integer ())
+  if (!is_number_i ())
   {
     this->_clear ();
     m_flags |= VALUE_FLAG_TYPE_NUMBER_INTEGER;
@@ -1245,7 +881,7 @@ void kvr::value::conv_number_i ()
 
 void kvr::value::conv_number_f ()
 {
-  if (!_is_number_float ())
+  if (!is_number_f ())
   {
     this->_clear ();
     m_flags |= VALUE_FLAG_TYPE_NUMBER_FLOAT;
@@ -1266,12 +902,7 @@ void kvr::value::set_string (const char *str)
   conv_string ();
 #endif
 
-  size_t slen = strlen (str);
-  
-#if KVR_DEBUG
-  KVR_ASSERT ((uint64_t) slen < kvr::MAX_SZ_T);
-#endif
-  
+  size_t slen = strlen (str);  KVR_ASSERT ((uint64_t) slen < kvr::MAX_SZ_T);
   sz_t size = (sz_t) slen;
 
   // check string type
@@ -1372,8 +1003,8 @@ bool kvr::value::get_boolean () const
 
 int64_t kvr::value::get_number_i () const
 {
-  KVR_ASSERT (is_number ());
-  return _is_number_integer () ? m_data.n.i : (int64_t) m_data.n.f;
+  KVR_ASSERT (_is_number ());
+  return is_number_i () ? m_data.n.i : (int64_t) m_data.n.f;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1382,8 +1013,8 @@ int64_t kvr::value::get_number_i () const
 
 double kvr::value::get_number_f () const
 {
-  KVR_ASSERT (is_number ());
-  return _is_number_float () ? m_data.n.f : (double) m_data.n.i;
+  KVR_ASSERT (_is_number ());
+  return is_number_f () ? m_data.n.f : (double) m_data.n.i;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1567,7 +1198,7 @@ kvr::sz_t kvr::value::size () const
 kvr::pair * kvr::value::insert (const char *keystr, int64_t number)
 {
   KVR_ASSERT (keystr);
-  KVR_ASSERT (strlen (keystr) < KVR_CONSTANT_MAX_KEY_LENGTH);
+  KVR_ASSERT (strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1604,7 +1235,7 @@ kvr::pair * kvr::value::insert (const char *keystr, int64_t number)
 kvr::pair * kvr::value::insert (const char *keystr, double number)
 {
   KVR_ASSERT (keystr);
-  KVR_ASSERT (strlen (keystr) < KVR_CONSTANT_MAX_KEY_LENGTH);
+  KVR_ASSERT (strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());  
@@ -1678,7 +1309,7 @@ kvr::pair * kvr::value::insert (const char *keystr, bool boolean)
 kvr::pair * kvr::value::insert (const char *keystr, const char *str)
 {
   KVR_ASSERT (keystr);
-  KVR_ASSERT (strlen (keystr) < KVR_CONSTANT_MAX_KEY_LENGTH);
+  KVR_ASSERT (strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1692,7 +1323,7 @@ kvr::pair * kvr::value::insert (const char *keystr, const char *str)
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);  
+  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (p)
   {
     p->m_v->set_string (str);
@@ -1715,7 +1346,7 @@ kvr::pair * kvr::value::insert (const char *keystr, const char *str)
 kvr::pair * kvr::value::insert_map (const char *keystr)
 {
   KVR_ASSERT (keystr);
-  KVR_ASSERT (strlen (keystr) < KVR_CONSTANT_MAX_KEY_LENGTH);
+  KVR_ASSERT (strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1751,7 +1382,7 @@ kvr::pair * kvr::value::insert_map (const char *keystr)
 kvr::pair * kvr::value::insert_array (const char *keystr)
 {
   KVR_ASSERT (keystr);
-  KVR_ASSERT (strlen (keystr) < KVR_CONSTANT_MAX_KEY_LENGTH);
+  KVR_ASSERT (strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1787,7 +1418,7 @@ kvr::pair * kvr::value::insert_array (const char *keystr)
 kvr::pair * kvr::value::insert_null (const char *keystr)
 {
   KVR_ASSERT (keystr);
-  KVR_ASSERT (strlen (keystr) < KVR_CONSTANT_MAX_KEY_LENGTH);
+  KVR_ASSERT (strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1833,7 +1464,6 @@ bool kvr::value::remove (kvr::pair *pair)
   if (m_data.m.remove (pair)) // mark k,v as null
   {
     m_ctx->_destroy_key (k);
-
     m_ctx->_destroy_value (VALUE_FLAG_PARENT_MAP, v);
 
     rm = true;
@@ -1969,7 +1599,7 @@ void kvr::value::copy (const value *rhs)
     }
 
     //////////////////////////////////
-    else if (rhs->_is_number_integer ())
+    else if (rhs->is_number_i ())
     //////////////////////////////////
     {
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
@@ -1980,7 +1610,7 @@ void kvr::value::copy (const value *rhs)
     }
 
     //////////////////////////////////
-    else if (rhs->_is_number_float ())
+    else if (rhs->is_number_f ())
     //////////////////////////////////
     {
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
@@ -2017,7 +1647,233 @@ void kvr::value::copy (const value *rhs)
 void kvr::value::dump () const
 {
   this->_dump (0, NULL);
-  printf ("\n\n");
+  fprintf (stderr, "\n");
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::serialize (data_format format, strbuffer *strbuf) const
+{
+  KVR_ASSERT_SAFE (strbuf, false);
+
+  bool success = false;
+
+  strbuf->_reset ();
+
+  switch (format)
+  {
+    case kvr::DATA_FORMAT_JSON:
+    {
+      success = kvr_internal::json_write (this, &strbuf->m_str, &strbuf->m_len);
+      break;
+    }
+
+    case kvr::DATA_FORMAT_MSGPACK:
+    {
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+  
+  return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::deserialize (data_format format, const char *str)
+{
+  KVR_ASSERT_SAFE (str, false);
+
+  bool success = false;
+
+  this->conv_null ();
+
+  switch (format)
+  {
+    case kvr::DATA_FORMAT_JSON:
+    {
+      success = kvr_internal::json_read (this, str, 0);
+      break;
+    }
+
+    case kvr::DATA_FORMAT_MSGPACK:
+    {
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+
+  return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::diff (const value *original, const value *modified)
+{
+  bool success = false;
+  KVR_ASSERT (original);
+  KVR_ASSERT (modified);
+
+  value *diff = this;
+
+  const value *og = original;
+  const value *md = modified;
+
+  if (og && md && (og != md) && ((og->_type () == md->_type ()) || (og->_is_number () && md->_is_number ())))
+  {
+    //////////////////////////////////
+    if (og->is_map () || og->is_array ())
+    //////////////////////////////////
+    {
+      diff->conv_map ();
+
+      pair *set = diff->insert_map (kvr_const_str_set);
+      pair *add = diff->insert_map (kvr_const_str_add);
+      pair *rem = diff->insert_array (kvr_const_str_rem);
+
+      KVR_ASSERT (set);
+      KVR_ASSERT (add);
+      KVR_ASSERT (rem);
+
+      const char * path [KVR_CONSTANT_MAX_TREE_DEPTH];
+
+#if KVR_DEBUG
+      memset (path, 0, sizeof (path));
+#endif
+      diff->m_ctx->_diff_set (set->get_value (), rem->get_value (), og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
+
+#if KVR_DEBUG
+      memset (path, 0, sizeof (path));
+#endif
+      diff->m_ctx->_diff_add (add->get_value (), og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
+    }
+
+    //////////////////////////////////
+    else if (og->is_string ())
+    //////////////////////////////////
+    {
+      const char *ogstr = og->get_string ();
+      const char *mdstr = md->get_string ();
+
+      if (strcmp (ogstr, mdstr) != 0)
+      {
+        diff->copy (md);
+      }
+    }
+
+    //////////////////////////////////
+    else if (og->is_number_i ())
+    //////////////////////////////////
+    {
+      KVR_ASSERT (md->_is_number ());
+
+      if (md->is_number_i ())
+      {
+        int64_t ogn = og->get_number_i ();
+        int64_t mdn = md->get_number_i ();
+
+        if (ogn != mdn)
+        {
+          diff->copy (md);
+        }
+      }
+      else if (md->is_number_f ())
+      {
+        double ogn = og->get_number_f ();
+        double mdn = md->get_number_f ();
+
+        if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
+        {
+          diff->copy (md);
+        }
+      }
+    }
+
+    //////////////////////////////////
+    else if (og->is_number_f ())
+    //////////////////////////////////
+    {
+      double ogn = og->get_number_f ();
+      double mdn = md->get_number_f ();
+
+      if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
+      {
+        diff->copy (md);
+      }
+    }
+
+    //////////////////////////////////
+    else if (og->is_boolean ())
+    //////////////////////////////////
+    {
+      bool ogb = og->get_boolean ();
+      bool mdb = md->get_boolean ();
+
+      if (ogb != mdb)
+      {
+        diff->copy (md);
+      }
+    }
+  }
+
+  return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::patch (const value *diff)
+{
+  KVR_ASSERT (diff);
+
+  bool success = false;
+
+  value *tg = this;
+
+  if (diff->is_map () && (tg->is_map () || tg->is_array ()))
+  {
+    // patch
+    pair *set = diff->find (kvr_const_str_set);
+    pair *add = diff->find (kvr_const_str_add);
+    pair *rem = diff->find (kvr_const_str_rem);
+
+    KVR_ASSERT (set);
+    KVR_ASSERT (add);
+    KVR_ASSERT (rem);
+
+    tg->_patch_set (set->get_value ());
+    tg->_patch_add (add->get_value ());
+    tg->_patch_rem (rem->get_value ());
+
+    success = true;
+  }
+  else if (diff->is_array ())
+  {
+    // do nothing.
+  }
+  else if ((diff->_type () == diff->_type ()) || (diff->_is_number () && tg->_is_number ()))
+  {
+    tg->copy (diff);
+
+    success = true;
+  }
+
+  return success;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2245,7 +2101,7 @@ kvr::value * kvr::value::_search_key (const char *key) const
 
               while (p)
               {
-                const char *pk = p->get_key ();                
+                const char *pk = p->get_key ();
                 if (pk && (strcmp (pk, sk) == 0))
                 {
                   // got key, now check value
@@ -2262,7 +2118,7 @@ kvr::value * kvr::value::_search_key (const char *key) const
                       break;
                     }
                   }
-                  else if (pv->_is_number_float ())
+                  else if (pv->is_number_f ())
                   {
                     double svf = strtod (sv, NULL); //atof (sv);
                     double pvf = pv->get_number_f ();                    
@@ -2273,7 +2129,7 @@ kvr::value * kvr::value::_search_key (const char *key) const
                       break;
                     }
                   }
-                  else if (pv->_is_number_integer ())
+                  else if (pv->is_number_i ())
                   {
                     int64_t svi = atoi (sv);
                     int64_t pvi = pv->get_number_i ();
@@ -2335,90 +2191,13 @@ kvr::value * kvr::value::_search_key (const char *key) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::_dump (size_t lpad, const char *key) const
+uint8_t kvr::value::_type () const
 {
-  for (size_t t = 0; t < lpad; ++t)
-  {
-    fprintf (stderr, "  ");
-  }
+  const uint32_t typeFlagsMask = 0xffffff00;
 
-  if (key)
-  {
-    fprintf (stderr, "key = %s : ", key);
-  }
+  uint8_t t = m_flags & ~typeFlagsMask;
 
-  //////////////////////////////////
-  if (this->is_map ())
-  //////////////////////////////////
-  {
-    fprintf (stderr, "value = -> [map]\n");
-
-    cursor c = fcursor ();
-    pair  *p = c.get_pair ();
-    while (p)
-    {
-      const char *k = p->get_key ();
-      value *v = p->get_value ();
-      v->_dump (lpad + 1, k);
-
-      p = c.get_pair ();
-    }
-  }
-
-  //////////////////////////////////
-  else if (this->is_array ())
-  //////////////////////////////////
-  {
-    fprintf (stderr, "value = -> [array]\n");
-    
-    char k [16];
-
-    for (sz_t i = 0, c = this->size (); i < c; ++i)
-    {
-      snprintf (k, 16, "%u", i);
-      value *v = this->element (i);
-      v->_dump (lpad + 1, k);
-    }
-  }
-
-  //////////////////////////////////
-  else if (this->is_string ())
-  //////////////////////////////////
-  {
-    const char *str = get_string ();
-    fprintf (stderr, "value = %s -> [string]\n", str);
-  }
-
-  //////////////////////////////////
-  else if (this->_is_number_integer ())
-  //////////////////////////////////
-  {
-    int64_t n = get_number_i ();
-    fprintf (stderr, "value = %lld -> [int]\n", n);
-  }
-
-  //////////////////////////////////
-  else if (this->_is_number_float ())
-  //////////////////////////////////
-  {
-    double n = get_number_f ();
-    fprintf (stderr, "value = %g -> [float]\n", n);
-  }
-
-  //////////////////////////////////
-  else if (this->is_boolean ())
-  //////////////////////////////////
-  {
-    bool b = get_boolean ();
-    fprintf (stderr, "value = %s -> [bool]\n", b ? kvr_const_str_true : kvr_const_str_false);
-  }
-
-  //////////////////////////////////
-  else if (this->is_null ())
-  //////////////////////////////////
-  {
-    fprintf (stderr, "value = %s -> [null]\n", kvr_const_str_null);
-  }
+  return t;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2470,6 +2249,7 @@ void kvr::value::_clear ()
 
   // clear type flag
   const uint32_t typeFlagsMask = 0xffffff00;
+
   m_flags &= typeFlagsMask;
 }
 
@@ -2477,13 +2257,215 @@ void kvr::value::_clear ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-uint8_t kvr::value::_type () const
+void kvr::value::_dump (size_t lpad, const char *key) const
 {
-  const uint32_t typeFlagsMask = 0xffffff00;
+  for (size_t t = 0; t < lpad; ++t)
+  {
+    fprintf (stderr, "  ");
+  }
 
-  uint8_t t = m_flags & ~typeFlagsMask;
+  if (key)
+  {
+    fprintf (stderr, "key = %s : ", key);
+  }
 
-  return t;
+  //////////////////////////////////
+  if (this->is_map ())
+  //////////////////////////////////
+  {
+    fprintf (stderr, "value = -> [map]\n");
+
+    cursor c = fcursor ();
+    pair  *p = c.get_pair ();
+    while (p)
+    {
+      const char *k = p->get_key ();
+      value *v = p->get_value ();
+      v->_dump (lpad + 1, k);
+
+      p = c.get_pair ();
+    }
+  }
+
+  //////////////////////////////////
+  else if (this->is_array ())
+  //////////////////////////////////
+  {
+    fprintf (stderr, "value = -> [array]\n");
+
+    char k [16];
+
+    for (sz_t i = 0, c = this->size (); i < c; ++i)
+    {
+      size_t kl = kvr_internal::u32toa (i, k);
+      k [kl] = 0;
+      value *v = this->element (i);
+      v->_dump (lpad + 1, k);
+    }
+  }
+
+  //////////////////////////////////
+  else if (this->is_string ())
+  //////////////////////////////////
+  {
+    const char *str = get_string ();
+    fprintf (stderr, "value = %s -> [string]\n", str);
+  }
+
+  //////////////////////////////////
+  else if (this->is_number_i ())
+  //////////////////////////////////
+  {
+    int64_t n = get_number_i ();
+    fprintf (stderr, "value = %lld -> [int]\n", n);
+  }
+
+  //////////////////////////////////
+  else if (this->is_number_f ())
+  //////////////////////////////////
+  {
+    double n = get_number_f ();
+    fprintf (stderr, "value = %g -> [float]\n", n);
+  }
+
+  //////////////////////////////////
+  else if (this->is_boolean ())
+  //////////////////////////////////
+  {
+    bool b = get_boolean ();
+    fprintf (stderr, "value = %s -> [bool]\n", b ? kvr_const_str_true : kvr_const_str_false);
+  }
+
+  //////////////////////////////////
+  else if (this->is_null ())
+  //////////////////////////////////
+  {
+    fprintf (stderr, "value = %s -> [null]\n", kvr_const_str_null);
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_patch_set (const value *set)
+{
+  KVR_ASSERT (set);
+  
+  value *tg = this;
+
+  kvr::value::cursor cursor = set->fcursor ();
+  kvr::pair *p = cursor.get_pair ();
+
+  while (p)
+  {
+    const char *skey = p->get_key ();
+    value *sval = p->get_value ();
+    value *tgv = tg->_search_path_expr (skey);
+
+    if (tgv)
+    {
+      tgv->copy (sval);
+    }
+
+    p = cursor.get_pair ();
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_patch_add (const value *add)
+{
+  KVR_ASSERT (add);
+
+  value *tg = this;
+
+  kvr::value::cursor cursor = add->fcursor ();
+  kvr::pair *p = cursor.get_pair ();
+
+  while (p)
+  {
+    const char *akey = p->get_key ();
+    value *aval = p->get_value ();
+
+    const char *tgk = NULL;
+    value *tgp = NULL;
+    value *tgv = tg->_search_path_expr (akey, &tgk, &tgp);
+    KVR_ASSERT (tgv == NULL);
+
+    if (tgk && tgp)
+    {
+      KVR_ASSERT (tgp->is_map () || tgp->is_array ());
+
+      if (tgp->is_map ())
+      {
+        pair *p = tgp->insert_null (tgk);
+        value *v = p->get_value ();
+        v->copy (aval);
+      }
+      else if (tgp->is_array ())
+      {
+#if KVR_DEBUG
+        sz_t ki = atoi (tgk);
+        sz_t sz = tgp->size ();
+        KVR_ASSERT (ki == sz);
+#endif
+        value *v = tgp->push_null ();
+        v->copy (aval);
+      }
+    }
+
+    p = cursor.get_pair ();
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_patch_rem (const value *rem)
+{
+  KVR_ASSERT (rem);
+
+  value *tg = this;
+
+  for (sz_t c = rem->size (); c >= 1; --c) // start from bottom (for array removal)
+  {
+    sz_t i = c - 1;
+
+    value *rval = rem->element (i);
+    KVR_ASSERT (rval);
+
+    const char *rkey = rval->get_string ();
+    KVR_ASSERT (rkey);
+
+    const char *tgk = NULL;
+    value *tgp = NULL;
+    value *tgv = tg->_search_path_expr (rkey, &tgk, &tgp);
+
+    if (tgp && tgv)
+    {
+      KVR_ASSERT (tgp->is_map () || tgp->is_array ());
+
+      if (tgp->is_map ())
+      {
+        pair *p = tgp->find (tgk);
+        KVR_ASSERT (tgv == p->get_value ());
+        tgp->remove (p);
+      }
+      else if (tgp->is_array ())
+      {
+#if KVR_DEBUG
+        sz_t ki = atoi (tgk);
+        sz_t sz = tgp->size ();
+        KVR_ASSERT ((ki + 1) == sz);
+#endif
+        tgp->pop ();
+      }
+    }
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2736,7 +2718,7 @@ kvr::pair *kvr::value::map::find (const key *k) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-// kvr::value::map::cursor
+// kvr::value::cursor
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2766,6 +2748,56 @@ kvr::pair * kvr::value::cursor::get_pair ()
 #endif
 
   return p;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// kvr::value::strbuffer
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value::strbuffer::strbuffer () : m_str (NULL), m_len (0)
+{
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value::strbuffer::~strbuffer ()
+{
+  if (m_str) delete [] m_str;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+const char *kvr::value::strbuffer::get_string () const
+{
+  return m_str;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+size_t kvr::value::strbuffer::get_length () const
+{
+  return m_len;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::strbuffer::_reset ()
+{
+  if (m_str) { delete [] m_str; }
+  m_str = NULL;
+  m_len = 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
