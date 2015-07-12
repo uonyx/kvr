@@ -169,21 +169,21 @@ public:
 
     // type checking
     bool          is_null () const;
+    bool          is_map () const;
+    bool          is_array () const;
     bool          is_string () const;
     bool          is_boolean () const;
     bool          is_number_i () const;
-    bool          is_number_f () const;    
-    bool          is_map () const;
-    bool          is_array () const;
+    bool          is_number_f () const;
     
     // type conversion
-    void          conv_null ();
+    value *       conv_null ();
     value *       conv_map ();
     value *       conv_array ();
-    void          conv_string ();
-    void          conv_boolean ();
-    void          conv_number_i ();
-    void          conv_number_f ();
+    value *       conv_string ();
+    value *       conv_boolean ();
+    value *       conv_number_i ();
+    value *       conv_number_f ();
 
     // native variant ops
     void          set_string (const char *str);
@@ -381,8 +381,12 @@ public:
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
-    void    _conv_map (sz_t size = map::CAP_INCR);
-    void    _conv_array (sz_t size = array::CAP_INCR);
+    bool    _is_number () const;
+    bool    _is_string_dynamic () const;
+    bool    _is_string_static () const;
+
+    value * _conv_map (sz_t size = map::CAP_INCR);
+    value * _conv_array (sz_t size = array::CAP_INCR);
 
     sz_t    _get_string_length () const;
     sz_t    _get_string_size () const;
@@ -390,9 +394,6 @@ public:
     void    _set_string_stt (const char *str);
     void    _set_string_dyn (const char *str, sz_t size);
     void    _move_string_dyn (char *str, sz_t size);
-
-    pair  * _insert_kv (key *k, value *v);
-    void    _push_v (value *v);
 
     value * _search_path_expr (const char *expr, const char **lastkey = NULL, 
                                value **lastparent = NULL) const;
@@ -403,14 +404,18 @@ public:
     void    _clear ();    
     void    _dump (size_t lpad, const char *key) const;
 
+    void    _diff_set (value *set, value *rem, const value *og, const value *md,
+                       const char **path, const sz_t pathsz, sz_t pathcnt);
+    void    _diff_add (value *add, const value *og, const value *md,
+                       const char **path, const sz_t pathsz, sz_t pathcnt);
+
     void    _patch_set (const value *set);
     void    _patch_add (const value *add);
     void    _patch_rem (const value *rem);
+   
+    pair  * _insert_kv (key *k, value *v);
+    void    _push_v (value *v);
 
-    bool    _is_string_dynamic () const;
-    bool    _is_string_static () const;
-    bool    _is_number () const;
-    
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -510,14 +515,6 @@ private:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  key *   _find_key (const char *str);
-  key *   _create_key (const char *str, bool move = false);
-  void    _destroy_key (key *k);
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-
   value * _create_value_null (uint32_t parentType);
   value * _create_value_map (uint32_t parentType);
   value * _create_value_array (uint32_t parentType);
@@ -526,15 +523,14 @@ private:
   value * _create_value (uint32_t parentType, bool boolean);
   value * _create_value (uint32_t parentType, const char *str, sz_t len);
   void    _destroy_value (uint32_t parentType, value *v);
-  
+
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  void    _diff_set (value *set, value *rem, const value *og, const value *md,
-                     const char **path, const sz_t pathsz, sz_t pathcnt);
-  void    _diff_add (value *add, const value *og, const value *md,
-                     const char **path, const sz_t pathsz, sz_t pathcnt);
+  key *   _find_key (const char *str);
+  key *   _create_key (const char *str, bool move = false);
+  void    _destroy_key (key *k);
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -549,6 +545,15 @@ private:
 
   keystore m_keystore;
 };
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline bool kvr::value::is_null () const
+{
+  return (m_flags & VALUE_FLAG_TYPE_NULL) != 0;
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -593,15 +598,6 @@ inline bool kvr::value::is_boolean () const
 inline bool kvr::value::_is_number () const
 {
   return (m_flags & (VALUE_FLAG_TYPE_NUMBER_INTEGER | VALUE_FLAG_TYPE_NUMBER_FLOAT)) != 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-inline bool kvr::value::is_null () const
-{
-  return (m_flags & VALUE_FLAG_TYPE_NULL) != 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

@@ -105,67 +105,6 @@ void kvr::destroy_value (value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::key * kvr::_find_key (const char *str)
-{
-  KVR_ASSERT (str);
-
-  key *k = NULL;
-
-  keystore::iterator iter = m_keystore.find (str);
-  if (iter != m_keystore.end ())
-  {
-    k = (*iter).second;
-  }
-
-  return k;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::key * kvr::_create_key (const char *str, bool move)
-{
-  KVR_ASSERT (str);
-
-  key *k = NULL;
-
-  keystore::iterator iter = m_keystore.find (str);
-  if (iter != m_keystore.end ())
-  {
-    k = (*iter).second;
-    k->m_ref++;
-  }
-  else
-  {
-    k = new key (str, move);
-    std::pair<const char *, key *> p (k->m_str, k);
-    bool s = m_keystore.insert (p).second;
-    KVR_ASSERT (s);
-  }
-
-  return k;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::_destroy_key (key *k)
-{
-  KVR_ASSERT (k);
-
-  if ((--k->m_ref) == 0)
-  {
-    m_keystore.erase (k->m_str);
-    delete k;
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 kvr::value * kvr::_create_value_null (uint32_t parentType)
 {
   value *v = new value (this, parentType);
@@ -196,7 +135,7 @@ kvr::value * kvr::_create_value_array (uint32_t parentType)
 {
   value *v = new value (this, parentType);
 
-  v->_conv_array ();
+  v->conv_array ();
 
   return v;
 }
@@ -284,394 +223,60 @@ void kvr::_destroy_value (uint32_t parentType, value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, const char **path, const sz_t pathsz, sz_t pathcnt)
+kvr::key * kvr::_find_key (const char *str)
 {
-  KVR_ASSERT (set);
+  KVR_ASSERT (str);
 
-  if (og)
+  key *k = NULL;
+
+  keystore::iterator iter = m_keystore.find (str);
+  if (iter != m_keystore.end ())
   {
-    //////////////////////////////////
-    if (md == NULL)
-    //////////////////////////////////
-    {
-      // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
-      KVR_ASSERT (pathcnt > 0);
-      // add og to rem list
-
-      value *v = this->_create_value_null (VALUE_FLAG_PARENT_ARRAY);
-      v->conv_string ();
-
-      if (pathcnt == 1)
-      {
-        const char *pk = path [0];        
-        v->set_string (pk);
-      }
-      else
-      {
-        sz_t pksz = 0;
-        char *pk = _create_path_expr (path, pathcnt, &pksz);
-        v->_move_string_dyn (pk, pksz);
-      }
-
-      rem->_push_v (v);
-    }
-
-    //////////////////////////////////
-    else if (!(og->_is_number () && md->_is_number ()) && !(og->is_string () && md->is_string ()) && (og->_type () != md->_type ()))
-    //////////////////////////////////
-    {
-      // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
-      KVR_ASSERT (pathcnt > 0);
-      
-#if 1 // optimization
-      key *k = NULL;
-      if ((pathcnt == 1) && (og->m_ctx == this)) // path key must already be in the key store
-      {
-        const char *pk = path [0];
-        KVR_ASSERT (this->_find_key (pk));
-        k = this->_create_key (pk); // increment reference count
-      }
-      else
-      {
-        char *pk = _create_path_expr (path, pathcnt);
-        k = this->_create_key (pk, false);
-        if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
-      }
-#else
-      char *pk = _create_path_expr (path, pathcnt);
-      key *k = this->_create_key (pk, false);
-      if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
-#endif
-      value *v = this->_create_value_null (VALUE_FLAG_PARENT_MAP);
-      v->copy (md);
-
-      set->_insert_kv (k, v);
-    }
-
-    //////////////////////////////////
-    else if (og->is_map ()) 
-    //////////////////////////////////
-    {
-      KVR_ASSERT (md->is_map ());
-
-      value::cursor c = og->fcursor ();
-      pair  *ogp = c.get ();
-
-      while (ogp)
-      {
-        const char *k = ogp->get_key ();        
-
-        KVR_ASSERT (pathcnt < pathsz);
-        path [pathcnt++] = k;
-
-        pair * mdp = md->find (k);
-
-        value *mdv = mdp ? mdp->get_value () : NULL;
-        value *ogv = ogp->get_value ();
-
-        _diff_set (set, rem, ogv, mdv, path, pathsz, pathcnt);
-        
-        path [--pathcnt] = NULL;
-
-        ogp = c.get ();
-      }
-    }
-
-    //////////////////////////////////
-    else if (og->is_array ())
-    //////////////////////////////////
-    {
-      KVR_ASSERT (md->is_array ());
-
-      char k [16];
-      for (sz_t i = 0, c = og->size (); i < c; ++i)
-      {
-        size_t kl = kvr_internal::u32toa (i, k);
-        k [kl] = 0;
-        
-        KVR_ASSERT (pathcnt < pathsz);
-        path [pathcnt++] = k;
-        
-        value *mdv = md->element (i);
-        value *ogv = og->element (i);
-
-        _diff_set (set, rem, ogv, mdv, path, pathsz, pathcnt);
-        
-        path [--pathcnt] = NULL;
-      }
-    }
-
-    //////////////////////////////////
-    else if (og->is_string ())
-    //////////////////////////////////
-    {
-      KVR_ASSERT (pathcnt > 0);
-      KVR_ASSERT (md->is_string ());
-
-      const char *ogstr = og->get_string ();
-      const char *mdstr = md->get_string ();
-
-      if (strcmp (ogstr, mdstr) != 0)
-      {
-        key *k = NULL;
-        if ((pathcnt == 1) && (og->m_ctx == this))
-        {
-          const char *pk = path [0];
-          KVR_ASSERT (this->_find_key (pk));
-          k = this->_create_key (pk);
-        }
-        else
-        {
-          char *pk = _create_path_expr (path, pathcnt);
-          k = this->_create_key (pk, false);
-          if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
-        }
-
-        sz_t mdstrlen = md->_get_string_length ();
-        value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdstr, mdstrlen);
-
-        set->_insert_kv (k, v);
-      }
-    }
-
-    //////////////////////////////////
-    else if (og->is_number_i ())
-    //////////////////////////////////
-    {
-      KVR_ASSERT (pathcnt > 0);
-      KVR_ASSERT (md->_is_number ());
-
-      if (md->is_number_i ())
-      {
-        int64_t ogn = og->get_number_i ();
-        int64_t mdn = md->get_number_i ();
-
-        if (ogn != mdn)
-        {
-          key *k = NULL;
-          if ((pathcnt == 1) && (og->m_ctx == this))
-          {
-            const char *pk = path [0];
-            KVR_ASSERT (this->_find_key (pk));
-            k = this->_create_key (pk); 
-          }
-          else
-          {
-            char *pk = _create_path_expr (path, pathcnt);
-            k = this->_create_key (pk, true);
-            if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
-          }         
-      
-          value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
-
-          set->_insert_kv (k, v);
-        }
-      }
-      else if (md->is_number_f ())
-      {
-        double ogn = og->get_number_f ();
-        double mdn = md->get_number_f ();
-
-        if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
-        {
-          key *k = NULL;
-          if ((pathcnt == 1) && (og->m_ctx == this)) 
-          {
-            const char *pk = path [0];
-            KVR_ASSERT (this->_find_key (pk));
-            k = this->_create_key (pk);
-          }
-          else
-          {
-            char *pk = _create_path_expr (path, pathcnt);
-            k = this->_create_key (pk, true);
-            if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
-          }
-
-          value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
-          
-          set->_insert_kv (k, v);
-        }
-      }
-    }
-
-    //////////////////////////////////
-    else if (og->is_number_f ())
-    //////////////////////////////////
-    {
-      KVR_ASSERT (pathcnt > 0);
-      KVR_ASSERT (md->_is_number ());
-
-      double ogn = og->get_number_f ();
-      double mdn = md->get_number_f ();
-
-      if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
-      {
-        key *k = NULL;
-        if ((pathcnt == 1) && (og->m_ctx == this)) 
-        {
-          const char *pk = path [0];
-          KVR_ASSERT (this->_find_key (pk));
-          k = this->_create_key (pk); 
-        }
-        else
-        {
-          char *pk = _create_path_expr (path, pathcnt);
-          k = this->_create_key (pk, true);
-          if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
-        }
-
-        value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
-
-        set->_insert_kv (k, v);
-      }
-    }
-
-    //////////////////////////////////
-    else if (og->is_boolean ())
-    //////////////////////////////////
-    {
-      KVR_ASSERT (pathcnt > 0);
-      KVR_ASSERT (md->is_boolean ());
-
-      bool ogb = og->get_boolean ();
-      bool mdb = md->get_boolean ();
-
-      if (ogb != mdb)
-      {
-        key *k = NULL;
-        if ((pathcnt == 1) && (og->m_ctx == this))
-        {
-          const char *pk = path [0];
-          KVR_ASSERT (this->_find_key (pk));
-          k = this->_create_key (pk); 
-        }
-        else
-        {
-          char *pk = _create_path_expr (path, pathcnt);
-          k = this->_create_key (pk, true);
-          if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
-        }
-
-        value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdb);
-
-        set->_insert_kv (k, v);
-      }
-    }
-
-    //////////////////////////////////
-    else if (og->is_null ())
-    //////////////////////////////////
-    {
-      KVR_ASSERT (md->is_null ());
-      // should already be taken care of in type check
-    }
+    k = (*iter).second;
   }
+
+  return k;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::_diff_add (value *add, const value *og, const value *md, const char **path, const sz_t pathsz, sz_t pathcnt)
+kvr::key * kvr::_create_key (const char *str, bool move)
 {
-  KVR_ASSERT (add);
+  KVR_ASSERT (str);
 
-  //
-  // go through md and og and look for nodes in md that are not in og
+  key *k = NULL;
 
-  if (md)
+  keystore::iterator iter = m_keystore.find (str);
+  if (iter != m_keystore.end ())
   {
-    //////////////////////////////////
-    if (og == NULL)
-    //////////////////////////////////
-    {
-      // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
-      KVR_ASSERT (pathcnt > 0);
-      // add md to add list
+    k = (*iter).second;
+    k->m_ref++;
+  }
+  else
+  {
+    k = new key (str, move);
+    std::pair<const char *, key *> p (k->m_str, k);
+    bool s = m_keystore.insert (p).second;
+    KVR_ASSERT (s);
+  }
 
-      key *k = NULL;
-      if ((pathcnt == 1) && (md->m_ctx == this))
-      {
-        const char *pk = path [0];
-        KVR_ASSERT (this->_find_key (pk));
-        k = this->_create_key (pk);
-      }
-      else
-      {
-        char *pk = _create_path_expr (path, pathcnt);
-        k = this->_create_key (pk, true);
-        if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
-      }
+  return k;
+}
 
-      value *v = this->_create_value_null (VALUE_FLAG_PARENT_MAP);
-      v->copy (md);
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
-      add->_insert_kv (k, v);
-    }
+void kvr::_destroy_key (key *k)
+{
+  KVR_ASSERT (k);
 
-    //////////////////////////////////
-    else if (og->_type () != md->_type ())
-    //////////////////////////////////
-    {
-      // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
-      KVR_ASSERT (pathcnt > 0);
-      // handled by _diff_set
-    }
-
-    //////////////////////////////////
-    else if (md->is_map ())
-    //////////////////////////////////
-    {
-      KVR_ASSERT (og->is_map ());
-
-      value::cursor c = md->fcursor ();
-      pair  *mdp = c.get ();
-
-      while (mdp)
-      {
-        const char *k = mdp->get_key ();
-
-        KVR_ASSERT (pathcnt < pathsz);
-        path [pathcnt++] = k;
-
-        pair * ogp = og->find (k);
-
-        value *ogv = ogp ? ogp->get_value () : NULL;
-        value *mdv = mdp->get_value ();
-
-        _diff_add (add, ogv, mdv, path, pathsz, pathcnt);
-
-        path [--pathcnt] = NULL;
-
-        mdp = c.get ();
-      }
-    }
-
-    //////////////////////////////////
-    else if (md->is_array ())
-    //////////////////////////////////
-    {
-      KVR_ASSERT (og->is_array ());
-
-      char k [16];
-
-      for (sz_t i = 0, c = md->size (); i < c; ++i)
-      {
-        size_t kl = kvr_internal::u32toa (i, k);
-        k [kl] = 0;
-        
-        KVR_ASSERT (pathcnt < pathsz);
-        path [pathcnt++] = k;
-
-        value *ogv = og->element (i);
-        value *mdv = md->element (i);
-
-        _diff_add (add, ogv, mdv, path, pathsz, pathcnt);
-
-        path [--pathcnt] = NULL;
-      }
-    }
+  if ((--k->m_ref) == 0)
+  {
+    m_keystore.erase (k->m_str);
+    delete k;
   }
 }
 
@@ -806,13 +411,15 @@ kvr::value::~value ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::conv_null ()
+kvr::value * kvr::value::conv_null ()
 {
   if (!is_null ())
   {
     this->_clear ();
     m_flags |= VALUE_FLAG_TYPE_NULL;
   }
+
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -821,8 +428,7 @@ void kvr::value::conv_null ()
 
 kvr::value * kvr::value::conv_map ()
 {
-  this->_conv_map ();
-  return this;
+  return this->_conv_map ();  
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -831,7 +437,21 @@ kvr::value * kvr::value::conv_map ()
 
 kvr::value * kvr::value::conv_array ()
 {
-  this->_conv_array ();
+  return this->_conv_array ();  
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value * kvr::value::conv_string ()
+{
+  if (!is_string ())
+  {
+    this->_clear ();
+    m_flags |= VALUE_FLAG_TYPE_STT_STRING;
+  }
+
   return this;
 }
 
@@ -839,52 +459,45 @@ kvr::value * kvr::value::conv_array ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::conv_string ()
-{
-  if (!is_string ())
-  {
-    this->_clear ();
-    m_flags |= VALUE_FLAG_TYPE_STT_STRING;
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::value::conv_boolean ()
+kvr::value * kvr::value::conv_boolean ()
 {
   if (!is_boolean ())
   {
     this->_clear ();
     m_flags |= VALUE_FLAG_TYPE_BOOLEAN;
   }
+
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::conv_number_i ()
+kvr::value * kvr::value::conv_number_i ()
 {
   if (!is_number_i ())
   {
     this->_clear ();
     m_flags |= VALUE_FLAG_TYPE_NUMBER_INTEGER;
   }
+
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::conv_number_f ()
+kvr::value * kvr::value::conv_number_f ()
 {
   if (!is_number_f ())
   {
     this->_clear ();
     m_flags |= VALUE_FLAG_TYPE_NUMBER_FLOAT;
   }
+
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1714,7 +1327,7 @@ bool kvr::value::diff (const value *original, const value *modified)
     if (og->is_map () || og->is_array ())
     //////////////////////////////////
     {
-      diff->conv_map ();
+      diff->_conv_map ();
 
       pair *set = diff->insert_map (kvr_const_str_set);
       pair *add = diff->insert_map (kvr_const_str_add);
@@ -1729,12 +1342,12 @@ bool kvr::value::diff (const value *original, const value *modified)
 #if KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
-      diff->m_ctx->_diff_set (set->get_value (), rem->get_value (), og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
+      diff->_diff_set (set->get_value (), rem->get_value (), og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
 
 #if KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
-      diff->m_ctx->_diff_add (add->get_value (), og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
+      diff->_diff_add (add->get_value (), og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
     }
 
     //////////////////////////////////
@@ -1855,7 +1468,7 @@ bool kvr::value::patch (const value *diff)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::_conv_map (sz_t size)
+kvr::value * kvr::value::_conv_map (sz_t size)
 {
   if (!is_map ())
   {
@@ -1863,13 +1476,15 @@ void kvr::value::_conv_map (sz_t size)
     m_flags |= VALUE_FLAG_TYPE_MAP;
     m_data.m.init (size);
   }
+
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::_conv_array (sz_t size)
+kvr::value * kvr::value::_conv_array (sz_t size)
 {
   if (!is_array ())
   {
@@ -1877,6 +1492,8 @@ void kvr::value::_conv_array (sz_t size)
     m_flags |= VALUE_FLAG_TYPE_ARRAY;
     m_data.a.init (size);
   }
+
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2027,40 +1644,6 @@ void kvr::value::_move_string_dyn (char *str, sz_t size)
   sdata = str;
   ssize = size;
   slen = size - 1;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::pair * kvr::value::_insert_kv (key *k, value *v)
-{
-  KVR_ASSERT (k);
-  KVR_ASSERT (v);
-  KVR_ASSERT (is_map ());
-
-  pair *p = NULL;
-  
-#if KVR_DEBUG
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
-  KVR_ASSERT (p == NULL);
-#endif
-
-  p = m_data.m.insert (k, v);
-  
-  return p;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::value::_push_v (value *v)
-{
-  KVR_ASSERT (v);
-  KVR_ASSERT (is_array ());
-
-  this->m_data.a.push (v);  
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2412,6 +1995,399 @@ void kvr::value::_dump (size_t lpad, const char *key) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+void kvr::value::_diff_set (value *set, value *rem, const value *og, const value *md,
+                            const char **path, const sz_t pathsz, sz_t pathcnt)
+{
+  KVR_ASSERT (set);
+  KVR_ASSERT (rem);
+
+  if (og)
+  {
+    //////////////////////////////////
+    if (md == NULL)
+    //////////////////////////////////
+    {
+      // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
+      KVR_ASSERT (pathcnt > 0);
+      // add og to rem list
+      kvr *ctx = m_ctx;
+      value *v = ctx->_create_value_null (VALUE_FLAG_PARENT_ARRAY);
+      v->conv_string ();
+
+      if (pathcnt == 1)
+      {
+        const char *pk = path [0];
+        v->set_string (pk);
+      }
+      else
+      {
+        sz_t pksz = 0;
+        char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
+        v->_move_string_dyn (pk, pksz);
+      }
+
+      rem->_push_v (v);
+    }
+
+    //////////////////////////////////
+    else if (!(og->_is_number () && md->_is_number ()) && !(og->is_string () && md->is_string ()) && (og->_type () != md->_type ()))
+    //////////////////////////////////
+    {
+      // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
+      KVR_ASSERT (pathcnt > 0);
+
+      kvr *ctx = m_ctx;
+      key *k = NULL;
+      if ((pathcnt == 1) && (ctx == og->m_ctx)) // path key must already be in the key store
+      {
+        const char *pk = path [0];
+        KVR_ASSERT (ctx->_find_key (pk));
+        k = ctx->_create_key (pk); // increment reference count
+      }
+      else
+      {
+        char *pk = ctx->_create_path_expr (path, pathcnt);
+        k = ctx->_create_key (pk, false);
+        if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+      }
+
+      value *v = ctx->_create_value_null (VALUE_FLAG_PARENT_MAP);
+      v->copy (md);
+      set->_insert_kv (k, v);
+    }
+
+    //////////////////////////////////
+    else if (og->is_map ())
+    //////////////////////////////////
+    {
+      KVR_ASSERT (md->is_map ());
+
+      value::cursor c = og->fcursor ();
+      pair  *ogp = c.get ();
+
+      while (ogp)
+      {
+        const char *k = ogp->get_key ();
+
+        KVR_ASSERT (pathcnt < pathsz);
+        path [pathcnt++] = k;
+
+        pair * mdp = md->find (k);
+
+        value *mdv = mdp ? mdp->get_value () : NULL;
+        value *ogv = ogp->get_value ();
+
+        _diff_set (set, rem, ogv, mdv, path, pathsz, pathcnt);
+
+        path [--pathcnt] = NULL;
+
+        ogp = c.get ();
+      }
+    }
+
+    //////////////////////////////////
+    else if (og->is_array ())
+    //////////////////////////////////
+    {
+      KVR_ASSERT (md->is_array ());
+
+      char k [16];
+      for (sz_t i = 0, c = og->size (); i < c; ++i)
+      {
+        size_t kl = kvr_internal::u32toa (i, k);
+        k [kl] = 0;
+
+        KVR_ASSERT (pathcnt < pathsz);
+        path [pathcnt++] = k;
+
+        value *mdv = md->element (i);
+        value *ogv = og->element (i);
+
+        _diff_set (set, rem, ogv, mdv, path, pathsz, pathcnt);
+
+        path [--pathcnt] = NULL;
+      }
+    }
+
+    //////////////////////////////////
+    else if (og->is_string ())
+    //////////////////////////////////
+    {
+      KVR_ASSERT (pathcnt > 0);
+      KVR_ASSERT (md->is_string ());
+
+      const char *ogstr = og->get_string ();
+      const char *mdstr = md->get_string ();
+
+      if (strcmp (ogstr, mdstr) != 0)
+      {
+        kvr *ctx = m_ctx;
+        key *k = NULL;
+        if ((pathcnt == 1) && (ctx == og->m_ctx))
+        {
+          const char *pk = path [0];
+          KVR_ASSERT (ctx->_find_key (pk));
+          k = ctx->_create_key (pk);
+        }
+        else
+        {
+          char *pk = ctx->_create_path_expr (path, pathcnt);
+          k = ctx->_create_key (pk, false);
+          if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+        }
+
+        sz_t mdstrlen = md->_get_string_length ();
+        value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdstr, mdstrlen);
+        set->_insert_kv (k, v);
+      }
+    }
+
+    //////////////////////////////////
+    else if (og->is_number_i ())
+    //////////////////////////////////
+    {
+      KVR_ASSERT (pathcnt > 0);
+      KVR_ASSERT (md->_is_number ());
+
+      if (md->is_number_i ())
+      {
+        int64_t ogn = og->get_number_i ();
+        int64_t mdn = md->get_number_i ();
+
+        if (ogn != mdn)
+        {
+          kvr *ctx = m_ctx;
+          key *k = NULL;
+          if ((pathcnt == 1) && (ctx == og->m_ctx))
+          {
+            const char *pk = path [0];
+            KVR_ASSERT (ctx->_find_key (pk));
+            k = ctx->_create_key (pk);
+          }
+          else
+          {
+            char *pk = ctx->_create_path_expr (path, pathcnt);
+            k = ctx->_create_key (pk, true);
+            if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+          }
+
+          value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
+          set->_insert_kv (k, v);
+        }
+      }
+      else if (md->is_number_f ())
+      {
+        double ogn = og->get_number_f ();
+        double mdn = md->get_number_f ();
+
+        if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
+        {
+          kvr *ctx = m_ctx;
+          key *k = NULL;
+          if ((pathcnt == 1) && (ctx == og->m_ctx))
+          {
+            const char *pk = path [0];
+            KVR_ASSERT (ctx->_find_key (pk));
+            k = ctx->_create_key (pk);
+          }
+          else
+          {
+            char *pk = ctx->_create_path_expr (path, pathcnt);
+            k = ctx->_create_key (pk, true);
+            if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+          }
+
+          value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
+          set->_insert_kv (k, v);
+        }
+      }
+    }
+
+    //////////////////////////////////
+    else if (og->is_number_f ())
+    //////////////////////////////////
+    {
+      KVR_ASSERT (pathcnt > 0);
+      KVR_ASSERT (md->_is_number ());
+
+      double ogn = og->get_number_f ();
+      double mdn = md->get_number_f ();
+
+      if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
+      {
+        kvr *ctx = m_ctx;
+        key *k = NULL;
+        if ((pathcnt == 1) && (ctx == og->m_ctx))
+        {
+          const char *pk = path [0];
+          KVR_ASSERT (ctx->_find_key (pk));
+          k = ctx->_create_key (pk);
+        }
+        else
+        {
+          char *pk = ctx->_create_path_expr (path, pathcnt);
+          k = ctx->_create_key (pk, true);
+          if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+        }
+
+        value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
+        set->_insert_kv (k, v);
+      }
+    }
+
+    //////////////////////////////////
+    else if (og->is_boolean ())
+      //////////////////////////////////
+    {
+      KVR_ASSERT (pathcnt > 0);
+      KVR_ASSERT (md->is_boolean ());
+
+      bool ogb = og->get_boolean ();
+      bool mdb = md->get_boolean ();
+
+      if (ogb != mdb)
+      {
+        kvr *ctx = m_ctx;
+        key *k = NULL;
+        if ((pathcnt == 1) && (ctx == og->m_ctx))
+        {
+          const char *pk = path [0];
+          KVR_ASSERT (ctx->_find_key (pk));
+          k = ctx->_create_key (pk);
+        }
+        else
+        {
+          char *pk = ctx->_create_path_expr (path, pathcnt);
+          k = ctx->_create_key (pk, true);
+          if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+        }
+
+        value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdb);
+        set->_insert_kv (k, v);
+      }
+    }
+
+    //////////////////////////////////
+    else if (og->is_null ())
+      //////////////////////////////////
+    {
+      KVR_ASSERT (md->is_null ());
+      // should already be taken care of in type check
+    }
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_diff_add (value *add, const value *og, const value *md,
+                            const char **path, const sz_t pathsz, sz_t pathcnt)
+{
+  KVR_ASSERT (add);
+
+  //
+  // go through md and og and look for nodes in md that are not in og
+
+  if (md)
+  {
+    //////////////////////////////////
+    if (og == NULL)
+    //////////////////////////////////
+    {
+      // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
+      KVR_ASSERT (pathcnt > 0);
+      // add md to add list
+
+      kvr *ctx = m_ctx;
+      key *k = NULL;
+      if ((pathcnt == 1) && (ctx == md->m_ctx))
+      {
+        const char *pk = path [0];
+        KVR_ASSERT (ctx->_find_key (pk));
+        k = ctx->_create_key (pk);
+      }
+      else
+      {
+        char *pk = ctx->_create_path_expr (path, pathcnt);
+        k = ctx->_create_key (pk, true);
+        if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+      }
+
+      value *v = ctx->_create_value_null (VALUE_FLAG_PARENT_MAP);
+      v->copy (md);
+      add->_insert_kv (k, v);
+    }
+
+    //////////////////////////////////
+    else if (og->_type () != md->_type ())
+    //////////////////////////////////
+    {
+      // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
+      KVR_ASSERT (pathcnt > 0);
+      // handled by _diff_set
+    }
+
+    //////////////////////////////////
+    else if (md->is_map ())
+    //////////////////////////////////
+    {
+      KVR_ASSERT (og->is_map ());
+
+      value::cursor c = md->fcursor ();
+      pair  *mdp = c.get ();
+
+      while (mdp)
+      {
+        const char *k = mdp->get_key ();
+
+        KVR_ASSERT (pathcnt < pathsz);
+        path [pathcnt++] = k;
+
+        pair * ogp = og->find (k);
+
+        value *ogv = ogp ? ogp->get_value () : NULL;
+        value *mdv = mdp->get_value ();
+
+        _diff_add (add, ogv, mdv, path, pathsz, pathcnt);
+
+        path [--pathcnt] = NULL;
+
+        mdp = c.get ();
+      }
+    }
+
+    //////////////////////////////////
+    else if (md->is_array ())
+    //////////////////////////////////
+    {
+      KVR_ASSERT (og->is_array ());
+
+      char k [16];
+
+      for (sz_t i = 0, c = md->size (); i < c; ++i)
+      {
+        size_t kl = kvr_internal::u32toa (i, k);
+        k [kl] = 0;
+
+        KVR_ASSERT (pathcnt < pathsz);
+        path [pathcnt++] = k;
+
+        value *ogv = og->element (i);
+        value *mdv = md->element (i);
+
+        _diff_add (add, ogv, mdv, path, pathsz, pathcnt);
+
+        path [--pathcnt] = NULL;
+      }
+    }
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 void kvr::value::_patch_set (const value *set)
 {
   KVR_ASSERT (set);
@@ -2530,6 +2506,40 @@ void kvr::value::_patch_rem (const value *rem)
       }
     }
   }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::pair * kvr::value::_insert_kv (key *k, value *v)
+{
+  KVR_ASSERT (k);
+  KVR_ASSERT (v);
+  KVR_ASSERT (is_map ());
+
+  pair *p = NULL;
+
+#if KVR_DEBUG
+  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
+  KVR_ASSERT (p == NULL);
+#endif
+
+  p = m_data.m.insert (k, v);
+
+  return p;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_push_v (value *v)
+{
+  KVR_ASSERT (v);
+  KVR_ASSERT (is_array ());
+
+  this->m_data.a.push (v);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
