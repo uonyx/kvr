@@ -194,7 +194,7 @@ public:
     bool          get_boolean () const;
     int64_t       get_number_i () const;
     double        get_number_f () const;
-    
+
     // array variant ops
     value *       push (int64_t number);
     value *       push (double number);
@@ -251,7 +251,7 @@ public:
 
         char *  data;
         sz_t    size;
-        sz_t    pad;
+        sz_t    len;
       } m_dyn;
 
       struct stt_str
@@ -384,6 +384,9 @@ public:
     void    _conv_map (sz_t size = map::CAP_INCR);
     void    _conv_array (sz_t size = array::CAP_INCR);
 
+    sz_t    _get_string_length () const;
+    sz_t    _get_string_size () const;
+    void    _set_string (const char *str, sz_t len);
     void    _set_string_stt (const char *str);
     void    _set_string_dyn (const char *str, sz_t size);
     void    _move_string_dyn (char *str, sz_t size);
@@ -424,6 +427,7 @@ public:
     kvr     * m_ctx;
     
     friend class kvr;
+    friend class kvr_internal;
   };
 
   ///////////////////////////////////////////////////////////////
@@ -520,7 +524,7 @@ private:
   value * _create_value (uint32_t parentType, int64_t number);
   value * _create_value (uint32_t parentType, double number);
   value * _create_value (uint32_t parentType, bool boolean);
-  value * _create_value (uint32_t parentType, const char *str);
+  value * _create_value (uint32_t parentType, const char *str, sz_t len);
   void    _destroy_value (uint32_t parentType, value *v);
   
   ///////////////////////////////////////////////////////////////

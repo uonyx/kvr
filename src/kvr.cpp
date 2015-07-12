@@ -254,7 +254,7 @@ kvr::value * kvr::_create_value (uint32_t parentType, bool boolean)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::_create_value (uint32_t parentType, const char *str)
+kvr::value * kvr::_create_value (uint32_t parentType, const char *str, sz_t len)
 {
   KVR_ASSERT (str);
 
@@ -299,10 +299,8 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
       // add og to rem list
 
       value *v = this->_create_value_null (VALUE_FLAG_PARENT_ARRAY);
-
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF        
       v->conv_string ();
-#endif
+
       if (pathcnt == 1)
       {
         const char *pk = path [0];        
@@ -319,7 +317,7 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
     }
 
     //////////////////////////////////
-    else if (!(og->_is_number () && md->_is_number ()) && (og->_type () != md->_type ()))
+    else if (!(og->_is_number () && md->_is_number ()) && !(og->is_string () && md->is_string ()) && (og->_type () != md->_type ()))
     //////////////////////////////////
     {
       // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
@@ -429,7 +427,8 @@ void kvr::_diff_set (value *set, value *rem, const value *og, const value *md, c
           if (k->m_ref > 1) { _destroy_path_expr (pk); pk = NULL; }
         }
 
-        value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdstr);
+        sz_t mdstrlen = md->_get_string_length ();
+        value *v = this->_create_value (VALUE_FLAG_PARENT_MAP, mdstr, mdstrlen);
 
         set->_insert_kv (k, v);
       }
@@ -894,7 +893,7 @@ void kvr::value::conv_number_f ()
 
 void kvr::value::set_string (const char *str)
 {
-  KVR_ASSERT (str);
+  KVR_ASSERT_SAFE (str, (void)0);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF  
   KVR_ASSERT (is_string ());
@@ -902,34 +901,9 @@ void kvr::value::set_string (const char *str)
   conv_string ();
 #endif
 
-  size_t slen = strlen (str);  KVR_ASSERT ((uint64_t) slen < kvr::MAX_SZ_T);
-  sz_t size = (sz_t) slen;
-
-  // check string type
-  if (_is_string_static () && (size >= string::stt_str::CAP))
-  {
-    // init dynamic with size
-    char *&sdata = m_data.s.m_dyn.data;
-    sz_t &ssize = m_data.s.m_dyn.size;
-
-    sz_t allocsz = (size + (string::dyn_str::PAD - 1)) & ~(string::dyn_str::PAD - 1);
-    sdata = new char [allocsz];
-    ssize = allocsz;
-    
-    // toggle string types
-    m_flags &= ~VALUE_FLAG_TYPE_STT_STRING;
-    m_flags |= VALUE_FLAG_TYPE_DYN_STRING;
-  }
-  
-  // set string
-  if (_is_string_dynamic ())
-  {
-    this->_set_string_dyn (str, size + 1);
-  }
-  else
-  {
-    this->_set_string_stt (str);
-  }
+  size_t len = strlen (str);  
+  KVR_ASSERT ((uint64_t) len < kvr::MAX_SZ_T);
+  this->_set_string (str, (sz_t) len);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1077,7 +1051,7 @@ kvr::value * kvr::value::push (bool boolean)
 
 kvr::value * kvr::value::push (const char *str)
 {
-  KVR_ASSERT (str);
+  KVR_ASSERT_SAFE (str, NULL);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_array ());
@@ -1085,7 +1059,7 @@ kvr::value * kvr::value::push (const char *str)
   _conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, str);
+  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, str, (sz_t) strlen (str));
   this->m_data.a.push (v);
 
   return v;
@@ -1310,6 +1284,7 @@ kvr::pair * kvr::value::insert (const char *keystr, const char *str)
 {
   KVR_ASSERT (keystr);
   KVR_ASSERT (strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH);
+  KVR_ASSERT_SAFE (str, NULL);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1332,7 +1307,7 @@ kvr::pair * kvr::value::insert (const char *keystr, const char *str)
   else
 #endif
   {
-    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, str);    
+    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, str, (sz_t) strlen (str));    
     p = m_data.m.insert (k, v);
   }
 
@@ -1733,7 +1708,7 @@ bool kvr::value::diff (const value *original, const value *modified)
   const value *og = original;
   const value *md = modified;
 
-  if (og && md && (og != md) && ((og->_type () == md->_type ()) || (og->_is_number () && md->_is_number ())))
+  if (og && md && (og != md) && ((og->_type () == md->_type ()) || (og->_is_number () && md->_is_number ())) || (og->is_string () && md->is_string ()) )
   {
     //////////////////////////////////
     if (og->is_map () || og->is_array ())
@@ -1908,9 +1883,92 @@ void kvr::value::_conv_array (sz_t size)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+kvr::sz_t kvr::value::_get_string_length () const
+{
+  KVR_ASSERT (is_string ());
+
+  sz_t slen = 0;
+
+  if (_is_string_dynamic ())
+  {
+    slen = m_data.s.m_dyn.len;
+  }
+  else
+  {
+    slen = (sz_t) strlen (m_data.s.m_stt.data);
+  }
+
+  return slen;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::sz_t kvr::value::_get_string_size () const
+{
+  KVR_ASSERT (is_string ());
+
+  sz_t ssize = 0;
+
+  if (_is_string_dynamic ())
+  {
+    ssize = m_data.s.m_dyn.size;
+  }
+  else
+  {
+    ssize = string::stt_str::CAP;
+  }
+
+  return ssize;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_set_string (const char *str, sz_t len)
+{
+  KVR_ASSERT (str);
+  KVR_ASSERT (is_string ());
+  
+  // check string type
+  if (_is_string_static () && (len >= string::stt_str::CAP))
+  {
+    // init dynamic with size
+    char *&sdata = m_data.s.m_dyn.data;
+    sz_t &ssize = m_data.s.m_dyn.size;
+    sz_t &slen = m_data.s.m_dyn.len;
+
+    sz_t allocsz = (len + (string::dyn_str::PAD - 1)) & ~(string::dyn_str::PAD - 1);
+    sdata = new char [allocsz];
+    ssize = allocsz;
+    slen = len;
+
+    // toggle string types
+    m_flags &= ~VALUE_FLAG_TYPE_STT_STRING;
+    m_flags |= VALUE_FLAG_TYPE_DYN_STRING;
+  }
+
+  // set string
+  if (_is_string_dynamic ())
+  {
+    this->_set_string_dyn (str, len + 1);
+  }
+  else
+  {
+    this->_set_string_stt (str);
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 void kvr::value::_set_string_stt (const char *str)
 {
   KVR_ASSERT (str);
+  KVR_ASSERT (is_string ());
 
   kvr_strcpy (m_data.s.m_stt.data, string::stt_str::CAP, str);
 }
@@ -1923,9 +1981,11 @@ void kvr::value::_set_string_dyn (const char *str, sz_t size)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (size > 0);
+  KVR_ASSERT (is_string ());
 
   char *&sdata = m_data.s.m_dyn.data;
   sz_t &ssize = m_data.s.m_dyn.size;
+  sz_t &slen = m_data.s.m_dyn.len;
 
   sz_t allocsz = (size + (string::dyn_str::PAD - 1)) & ~(string::dyn_str::PAD - 1);
   if (allocsz > ssize)
@@ -1936,6 +1996,7 @@ void kvr::value::_set_string_dyn (const char *str, sz_t size)
     ssize = allocsz;
   }
 
+  slen = size - 1;
   kvr_strcpy (sdata, ssize, str);
 }
 
@@ -1947,9 +2008,11 @@ void kvr::value::_move_string_dyn (char *str, sz_t size)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (size > 0);
+  KVR_ASSERT (is_string ());
 
   char *&sdata = m_data.s.m_dyn.data;
   sz_t &ssize = m_data.s.m_dyn.size;
+  sz_t &slen = m_data.s.m_dyn.len;
 
   if (_is_string_dynamic ())
   {
@@ -1963,6 +2026,7 @@ void kvr::value::_move_string_dyn (char *str, sz_t size)
 
   sdata = str;
   ssize = size;
+  slen = size - 1;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

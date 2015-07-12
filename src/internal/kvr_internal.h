@@ -17,7 +17,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if KVR_DEBUG
+#if KVR_DEBUG && 1
 #define KVR_ASSERT(X) assert(X)
 #define KVR_ASSERT_SAFE(X, R) KVR_ASSERT(X)
 #else
@@ -62,7 +62,7 @@ private:
     {
       bool success = false;
 
-      KVR_ASSERT_SAFE (m_depth > 0, success);
+      KVR_ASSERT_SAFE (m_depth != 0, success);
       kvr::value *node = m_stack [m_depth - 1];
       KVR_ASSERT (node);
       KVR_ASSERT (node->is_map () || node->is_array ());
@@ -85,7 +85,7 @@ private:
     {
       bool success = false;
 
-      KVR_ASSERT_SAFE (m_depth > 0, success);
+      KVR_ASSERT_SAFE (m_depth != 0, success);
       kvr::value *node = m_stack [m_depth - 1];
       KVR_ASSERT (node);
       KVR_ASSERT (node->is_map () || node->is_array ());
@@ -118,7 +118,7 @@ private:
     {
       bool success = false;
 
-      KVR_ASSERT_SAFE (m_depth > 0, success);      
+      KVR_ASSERT_SAFE (m_depth != 0, success);
       kvr::value *node = m_stack [m_depth - 1];
       KVR_ASSERT (node);
       KVR_ASSERT (node->is_map () || node->is_array ());
@@ -139,7 +139,7 @@ private:
 
     bool Uint64 (uint64_t u)
     {
-      KVR_ASSERT (m_depth > 0);
+      KVR_ASSERT (m_depth != 0);
       KVR_ASSERT (false && "not supported");
       return false;
     }
@@ -148,7 +148,7 @@ private:
     {
       bool success = false;
 
-      KVR_ASSERT_SAFE (m_depth > 0, success);
+      KVR_ASSERT_SAFE (m_depth != 0, success);
       kvr::value *node = m_stack [m_depth - 1];
       KVR_ASSERT (node);
       KVR_ASSERT (node->is_map () || node->is_array ());
@@ -171,22 +171,24 @@ private:
     {
       bool success = false;
 
-      KVR_ASSERT_SAFE (m_depth > 0, success);
+      KVR_ASSERT_SAFE (m_depth != 0, success);
       kvr::value *node = m_stack [m_depth - 1];
       KVR_ASSERT (node);
       KVR_ASSERT (node->is_map () || node->is_array ());
 
-      char tstr [512];
-      strncpy_s (tstr, str, length);
-
       if (node->is_map ())
       {
-        node->insert (m_keybuffer, tstr);
+        kvr::pair *pstr = node->insert_null (m_keybuffer); KVR_ASSERT (pstr);
+        kvr::value *vstr = pstr->get_value (); KVR_ASSERT (vstr);
+        vstr->conv_string ();
+        vstr->_set_string (str, (kvr::sz_t) length);
         success = true;
       }
       else if (node->is_array ())
       {
-        node->push (tstr);
+        kvr::value *vstr = node->push_null (); KVR_ASSERT (vstr);
+        vstr->conv_string ();
+        vstr->_set_string (str, (kvr::sz_t) length);
         success = true;
       }
 
@@ -232,9 +234,8 @@ private:
     {
 #if KVR_DEBUG
       kvr::value *node = m_stack [m_depth - 1];
-      KVR_ASSERT_SAFE (node && node->is_map (), false);
+      KVR_ASSERT (node && node->is_map ());
 #endif
-
       kvr_strncpy (m_keybuffer, str, length);
       return true;
     }
@@ -250,7 +251,6 @@ private:
     bool StartArray ()
     {
       bool success = false;
-
       kvr::value *node = NULL;
 
       if (m_depth > 0)      
@@ -312,6 +312,7 @@ private:
 
     ~json_write_context ()
     {
+      KVR_ASSERT (m_data);
       m_data [m_pos] = 0;
     }
 
@@ -341,7 +342,6 @@ private:
     const char *GetString () const
     {
       m_data [m_pos] = 0;
-
       return m_data;
     }
 
@@ -376,7 +376,7 @@ private:
         kvr::value *v = p->get_value ();
 
         size += strlen (k) + 2;
-        size += json_write_approx_size (v);
+        size += kvr_internal::json_write_approx_size (v);
         size += 2;
 
         p = c.get_pair ();
@@ -390,15 +390,9 @@ private:
       size += 2;
       for (kvr::sz_t i = 0, c = val->size (); i < c; ++i)
       {
-        kvr::value *v = val->element (i);
-        kvr::sz_t n = i;
-        do
-        {
-          n /= 10;
-          size++;
-        } while (n);
-
-        size += json_write_approx_size (v);
+        kvr::value *v = val->element (i);        
+        size += kvr_internal::count_digits (i);
+        size += kvr_internal::json_write_approx_size (v);
         size += 1;
       }
     }
@@ -408,7 +402,7 @@ private:
     //////////////////////////////////
     {
       const char *str = val->get_string ();
-      size += strlen (str) + 2;
+      size += (val->_get_string_size () + 2);
     }
 
     //////////////////////////////////
@@ -416,12 +410,7 @@ private:
     //////////////////////////////////
     {
       int64_t n = val->get_number_i ();
-      size += (n < 0) ? 1 : 0;
-      do
-      {
-        n /= 10;
-        size++;
-      } while (n);
+      size += kvr_internal::count_digits (n); 
     }
 
     //////////////////////////////////
@@ -429,9 +418,7 @@ private:
     //////////////////////////////////
     {
       double n = val->get_number_f ();
-      //char k [16];    
-      //size += snprintf (k, 16, "%g", n);
-      size += 6;
+      size += 9; // average (guess)
     }
 
     //////////////////////////////////
@@ -474,7 +461,7 @@ private:
         writer.Key (k, strlen (k));
 
         kvr::value *v = p->get_value ();
-        ok = json_write_stream (v, writer);
+        ok = kvr_internal::json_write_stream (v, writer);
 
         p = c.get_pair ();
       }
@@ -491,7 +478,7 @@ private:
       for (kvr::sz_t i = 0, c = val->size (); (i < c) && ok; ++i)
       {
         kvr::value *v = val->element (i);        
-        ok = json_write_stream (v, writer);
+        ok = kvr_internal::json_write_stream (v, writer);
       }
 
       success = ok && writer.EndArray ();
@@ -605,13 +592,13 @@ public:
         break;
       }
 
-      approxBufSize = (approxBufSize + 15U) & ~15U;
+      approxBufSize = (approxBufSize + 31U) & ~31U;
 
       char *data = new char [approxBufSize];
       json_write_context wctx (data, approxBufSize);
       kvr_rapidjson::Writer<json_write_context> writer (wctx);
 
-      if (!json_write_stream (src, writer))
+      if (!kvr_internal::json_write_stream (src, writer))
       {
         delete [] data;
         success = false;
@@ -647,6 +634,25 @@ public:
   //////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////
 
+  static uint32_t count_digits (int64_t i64)
+  {
+#if 0
+    int64_t n = i64;
+    uint32_t count = (n < 0) ? 1 : 0; // sign
+    do
+    {
+      count++;
+      n /= 10;      
+    } while (n);
+#else
+    uint32_t count = kvr_rapidjson::internal::CountDecimalDigit32 ((uint32_t) i64);
+#endif
+    return count;
+  }
+
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
