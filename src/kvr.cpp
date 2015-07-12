@@ -1708,7 +1708,7 @@ bool kvr::value::diff (const value *original, const value *modified)
   const value *og = original;
   const value *md = modified;
 
-  if (og && md && (og != md) && ((og->_type () == md->_type ()) || (og->_is_number () && md->_is_number ())) || (og->is_string () && md->is_string ()) )
+  if (og && md && (og != md) && ((og->_type () == md->_type ()) || (og->_is_number () && md->_is_number ()) || (og->is_string () && md->is_string ())))
   {
     //////////////////////////////////
     if (og->is_map () || og->is_array ())

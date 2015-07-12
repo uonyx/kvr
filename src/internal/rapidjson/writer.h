@@ -254,7 +254,7 @@ protected:
     bool WriteUint64(uint64_t u64) {
 #if KVR_USE_STRING_BUFFER_SPECIALIZATION
       char *buffer = os_->Push (20);
-      const char* end = internal::u64toa (u, buffer);
+      const char* end = internal::u64toa (u64, buffer);
       os_->Pop (20 - (end - buffer));
       return true;
 #else
