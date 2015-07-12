@@ -226,9 +226,6 @@ public:
     // copy
     void          copy (const value *rhs);
 
-    // debug output
-    void          dump () const;
-
     // read/write
     bool          serialize (data_format format, strbuffer *strbuf) const;
     bool          deserialize (data_format format, const char *str);
@@ -237,6 +234,12 @@ public:
     bool          diff (const value *original, const value *modified); 
     bool          patch (const value *diff);
     
+    // hash code
+    uint32_t      hashcode (uint32_t seed = 0) const;
+
+    // debug output
+    void          dump () const;
+
   private:
 
     ///////////////////////////////////////////

@@ -1123,7 +1123,6 @@ kvr::value * kvr::value::search (const char **path, sz_t pathsz) const
   while (v && (pc < pathsz))
   {
     const char *key = path [pc++];
-
     v = v->_search_key (key);
   }
 
@@ -1226,16 +1225,6 @@ void kvr::value::copy (const value *rhs)
       this->conv_null ();
     }
   }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::value::dump () const
-{
-  this->_dump (0, NULL);
-  fprintf (stderr, "\n");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1462,6 +1451,109 @@ bool kvr::value::patch (const value *diff)
   }
 
   return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+uint32_t kvr::value::hashcode (uint32_t seed) const
+{
+  uint32_t hc = seed;
+
+  //////////////////////////////////
+  if (this->is_map ())
+  //////////////////////////////////
+  {
+    hc += (VALUE_FLAG_TYPE_MAP);
+    uint32_t mhc = 0;
+    cursor c = fcursor ();
+    pair  *p = c.get ();
+    while (p)
+    {
+      const char *k = p->get_key ();
+      value *v = p->get_value ();
+      uint32_t kh = kvr_internal::strhash (k);
+      uint32_t vh = v->hashcode ();
+      mhc ^= (kh * vh);
+      p = c.get ();
+    }
+    hc += mhc;
+  }
+
+  //////////////////////////////////
+  else if (this->is_array ())
+  //////////////////////////////////
+  {
+    hc += (VALUE_FLAG_TYPE_ARRAY);
+    uint32_t ahc = 0;
+    for (sz_t i = 0, c = this->size (); i < c; ++i)
+    {
+      value *v = this->element (i);
+      uint32_t kh = i;
+      uint32_t vh = v->hashcode ();
+      ahc += (kh * vh);
+    }
+    hc += ahc;
+  }
+
+  //////////////////////////////////
+  else if (this->is_string ())
+  //////////////////////////////////
+  {
+    hc += (VALUE_FLAG_TYPE_STT_STRING + VALUE_FLAG_TYPE_DYN_STRING);
+    const char *str = get_string ();
+    hc += kvr_internal::strhash (str);
+  }
+
+  //////////////////////////////////
+  else if (this->is_number_i ())
+  //////////////////////////////////
+  {
+    hc += (VALUE_FLAG_TYPE_NUMBER_INTEGER);
+    int64_t n = get_number_i ();
+    uint32_t hv = (uint32_t) (n % (1ULL << 32));
+    hc += hv;
+  }
+
+  //////////////////////////////////
+  else if (this->is_number_f ())
+  //////////////////////////////////
+  {
+    hc += (VALUE_FLAG_TYPE_NUMBER_FLOAT);
+    double n = get_number_f ();
+    uint32_t hv = (uint32_t) std::floor (n);
+    hc += hv;
+  }
+
+  //////////////////////////////////
+  else if (this->is_boolean ())
+  //////////////////////////////////
+  {
+    hc += (VALUE_FLAG_TYPE_BOOLEAN);
+    bool b = get_boolean ();
+    uint32_t hv = b ? 4 : 5;
+    hc += hv;
+  }
+
+  //////////////////////////////////
+  else if (this->is_null ())
+  //////////////////////////////////
+  {
+    hc += (VALUE_FLAG_TYPE_NULL);    
+  }
+
+  return hc;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::dump () const
+{
+  this->_dump (0, NULL);
+  fprintf (stderr, "\n");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1929,7 +2021,6 @@ void kvr::value::_dump (size_t lpad, const char *key) const
       const char *k = p->get_key ();
       value *v = p->get_value ();
       v->_dump (lpad + 1, k);
-
       p = c.get ();
     }
   }
