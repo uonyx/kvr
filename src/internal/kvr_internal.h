@@ -54,7 +54,7 @@ private:
 
   struct json_read_context
   {
-    json_read_context (kvr::value *value) : m_dest (value), m_root (NULL), m_depth (0)
+    json_read_context (kvr::value *value) : m_root (value), m_pair (NULL), m_depth (0)
     {
       memset (m_stack, 0, sizeof (m_stack));
     }
@@ -70,7 +70,10 @@ private:
 
       if (node->is_map ())
       {
-        node->insert_null (m_keybuffer);
+        KVR_ASSERT_SAFE (m_pair, false);
+        kvr::value *pv = m_pair->get_value ();
+        KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+        m_pair = NULL;
         success = true;
       }
       else if (node->is_array ())
@@ -93,7 +96,14 @@ private:
 
       if (node->is_map ())
       {
-        node->insert (m_keybuffer, b);
+        KVR_ASSERT_SAFE (m_pair, false);
+        kvr::value *pv = m_pair->get_value ();
+        KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+        pv->conv_boolean ();
+#endif
+        pv->set_boolean (b);
+        m_pair = NULL;
         success = true;
       }
       else if (node->is_array ())
@@ -126,7 +136,14 @@ private:
 
       if (node->is_map ())
       {
-        node->insert (m_keybuffer, i);
+        KVR_ASSERT_SAFE (m_pair, false);
+        kvr::value *pv = m_pair->get_value ();
+        KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+        pv->conv_number_i ();
+#endif
+        pv->set_number_i (i);
+        m_pair = NULL;
         success = true;
       }
       else if (node->is_array ())
@@ -156,7 +173,14 @@ private:
 
       if (node->is_map ())
       {
-        node->insert (m_keybuffer, d);
+        KVR_ASSERT_SAFE (m_pair, false);
+        kvr::value *pv = m_pair->get_value ();
+        KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+        pv->conv_number_f ();
+#endif
+        pv->set_number_f (d);
+        m_pair = NULL;
         success = true;
       }
       else if (node->is_array ())
@@ -168,7 +192,7 @@ private:
       return success;
     }
     
-    bool String (const char* str, kvr_rapidjson::SizeType length, bool copy)
+    bool String (const char *str, kvr_rapidjson::SizeType length, bool copy)
     {
       bool success = false;
 
@@ -179,10 +203,12 @@ private:
 
       if (node->is_map ())
       {
-        kvr::pair *pstr = node->insert_null (m_keybuffer); KVR_ASSERT (pstr);
-        kvr::value *vstr = pstr->get_value (); KVR_ASSERT (vstr);
-        vstr->conv_string ();
-        vstr->_set_string (str, (kvr::sz_t) length);
+        KVR_ASSERT_SAFE (m_pair, false);
+        kvr::value *pv = m_pair->get_value ();
+        KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+        pv->conv_string ();
+        pv->_set_string (str, (kvr::sz_t) length);
+        m_pair = NULL;
         success = true;
       }
       else if (node->is_array ())
@@ -209,7 +235,11 @@ private:
 
         if (node->is_map ())
         {
-          node = node->insert_map (m_keybuffer)->get_value ();
+          KVR_ASSERT_SAFE (m_pair, false);
+          node = m_pair->get_value ();
+          KVR_ASSERT_SAFE (node && node->is_null (), false);
+          node->conv_map ();
+          m_pair = NULL;
           success = true;
         }
         else if (node->is_array ())
@@ -220,8 +250,7 @@ private:
       }
       else
       {
-        KVR_ASSERT_SAFE (!m_root, false);
-        node = m_root = m_dest->conv_map ();
+        node = m_root->conv_map ();
         success = true;
       }
 
@@ -231,14 +260,14 @@ private:
       return success;
     }
     
-    bool Key (const char* str, kvr_rapidjson::SizeType length, bool copy)
+    bool Key (const char *str, kvr_rapidjson::SizeType length, bool copy)
     {
-#if KVR_DEBUG
       kvr::value *node = m_stack [m_depth - 1];
-      KVR_ASSERT (node && node->is_map ());
-#endif
-      kvr_strncpy (m_keybuffer, str, length);
-      return true;
+      KVR_ASSERT_SAFE (node && node->is_map (), false);
+
+      KVR_ASSERT (!m_pair);
+      m_pair = node->insert_null (str);
+      return (m_pair != NULL);
     }
     
     bool EndObject (kvr_rapidjson::SizeType memberCount)
@@ -262,7 +291,11 @@ private:
 
         if (node->is_map ())
         {
-          node = node->insert_array (m_keybuffer)->get_value ();
+          KVR_ASSERT_SAFE (m_pair, false);
+          node = m_pair->get_value ();
+          KVR_ASSERT_SAFE (node && node->is_null (), false);
+          node->conv_array ();          
+          m_pair = NULL;
           success = true;
         }
         else if (node->is_array ())
@@ -273,8 +306,7 @@ private:
       }
       else
       {
-        KVR_ASSERT_SAFE (!m_root, false);
-        node = m_root = m_dest->conv_array ();        
+        node = m_root->conv_array ();
         success = true;
       }
 
@@ -292,11 +324,10 @@ private:
       return true;
     }
 
-    kvr::value  * m_dest;
-    kvr::value  * m_root;
     kvr::value  * m_stack [KVR_CONSTANT_MAX_TREE_DEPTH];
+    kvr::value  * m_root;
+    kvr::pair   * m_pair;
     kvr::sz_t     m_depth;
-    char          m_keybuffer [KVR_CONSTANT_MAX_KEY_LENGTH];
   };
 
   //////////////////////////////////////////////////////////////////////////

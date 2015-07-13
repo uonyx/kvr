@@ -1777,23 +1777,20 @@ void kvr::value::_move_string_dyn (char *str, sz_t size)
 
 kvr::value * kvr::value::_search_path_expr (const char *expr, const char **lastkey, value **lastparent) const
 {
-  KVR_ASSERT (expr);
-  KVR_ASSERT (strlen (expr) > 0);
+  KVR_ASSERT_SAFE (expr, NULL);
+  KVR_ASSERT_SAFE (expr [0] != 0, NULL);
 
-  // TODO: unicode parsing
-
-  value *v = (expr [0] != 0) ? (value *) this : NULL;
+  value *v = (value *) this;
 
   const char delim = KVR_CONSTANT_TOKEN_DELIMITER;
   const char *e1 = expr;
   const char *e2 = strchr (e1, delim);
-
   char k [KVR_CONSTANT_MAX_KEY_LENGTH + 1];
 
   while (v && e2)
   {
     sz_t klen = e2 - e1;
-    KVR_ASSERT (klen <= KVR_CONSTANT_MAX_KEY_LENGTH);
+    KVR_ASSERT_SAFE ((klen <= KVR_CONSTANT_MAX_KEY_LENGTH), NULL);
     kvr_strncpy (k, e1, klen);
     v = v->_search_key (k);
 
@@ -1813,9 +1810,7 @@ kvr::value * kvr::value::_search_path_expr (const char *expr, const char **lastk
 
   if (v && e1 && (*e1 != 0))
   {
-    kvr_strcpy (k, KVR_CONSTANT_MAX_KEY_LENGTH, e1);
-
-    v = v->_search_key (k);
+    v = v->_search_key (e1);
   }
 
   return v;
@@ -1854,12 +1849,8 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
 
         if (s)
         {
-          char sk [KVR_CONSTANT_MAX_KEY_LENGTH + 1];
-
-          sz_t klen = s - pattern;
-          KVR_ASSERT (klen <= KVR_CONSTANT_MAX_KEY_LENGTH);
-          kvr_strncpy  (sk, pattern, klen);
-
+          sz_t sklen = s - pattern;
+          const char *sk = pattern;
           const char *sv = s + 1;
 
           for (sz_t i = 0, c = this->size (), f = 0; (i < c) && !f; ++i)
@@ -1877,7 +1868,7 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                 const char *pks = pk->get_string ();
                 sz_t pkslen = pk->get_length ();
 
-                if (pks && (pkslen == klen) && (strcmp (pks, sk) == 0))
+                if (pks && (pkslen == sklen) && (strncmp (pks, sk, sklen) == 0))
                 {
                   // got key, now check value
                   value *pv = p->get_value ();
@@ -2572,7 +2563,7 @@ void kvr::value::_patch_add (const value *add)
     const char *tgk = NULL;
     value *tgp = NULL;
     value *tgv = tg->_search_path_expr (akey, &tgk, &tgp);
-    KVR_ASSERT (tgv == NULL);
+    KVR_ASSERT (tgv == NULL); // path shouldn't exist but we're interested in key and parent
 
     if (tgk && tgp)
     {
@@ -2610,7 +2601,7 @@ void kvr::value::_patch_rem (const value *rem)
 
   value *tg = this;
 
-  for (sz_t c = rem->size (); c >= 1; --c) // start from bottom (for array removal)
+  for (sz_t c = rem->size (); c >= 1; --c) // start from bottom (for array pop)
   {
     sz_t i = c - 1;
 

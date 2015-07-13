@@ -55,7 +55,7 @@
 // ideal to have the first 3 constants constants statically bound by client (aka templates)
 
 #define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
-#define KVR_CONSTANT_MAX_KEY_LENGTH                     (255)
+#define KVR_CONSTANT_MAX_KEY_LENGTH                     (127)
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (64)
 #define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 #define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
