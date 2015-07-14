@@ -358,6 +358,7 @@ private:
     char* Push (size_t count)
     {
       KVR_ASSERT (m_data);
+      KVR_ASSERT (m_pos < m_cap);
       char *start = &m_data [m_pos];
       m_pos += count;
       return start;
@@ -400,7 +401,7 @@ private:
     if (val->is_map ())
     //////////////////////////////////
     {
-      size += 2;
+      size += 2; // brackets
       kvr::value::cursor c = val->fcursor ();
       kvr::pair  *p = c.get ();
       while (p)
@@ -408,9 +409,9 @@ private:
         kvr::key *k = p->get_key ();
         kvr::value *v = p->get_value ();
 
-        size += k->get_length () + 2;
+        size += k->get_length () + 2; // + quotes
         size += kvr_internal::json_write_approx_size (v);
-        size += 2;
+        size += 2; // colon and comma
 
         p = c.get ();
       }
@@ -420,13 +421,13 @@ private:
     else if (val->is_array ())
     //////////////////////////////////
     {
-      size += 2;
+      size += 2; // brackets
       for (kvr::sz_t i = 0, c = val->size (); i < c; ++i)
       {
         kvr::value *v = val->element (i);        
         size += kvr_internal::u32digits (i);
         size += kvr_internal::json_write_approx_size (v);
-        size += 1;
+        size += 1; // comma
       }
     }
 
@@ -435,7 +436,7 @@ private:
     //////////////////////////////////
     {
       const char *str = val->get_string ();
-      size += (val->_get_string_size () + 2);
+      size += (val->_get_string_size () + 2); // + quotes
     }
 
     //////////////////////////////////
@@ -618,7 +619,6 @@ public:
     do
     {
       size_t approxBufSize = json_write_approx_size (src);
-
       if (approxBufSize == 0)
       {
         success = false;
@@ -626,7 +626,6 @@ public:
       }
 
       approxBufSize = (approxBufSize + 31U) & ~31U;
-
       char *data = new char [approxBufSize];
       json_write_context wctx (data, approxBufSize);
       kvr_rapidjson::Writer<json_write_context> writer (wctx);
