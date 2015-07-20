@@ -344,7 +344,7 @@ public:
     void    _set_string (const char *str, sz_t len);
     void    _set_string_stt (const char *str);
     void    _set_string_dyn (const char *str, sz_t size);
-    void    _move_string_dyn (char *str, sz_t size);
+    void    _move_string (char *str, sz_t size);
 
     value * _search_path_expr (const char *expr, const char **lastkey = NULL, 
                                value **lastparent = NULL) const;

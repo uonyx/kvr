@@ -585,7 +585,7 @@ void kvr::value::set_number_f (double n)
 
 const char * kvr::value::get_string () const
 {
-  KVR_ASSERT (is_string ());
+  KVR_ASSERT_SAFE (is_string (), NULL);
   return _is_string_dynamic () ? m_data.s.m_dyn.data : m_data.s.m_stt.data;
 }
 
@@ -595,7 +595,7 @@ const char * kvr::value::get_string () const
 
 bool kvr::value::get_boolean () const
 {
-  KVR_ASSERT (is_boolean ());
+  KVR_ASSERT_SAFE (is_boolean (), false);
   return m_data.b;
 }
 
@@ -605,7 +605,7 @@ bool kvr::value::get_boolean () const
 
 int64_t kvr::value::get_number_i () const
 {
-  KVR_ASSERT (_is_number ());
+  KVR_ASSERT_SAFE (_is_number (), 0);
   return is_number_i () ? m_data.n.i : (int64_t) m_data.n.f;
 }
 
@@ -615,7 +615,7 @@ int64_t kvr::value::get_number_i () const
 
 double kvr::value::get_number_f () const
 {
-  KVR_ASSERT (_is_number ());
+  KVR_ASSERT_SAFE (_is_number (), 0.0f);
   return is_number_f () ? m_data.n.f : (double) m_data.n.i;
 }
 
@@ -753,7 +753,7 @@ kvr::value * kvr::value::push_null ()
 
 bool kvr::value::pop ()
 {
-  KVR_ASSERT (is_array ());
+  KVR_ASSERT_SAFE (is_array (), false);
 
   bool ret = false;
 
@@ -773,7 +773,7 @@ bool kvr::value::pop ()
 
 kvr::value * kvr::value::element (kvr::sz_t index) const
 {
-  KVR_ASSERT (is_array ());
+  KVR_ASSERT_SAFE (is_array (), NULL);
   
   value *v = this->m_data.a.elem (index);
 
@@ -786,7 +786,7 @@ kvr::value * kvr::value::element (kvr::sz_t index) const
 
 kvr::sz_t kvr::value::size () const
 {
-  KVR_ASSERT (is_array ());
+  KVR_ASSERT_SAFE (is_array (), 0);
 
   sz_t size = this->m_data.a.m_len;
 
@@ -1082,7 +1082,7 @@ bool kvr::value::remove (kvr::pair *pair)
 kvr::pair * kvr::value::find (const char *keystr) const
 {
   KVR_ASSERT (keystr);
-  KVR_ASSERT (is_map ());
+  KVR_ASSERT_SAFE (is_map (), NULL);
 
   pair *p = NULL;
 
@@ -1342,12 +1342,10 @@ bool kvr::value::diff (const value *original, const value *modified)
       KVR_ASSERT (rem);
 
       const char * path [KVR_CONSTANT_MAX_TREE_DEPTH];
-
 #if KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
       diff->_diff_set (set->get_value (), rem->get_value (), og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
-
 #if KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
@@ -1728,7 +1726,7 @@ void kvr::value::_set_string_dyn (const char *str, sz_t size)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::_move_string_dyn (char *str, sz_t size)
+void kvr::value::_move_string (char *str, sz_t size)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (size > 0);
@@ -2123,7 +2121,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       {
         sz_t pksz = 0;
         char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
-        v->_move_string_dyn (pk, pksz);
+        v->_move_string (pk, pksz);
       }
 
       rem->_push_v (v);
@@ -2346,7 +2344,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
 
     //////////////////////////////////
     else if (og->is_boolean ())
-      //////////////////////////////////
+    //////////////////////////////////
     {
       KVR_ASSERT (pathcnt > 0);
       KVR_ASSERT (md->is_boolean ());
@@ -2438,7 +2436,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
     {
       // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
       KVR_ASSERT (pathcnt > 0);
-      // handled by _diff_set
+      // handled by _diff_set (which must be called before _diff_add)
     }
 
     //////////////////////////////////
@@ -2448,7 +2446,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
       KVR_ASSERT (og->is_map ());
 
       value::cursor c = md->fcursor ();
-      pair  *mdp = c.get ();
+      pair *mdp = c.get ();
 
       while (mdp)
       {

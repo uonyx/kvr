@@ -283,7 +283,7 @@ private:
       bool success = false;
       kvr::value *node = NULL;
 
-      if (m_depth > 0)      
+      if (m_depth > 0) 
       {
         node = m_stack [m_depth - 1];
         KVR_ASSERT (node);
@@ -320,6 +320,7 @@ private:
     {
       kvr::value *node = m_stack [m_depth - 1];
       KVR_ASSERT_SAFE (node && node->is_array (), false);
+      KVR_ASSERT (node->size () == (kvr::sz_t) elementCount);
       m_stack [--m_depth] = NULL;
       return true;
     }
@@ -642,6 +643,99 @@ public:
       *len = wctx.GetLength ();
 
     } while (0);
+
+    return success;
+  }
+
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  
+  static bool msgpack_write_stream (const kvr::value *src, kvr::strbuffer *strbuf)
+  {
+    KVR_ASSERT (src);
+
+    bool success = false;
+
+    const kvr::value *val = src; 
+
+    //////////////////////////////////
+    if (val->is_map ())
+    //////////////////////////////////
+    {
+      bool ok = true; //writer.StartObject ();
+
+      kvr::value::cursor c = val->fcursor ();
+      kvr::pair *p = c.get ();
+      while (p && ok)
+      {
+        kvr::key *k = p->get_key ();
+        //writer.Key (k->get_string (), k->get_length ());
+
+        kvr::value *v = p->get_value ();
+        ok = false; //kvr_internal::json_write_stream (v, writer);
+
+        p = c.get ();
+      }
+
+      success = ok; //&& writer.EndObject ();
+    }
+
+    //////////////////////////////////
+    else if (val->is_array ())
+    //////////////////////////////////
+    {
+      bool ok = false; //writer.StartArray ();
+
+      for (kvr::sz_t i = 0, c = val->size (); (i < c) && ok; ++i)
+      {
+        kvr::value *v = val->element (i);        
+        ok = false; //kvr_internal::json_write_stream (v, writer);
+      }
+
+      success = ok; //&& writer.EndArray ();
+    }
+
+    //////////////////////////////////
+    else if (val->is_string ())
+    //////////////////////////////////
+    {
+      const char *str = val->get_string ();      
+      success = true; //writer.String (str, strlen (str));
+    }
+
+    //////////////////////////////////
+    else if (val->is_number_i ())
+    //////////////////////////////////
+    {
+      int64_t n = val->get_number_i ();
+      success = true; //writer.Int64 (n);
+    }
+
+    //////////////////////////////////
+    else if (val->is_number_f ())
+    //////////////////////////////////
+    {
+      double n = val->get_number_f ();
+      success = true; //writer.Double (n);
+    }
+
+    //////////////////////////////////
+    else if (val->is_boolean ())
+    //////////////////////////////////
+    {
+      bool b = val->get_boolean ();
+      printf ("%s", b ? "c3": "c2");
+      success = true; //writer.Bool (b);
+    }
+
+    //////////////////////////////////
+    else if (val->is_null ())
+    //////////////////////////////////
+    {
+      printf("%s", "c0");
+      success = true; //writer.Null ();
+    }
 
     return success;
   }
