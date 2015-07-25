@@ -493,7 +493,16 @@ kvr::value * kvr::value::conv_number_i ()
 {
   if (!is_number_i ())
   {
-    this->_clear ();
+    if (is_number_f ())
+    {
+      int64_t i = (int64_t) m_data.n.f;
+      m_data.n.i = i;
+    }
+    else
+    {
+      this->_clear ();
+    }
+
     m_flags |= VALUE_FLAG_TYPE_NUMBER_INTEGER;
   }
 
@@ -508,7 +517,16 @@ kvr::value * kvr::value::conv_number_f ()
 {
   if (!is_number_f ())
   {
-    this->_clear ();
+    if (is_number_i ())
+    {
+      double f = (double) m_data.n.i;;
+      m_data.n.f = f;
+    }
+    else
+    {
+      this->_clear ();
+    }
+
     m_flags |= VALUE_FLAG_TYPE_NUMBER_FLOAT;
   }
 
@@ -1111,7 +1129,7 @@ kvr::value::cursor kvr::value::fcursor () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::copy (const value *rhs)
+kvr::value * kvr::value::copy (const value *rhs)
 {
   KVR_ASSERT (rhs);
 
@@ -1203,6 +1221,8 @@ void kvr::value::copy (const value *rhs)
       this->conv_null ();
     }
   }
+
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1316,9 +1336,10 @@ bool kvr::value::deserialize (data_format format, const char *str)
 
 bool kvr::value::diff (const value *original, const value *modified)
 {
-  bool success = false;
   KVR_ASSERT (original);
   KVR_ASSERT (modified);
+
+  bool success = false;
 
   value *diff = this;
 

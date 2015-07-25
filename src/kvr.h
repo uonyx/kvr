@@ -195,7 +195,7 @@ public:
     cursor        fcursor () const;
 
     // copy
-    void          copy (const value *rhs);
+    value *       copy (const value *rhs);
 
     // path search (map or array)
     value *       search (const char *pathexpr) const;
@@ -203,6 +203,7 @@ public:
 
     // serialize/deserialize
     bool          serialize (data_format format, strbuffer *strbuf) const;
+    bool          serialize (data_format format, std::string *str) const;
     bool          deserialize (data_format format, const char *str);
 
     // diff/patch
