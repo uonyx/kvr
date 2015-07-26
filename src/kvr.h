@@ -80,7 +80,7 @@ public:
   typedef uint16_t sz_t;
 
 #if KVR_DEBUG
-  static const uint64_t MAX_SZ_T = (1 << (sizeof (sz_t) * 8)) - 1;
+  static const uint64_t MAX_SZ_T = (sizeof (sz_t) == 8) ? 0xffffffffffffffff :  (1ULL << (sizeof (sz_t) * 8)) - 1;
 #endif
 
   ///////////////////////////////////////////////////////////////
@@ -97,7 +97,7 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class strbuffer;
+  class buffer;
   class pair;
 
   ///////////////////////////////////////////////////////////////
@@ -161,11 +161,14 @@ public:
     value *       conv_number_f ();
 
     // native variant ops
+    void          set_string (const char *str, sz_t len);
     void          set_string (const char *str);
     void          set_boolean (bool b);
     void          set_number_i (int64_t n);
     void          set_number_f (double n);
+
     const char *  get_string () const;
+    const char *  get_string (sz_t *len) const;
     bool          get_boolean () const;
     int64_t       get_number_i () const;
     double        get_number_f () const;
@@ -202,9 +205,9 @@ public:
     value *       search (const char **path, sz_t pathsz) const;
 
     // serialize/deserialize
-    bool          serialize (data_format format, strbuffer *strbuf) const;
-    bool          serialize (data_format format, std::string *str) const;
-    bool          deserialize (data_format format, const char *str);
+    bool          serialize (data_format format, buffer *buf) const;
+    bool          deserialize (data_format format, const uint8_t *data, size_t sz);        
+    size_t        approx_serialize_size (data_format format) const;
 
     // diff/patch
     bool          diff (const value *original, const value *modified); 
@@ -263,7 +266,6 @@ public:
       void    deinit ();
       void    push (value *v);
       value * pop ();
-      value * pop (sz_t index);
       value * elem (sz_t index) const;
 
       value **m_ptr;
@@ -384,7 +386,6 @@ public:
     kvr     * m_ctx;
     
     friend class kvr;
-    friend class kvr_internal;
   };
 
   ///////////////////////////////////////////////////////////////
@@ -412,26 +413,53 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class strbuffer
+  class stream
   {
   public:
 
-    const char *  get_string () const;
-    size_t        get_length () const;
-
-    strbuffer ();
-    ~strbuffer ();
+    stream (size_t cap);
+    ~stream ();
+    
+    const uint8_t * bytes () const;
+    size_t          capacity () const;
+    size_t          tell () const;
+    void            seek (size_t pos);
+    bool            full () const;
+    void            put (uint8_t ch);
+    uint8_t *       push (size_t count);
+    void            pop (size_t count);    
+    void            setEOS ();
+    void            resize (size_t newcap);
 
   private:
+    
+    uint8_t * alloc (size_t size);
+    void      free (uint8_t *bytes);
 
-    strbuffer (const strbuffer &);
-    strbuffer &operator= (const strbuffer &);
+    uint8_t * m_bytes;
+    size_t    m_cap;
+    size_t    m_pos;
+    bool      m_heap;
+  };
 
-    void _reset ();
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
 
-    char  * m_str;
-    size_t  m_len;
+  class buffer
+  {
+  public:
 
+    buffer (size_t capacity = DEFAULT_CAPACITY) : m_stream (capacity) {}
+
+    const uint8_t * get_data () const;
+    size_t          get_size () const;
+
+  private:
+    
+    static const int DEFAULT_CAPACITY = 256;
+
+    stream m_stream;
     friend class kvr;
   };
 
@@ -669,6 +697,24 @@ inline kvr::key * kvr::pair::get_key () const
 inline kvr::value * kvr::pair::get_value ()
 {
   return m_v;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline const uint8_t * kvr::buffer::get_data () const
+{
+  return m_stream.bytes ();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline size_t kvr::buffer::get_size () const
+{
+  return m_stream.tell ();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

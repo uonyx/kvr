@@ -4,6 +4,8 @@
 
 #include "kvr.h"
 #include "internal/kvr_internal.h"
+#include "internal/kvr_json.h"
+#include "internal/kvr_msgpack.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -537,6 +539,19 @@ kvr::value * kvr::value::conv_number_f ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+void kvr::value::set_string (const char *str, sz_t len)
+{
+  KVR_ASSERT_SAFE (str, (void) 0);
+
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF  
+  KVR_ASSERT (is_string ());
+#else
+  conv_string ();
+#endif
+
+  this->_set_string (str, len);
+}
+
 void kvr::value::set_string (const char *str)
 {
   KVR_ASSERT_SAFE (str, (void)0);
@@ -605,6 +620,30 @@ const char * kvr::value::get_string () const
 {
   KVR_ASSERT_SAFE (is_string (), NULL);
   return _is_string_dynamic () ? m_data.s.m_dyn.data : m_data.s.m_stt.data;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+const char * kvr::value::get_string (sz_t *len) const
+{
+  KVR_ASSERT (len);
+  
+  const char *str = NULL;
+
+  if (_is_string_dynamic ())
+  {
+    *len = m_data.s.m_dyn.len;
+    str = m_data.s.m_dyn.data;
+  }
+  else
+  {
+    *len = (sz_t) strlen (m_data.s.m_stt.data);
+    str = m_data.s.m_stt.data;
+  }
+
+  return str;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1266,24 +1305,23 @@ kvr::value * kvr::value::search (const char **path, sz_t pathsz) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::value::serialize (data_format format, strbuffer *strbuf) const
+bool kvr::value::serialize (data_format format, buffer *buf) const
 {
-  KVR_ASSERT_SAFE (strbuf, false);
+  KVR_ASSERT_SAFE (buf, false);
 
   bool success = false;
-
-  strbuf->_reset ();
-
+    
   switch (format)
   {
     case kvr::DATA_FORMAT_JSON:
     {
-      success = kvr_internal::json_write (this, &strbuf->m_str, &strbuf->m_len);
+      success = kvr_json::write (this, &buf->m_stream);
       break;
     }
 
     case kvr::DATA_FORMAT_MSGPACK:
     {
+      success = kvr_msgpack::write (this, &buf->m_stream);
       break;
     }
 
@@ -1292,7 +1330,7 @@ bool kvr::value::serialize (data_format format, strbuffer *strbuf) const
       break;
     }
   }
-  
+
   return success;
 }
 
@@ -1300,9 +1338,9 @@ bool kvr::value::serialize (data_format format, strbuffer *strbuf) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::value::deserialize (data_format format, const char *str)
+bool kvr::value::deserialize (data_format format, const uint8_t *data, size_t sz)
 {
-  KVR_ASSERT_SAFE (str, false);
+  KVR_ASSERT_SAFE (data, false);
 
   bool success = false;
 
@@ -1312,7 +1350,7 @@ bool kvr::value::deserialize (data_format format, const char *str)
   {
     case kvr::DATA_FORMAT_JSON:
     {
-      success = kvr_internal::json_read (this, str, 0);
+      success = kvr_json::read (this, (const char *) data, sz);
       break;
     }
 
@@ -1328,6 +1366,38 @@ bool kvr::value::deserialize (data_format format, const char *str)
   }
 
   return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+size_t kvr::value::approx_serialize_size (data_format format) const
+{
+  size_t size = 0;
+
+  switch (format)
+  {
+    case kvr::DATA_FORMAT_JSON:
+    {
+      size = kvr_json::write_approx_size (this);
+      break;
+    }
+
+    case kvr::DATA_FORMAT_MSGPACK:
+    {
+      size = kvr_msgpack::write_approx_size (this);
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+
+
+  return size;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2713,6 +2783,7 @@ void kvr::value::array::deinit ()
 void kvr::value::array::push (value *v)
 {
   KVR_ASSERT (v);
+  KVR_ASSERT ((uint64_t) m_len < kvr::MAX_SZ_T);
 
   if (m_len >= m_cap)
   {
@@ -2758,7 +2829,7 @@ kvr::value *kvr::value::array::pop ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-#if 0 // unused
+#if 0 
 kvr::value * kvr::value::array::pop (sz_t index)
 {
   value *v = NULL;
@@ -2825,6 +2896,7 @@ kvr::pair *kvr::value::map::insert (key *k, value *v)
 {
   KVR_ASSERT (k);
   KVR_ASSERT (v);
+  KVR_ASSERT ((uint64_t) m_size < kvr::MAX_SZ_T);
 
   if (m_size >= m_cap)
   {
@@ -2841,7 +2913,6 @@ kvr::pair *kvr::value::map::insert (key *k, value *v)
   }
 
   pair *p = &m_ptr [m_size++];
-
   p->m_k = k;
   p->m_v = v;
 
@@ -2958,51 +3029,95 @@ kvr::pair * kvr::value::cursor::get ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-// kvr::value::strbuffer
+// kvr::value::stream
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::strbuffer::strbuffer () : m_str (NULL), m_len (0)
+kvr::stream::stream (size_t cap) : m_bytes (NULL), m_cap (cap), m_pos (0), m_heap (false)
 {
+  m_bytes = this->alloc (m_cap);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::strbuffer::~strbuffer ()
+kvr::stream::~stream ()
 {
-  if (m_str) delete [] m_str;
+  this->free (m_bytes);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-const char *kvr::strbuffer::get_string () const
+const uint8_t * kvr::stream::bytes () const
 {
-  return m_str;
+  return m_bytes;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-size_t kvr::strbuffer::get_length () const
+size_t kvr::stream::capacity () const
 {
-  return m_len;
+  return m_cap;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::strbuffer::_reset ()
+size_t kvr::stream::tell () const
 {
-  if (m_str) { delete [] m_str; }
-  m_str = NULL;
-  m_len = 0;
+  return m_pos;
+}
+
+void kvr::stream::seek (size_t pos)
+{
+  m_pos = pos;
+}
+
+bool kvr::stream::full () const
+{
+  return (m_pos >= m_cap);
+}
+
+void kvr::stream::put (uint8_t ch)
+{
+  KVR_ASSERT (m_bytes);
+  KVR_ASSERT (m_pos < m_cap);
+  m_bytes [m_pos++] = ch;
+}
+
+uint8_t * kvr::stream::push (size_t count)
+{
+  KVR_ASSERT (m_bytes);
+  KVR_ASSERT ((m_pos + count) < m_cap);
+  uint8_t *start = &m_bytes [m_pos];
+  m_pos += count;
+  return start;
+}
+
+void kvr::stream::pop (size_t count)
+{
+  m_pos -= count;
+}
+
+void kvr::stream::setEOS ()
+{
+  KVR_ASSERT (m_pos < m_cap);
+  m_bytes [m_pos] = 0;
+}
+
+void kvr::stream::resize (size_t newcap)
+{
+  KVR_ASSERT_SAFE (newcap > m_cap, (void) 0);
+  uint8_t * bytes = this->alloc (newcap);
+  memcpy (bytes, m_bytes, m_cap);
+  this->free (m_bytes);
+  m_bytes = bytes;
+  m_cap = newcap;
+}
+
+uint8_t * kvr::stream::alloc (size_t size)
+{
+  uint8_t *bytes = new uint8_t [size];  
+  return bytes;
+}
+
+void kvr::stream::free (uint8_t *bytes)
+{
+  if (bytes)
+  {
+    delete [] bytes;
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
