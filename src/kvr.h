@@ -183,7 +183,7 @@ public:
     value *       push_null ();
     bool          pop ();
     value *       element (sz_t index) const;
-    sz_t          size () const;
+    sz_t          length () const;
 
     // map variant ops
     pair *        find (const char *key) const;
@@ -196,6 +196,7 @@ public:
     pair *        insert_null (const char *key);    
     bool          remove (pair *node);
     cursor        fcursor () const;
+    sz_t          size () const;
 
     // copy
     value *       copy (const value *rhs);
@@ -286,10 +287,12 @@ public:
       pair *  insert (key *k, value *v);
       bool    remove (pair *p);
       pair *  find (const key *k) const;
+      sz_t    size () const;
+      sz_t    trucap () const;      
 
       pair *  m_ptr;
-      sz_t    m_size;
-      sz_t    m_cap;     
+      sz_t    m_len;
+      sz_t    m_cap;      
     };
 
   public:
@@ -369,6 +372,9 @@ public:
    
     pair  * _insert_kv (key *k, value *v);
     void    _push_v (value *v);
+
+    sz_t    _size1 () const;
+    sz_t    _size2 () const;
 
     ///////////////////////////////////////////
     ///////////////////////////////////////////

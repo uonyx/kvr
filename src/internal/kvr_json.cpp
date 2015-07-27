@@ -19,6 +19,10 @@ struct json_read_context
     memset (m_stack, 0, sizeof (m_stack));
   }
 
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
   bool Null ()
   {
     bool success = false;
@@ -234,6 +238,7 @@ struct json_read_context
   {
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_map (), false);
+    KVR_ASSERT (node->size () == (kvr::sz_t) memberCount);
     m_stack [--m_depth] = NULL;
     return true;
   }
@@ -280,10 +285,14 @@ struct json_read_context
   {
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_array (), false);
-    KVR_ASSERT (node->size () == (kvr::sz_t) elementCount);
+    KVR_ASSERT (node->length () == (kvr::sz_t) elementCount);
     m_stack [--m_depth] = NULL;
     return true;
   }
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
 
   kvr::value  * m_stack [KVR_CONSTANT_MAX_TREE_DEPTH];
   kvr::value  * m_root;
@@ -326,7 +335,7 @@ struct json_write_context
     //////////////////////////////////
     {
       bool ok = writer.StartArray ();
-      for (kvr::sz_t i = 0, c = val->size (); (i < c) && ok; ++i)
+      for (kvr::sz_t i = 0, c = val->length (); (i < c) && ok; ++i)
       {
         kvr::value *v = val->element (i);
         ok = write_stream (v, writer);
@@ -406,7 +415,7 @@ struct json_write_context
     //////////////////////////////////
     {
       size += 2; // brackets
-      for (kvr::sz_t i = 0, c = val->size (); i < c; ++i)
+      for (kvr::sz_t i = 0, c = val->length (); i < c; ++i)
       {
         kvr::value *v = val->element (i);
         size += kvr_internal::ndigitsu32 (i);
@@ -458,6 +467,10 @@ struct json_write_context
     return size;
   }
 
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
   json_write_context (const kvr::value *val, kvr::stream *stream) : m_root (val), m_stream (stream)
   {
     KVR_ASSERT (val);
@@ -466,6 +479,10 @@ struct json_write_context
     m_stream->seek (0);
     m_stream->setEOS ();
   }
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
 
   void Put (char ch)
   {
@@ -493,6 +510,10 @@ struct json_write_context
   }
 
   void Flush () {}
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
 
   const kvr::value  *m_root;
   kvr::stream       *m_stream;

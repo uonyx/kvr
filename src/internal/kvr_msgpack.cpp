@@ -25,12 +25,15 @@
 
 struct msgpack_write_context
 {
-
   msgpack_write_context (kvr::stream *stream) : m_stream (stream)
   {
     KVR_ASSERT (m_stream);
     m_stream->seek (0);
   }
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
 
   bool write_null ()
   {
@@ -259,8 +262,10 @@ struct msgpack_write_context
     put (b ? 0xc3 : 0xc2);
     return true; 
   }
-
-  /////////////////////////////////////////////////////////////
+  
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
 
   void put (uint8_t ch)
   {
@@ -287,6 +292,10 @@ struct msgpack_write_context
     m_stream->pop (count);
   }
 
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
   bool write_stream (const kvr::value *src)
   {
     KVR_ASSERT (src);
@@ -299,19 +308,10 @@ struct msgpack_write_context
     if (val->is_map ())
     //////////////////////////////////
     {
-      kvr::sz_t msz = 0;
-      kvr::value::cursor c = val->fcursor ();
-      kvr::pair *p = c.get ();
-      while (p)
-      {
-        msz++;
-        p = c.get ();
-      }
-
+      kvr::sz_t msz = val->size ();
       bool ok = write_map (msz);
-
-      c = val->fcursor ();
-      p = c.get ();
+      kvr::value::cursor c = val->fcursor ();
+      kvr::pair *p = c.get ();      
       while (p && ok)
       {
         kvr::key *k = p->get_key ();
@@ -330,9 +330,9 @@ struct msgpack_write_context
     else if (val->is_array ())
     //////////////////////////////////
     {
-      kvr::sz_t asz = val->size ();
-      bool ok = write_array (asz);
-      for (kvr::sz_t i = 0; (i < asz) && ok; ++i)
+      kvr::sz_t alen = val->length ();
+      bool ok = write_array (alen);
+      for (kvr::sz_t i = 0; (i < alen) && ok; ++i)
       {
         kvr::value *v = val->element (i);
         ok &= write_stream (v);
@@ -370,7 +370,7 @@ struct msgpack_write_context
     //////////////////////////////////
     {
       bool b = val->get_boolean ();
-      success =  write_boolean (b);
+      success = write_boolean (b);
     }
 
     //////////////////////////////////
@@ -382,6 +382,10 @@ struct msgpack_write_context
 
     return success;
   }
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
 
   kvr::stream *m_stream;
 };
