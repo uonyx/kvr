@@ -79,10 +79,6 @@ public:
 
   typedef uint16_t sz_t;
 
-#if KVR_DEBUG
-  static const uint64_t MAX_SZ_T = (sizeof (sz_t) == 8) ? 0xffffffffffffffff :  (1ULL << (sizeof (sz_t) * 8)) - 1;
-#endif
-
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -439,8 +435,8 @@ public:
 
   private:
     
-    uint8_t * alloc (size_t size);
-    void      free (uint8_t *bytes);
+    uint8_t *       alloc (size_t size);
+    void            free (uint8_t *bytes);
 
     uint8_t * m_bytes;
     size_t    m_cap;

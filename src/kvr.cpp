@@ -24,6 +24,10 @@ static const char * const kvr_const_str_set   = "set";
 static const char * const kvr_const_str_add   = "add";
 static const char * const kvr_const_str_rem   = "rem";
 
+#if KVR_DEBUG
+static const uint64_t KVR_SZ_T_MAX = std::numeric_limits<kvr::sz_t>::max ();
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -328,7 +332,7 @@ char * kvr::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) con
       KVR_ASSERT (p);
 
       size_t plen = strlen (p);
-      KVR_ASSERT (plen < MAX_SZ_T);
+      KVR_ASSERT (plen < KVR_SZ_T_MAX);
 
       expsz += (sz_t) plen;
       expsz += 1; // for delimiter/null character
@@ -569,7 +573,7 @@ void kvr::value::set_string (const char *str)
 #endif
 
   size_t len = strlen (str);  
-  KVR_ASSERT ((uint64_t) len < kvr::MAX_SZ_T);
+  KVR_ASSERT (len < KVR_SZ_T_MAX);
   this->_set_string (str, (sz_t) len);
 }
 
@@ -1177,14 +1181,12 @@ kvr::value::cursor kvr::value::fcursor () const
 kvr::sz_t kvr::value::size () const
 {
 #if EXPERIMENTAL_FAST_MAP_SIZE
-
   sz_t sz2 = _size2 ();
 #if KVR_DEBUG
   sz_t sz1 = _size1 ();
   KVR_ASSERT (sz1 == sz2);
 #endif
   return sz2;
-
 #else
   return _size1 ();
 #endif
@@ -1208,7 +1210,6 @@ kvr::value * kvr::value::copy (const value *rhs)
 #else
       this->_conv_map (rhs->m_data.m.m_cap);
 #endif
-
       cursor c = rhs->fcursor ();
       pair  *rp = c.get ();
       while (rp)
@@ -1426,6 +1427,7 @@ size_t kvr::value::approx_serialize_size (data_format format) const
     }
   }
 
+  size = ((size + 7u) & ~7u);
 
   return size;
 }
@@ -2844,7 +2846,7 @@ void kvr::value::array::deinit ()
 void kvr::value::array::push (value *v)
 {
   KVR_ASSERT (v);
-  KVR_ASSERT ((uint64_t) m_len < kvr::MAX_SZ_T);
+  KVR_ASSERT (m_len < KVR_SZ_T_MAX);
 
   if (m_len >= m_cap)
   {
@@ -2957,7 +2959,7 @@ kvr::pair *kvr::value::map::insert (key *k, value *v)
 {
   KVR_ASSERT (k);
   KVR_ASSERT (v);
-  KVR_ASSERT ((uint64_t) m_len < kvr::MAX_SZ_T);
+  KVR_ASSERT (m_len < KVR_SZ_T_MAX);
 
 #if EXPERIMENTAL_FAST_MAP_SIZE
   sz_t cap = trucap ();
@@ -3037,7 +3039,6 @@ bool kvr::value::map::remove (pair *p)
         --m_cap;
 #endif
         rm = true;
-
         break;
       }
     }
@@ -3150,6 +3151,7 @@ kvr::pair * kvr::value::cursor::get ()
 
 kvr::stream::stream (size_t cap) : m_bytes (NULL), m_cap (cap), m_pos (0), m_heap (false)
 {
+  KVR_ASSERT (m_cap > 0);
   m_bytes = this->alloc (m_cap);
 }
 
@@ -3270,6 +3272,7 @@ void kvr::stream::resize (size_t newcap)
 
 uint8_t * kvr::stream::alloc (size_t size)
 {
+  KVR_ASSERT (size > 0);
   uint8_t *bytes = new uint8_t [size];  
   return bytes;
 }

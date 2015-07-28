@@ -11,6 +11,10 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
+// json_read_context
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct json_read_context
 {
@@ -303,174 +307,13 @@ struct json_read_context
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
+// json_write_context
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct json_write_context
 {
-  static bool write_stream (const kvr::value *val, kvr_rapidjson::Writer<json_write_context> &writer)
-  {
-    bool success = false;
-
-    //////////////////////////////////
-    if (val->is_map ())
-    //////////////////////////////////
-    {
-      bool ok = writer.StartObject ();
-      kvr::value::cursor c = val->fcursor ();
-      kvr::pair *p = c.get ();
-      while (p && ok)
-      {
-        kvr::key *k = p->get_key ();
-        writer.Key (k->get_string (), k->get_length ());
-
-        kvr::value *v = p->get_value ();
-        ok = write_stream (v, writer);
-
-        p = c.get ();
-      }
-      success = ok && writer.EndObject ();
-    }
-
-    //////////////////////////////////
-    else if (val->is_array ())
-    //////////////////////////////////
-    {
-      bool ok = writer.StartArray ();
-      for (kvr::sz_t i = 0, c = val->length (); (i < c) && ok; ++i)
-      {
-        kvr::value *v = val->element (i);
-        ok = write_stream (v, writer);
-      }
-      success = ok && writer.EndArray ();
-    }
-
-    //////////////////////////////////
-    else if (val->is_string ())
-    //////////////////////////////////
-    {
-      kvr::sz_t slen = 0;
-      const char *str = val->get_string (&slen);
-      success = writer.String (str, slen);
-    }
-
-    //////////////////////////////////
-    else if (val->is_number_i ())
-    //////////////////////////////////
-    {
-      int64_t n = val->get_number_i ();
-      success = writer.Int64 (n);
-    }
-
-    //////////////////////////////////
-    else if (val->is_number_f ())
-    //////////////////////////////////
-    {
-      double n = val->get_number_f ();
-      success = writer.Double (n);
-    }
-
-    //////////////////////////////////
-    else if (val->is_boolean ())
-    //////////////////////////////////
-    {
-      bool b = val->get_boolean ();
-      success = writer.Bool (b);
-    }
-
-    //////////////////////////////////
-    else if (val->is_null ())
-    //////////////////////////////////
-    {
-      success = writer.Null ();
-    }
-
-    return success;
-  }
-  
-  static size_t write_approx_size (const kvr::value *val)
-  {
-    size_t size = 0;
-
-    //////////////////////////////////
-    if (val->is_map ())
-    //////////////////////////////////
-    {
-      size += 2; // brackets
-      kvr::value::cursor c = val->fcursor ();
-      kvr::pair  *p = c.get ();
-      while (p)
-      {
-        kvr::key *k = p->get_key ();
-        kvr::value *v = p->get_value ();
-
-        size += k->get_length () + 2; // + quotes
-        size += write_approx_size (v);
-        size += 2; // colon and comma
-
-        p = c.get ();
-      }
-    }
-
-    //////////////////////////////////
-    else if (val->is_array ())
-    //////////////////////////////////
-    {
-      size += 2; // brackets
-      for (kvr::sz_t i = 0, c = val->length (); i < c; ++i)
-      {
-        kvr::value *v = val->element (i);
-        size += kvr_internal::ndigitsu32 (i);
-        size += write_approx_size (v);
-        size += 1; // comma
-      }
-    }
-
-    //////////////////////////////////
-    else if (val->is_string ())
-    //////////////////////////////////
-    {
-      kvr::sz_t slen = 0;
-      const char *str = val->get_string (&slen);
-      size += (slen + 2); // + quotes
-    }
-
-    //////////////////////////////////
-    else if (val->is_number_i ())
-    //////////////////////////////////
-    {
-      int64_t n = val->get_number_i ();
-      size += kvr_internal::ndigitsi64 (n);
-    }
-
-    //////////////////////////////////
-    else if (val->is_number_f ())
-    //////////////////////////////////
-    {
-      double n = val->get_number_f ();
-      size += 13; // average (guess) // 25 is max
-    }
-
-    //////////////////////////////////
-    else if (val->is_boolean ())
-    //////////////////////////////////
-    {
-      bool b = val->get_boolean ();
-      size += b ? 4 : 5;
-    }
-
-    //////////////////////////////////
-    else if (val->is_null ())
-    //////////////////////////////////
-    {
-      size += 4;
-    }
-
-    return size;
-  }
-
-  ///////////////////////////////////////////
-  ///////////////////////////////////////////
-  ///////////////////////////////////////////
-
   json_write_context (const kvr::value *val, kvr::stream *stream) : m_root (val), m_stream (stream)
   {
     KVR_ASSERT (val);
@@ -488,7 +331,8 @@ struct json_write_context
   {
     if (m_stream->full ())
     {
-      m_stream->resize (write_approx_size (m_root));
+      size_t newcap = (write_approx_size (m_root) + 7ULL) & ~7ULL;
+      m_stream->resize (newcap);
     }
 
     m_stream->put (ch);
@@ -498,7 +342,8 @@ struct json_write_context
   {
     if (m_stream->full ())
     {
-      m_stream->resize (write_approx_size (m_root));
+      size_t newcap = (write_approx_size (m_root) + 7ULL) & ~7ULL;
+      m_stream->resize (newcap);
     }
 
     return (char *) m_stream->push (count);
@@ -514,11 +359,191 @@ struct json_write_context
   ///////////////////////////////////////////
   ///////////////////////////////////////////
   ///////////////////////////////////////////
-
+  
   const kvr::value  *m_root;
   kvr::stream       *m_stream;
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
+  static bool write_stream (const kvr::value *val, kvr_rapidjson::Writer<json_write_context> &writer);
+  static size_t write_approx_size (const kvr::value *val);
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool json_write_context::write_stream (const kvr::value *val, kvr_rapidjson::Writer<json_write_context> &writer)
+{
+  bool success = false;
+
+  //////////////////////////////////
+  if (val->is_map ())
+  //////////////////////////////////
+  {
+    bool ok = writer.StartObject ();
+    kvr::value::cursor c = val->fcursor ();
+    kvr::pair *p = c.get ();
+    while (p && ok)
+    {
+      kvr::key *k = p->get_key ();
+      writer.Key (k->get_string (), k->get_length ());
+
+      kvr::value *v = p->get_value ();
+      ok = write_stream (v, writer);
+
+      p = c.get ();
+    }
+    success = ok && writer.EndObject ();
+  }
+
+  //////////////////////////////////
+  else if (val->is_array ())
+  //////////////////////////////////
+  {
+    bool ok = writer.StartArray ();
+    for (kvr::sz_t i = 0, c = val->length (); (i < c) && ok; ++i)
+    {
+      kvr::value *v = val->element (i);
+      ok = write_stream (v, writer);
+    }
+    success = ok && writer.EndArray ();
+  }
+
+  //////////////////////////////////
+  else if (val->is_string ())
+  //////////////////////////////////
+  {
+    kvr::sz_t slen = 0;
+    const char *str = val->get_string (&slen);
+    success = writer.String (str, slen);
+  }
+
+  //////////////////////////////////
+  else if (val->is_number_i ())
+  //////////////////////////////////
+  {
+    int64_t n = val->get_number_i ();
+    success = writer.Int64 (n);
+  }
+
+  //////////////////////////////////
+  else if (val->is_number_f ())
+  //////////////////////////////////
+  {
+    double n = val->get_number_f ();
+    success = writer.Double (n);
+  }
+
+  //////////////////////////////////
+  else if (val->is_boolean ())
+  //////////////////////////////////
+  {
+    bool b = val->get_boolean ();
+    success = writer.Bool (b);
+  }
+
+  //////////////////////////////////
+  else if (val->is_null ())
+  //////////////////////////////////
+  {
+    success = writer.Null ();
+  }
+
+  return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+size_t json_write_context::write_approx_size (const kvr::value *val)
+{
+  size_t size = 0;
+
+  //////////////////////////////////
+  if (val->is_map ())
+  //////////////////////////////////
+  {
+    size += 2; // brackets
+    kvr::value::cursor c = val->fcursor ();
+    kvr::pair  *p = c.get ();
+    while (p)
+    {
+      kvr::key *k = p->get_key ();
+      kvr::value *v = p->get_value ();
+
+      size += k->get_length () + 2; // + quotes
+      size += write_approx_size (v);
+      size += 2; // colon and comma
+
+      p = c.get ();
+    }
+  }
+
+  //////////////////////////////////
+  else if (val->is_array ())
+  //////////////////////////////////
+  {
+    size += 2; // brackets
+    for (kvr::sz_t i = 0, c = val->length (); i < c; ++i)
+    {
+      kvr::value *v = val->element (i);
+      size += kvr_internal::ndigitsu32 (i);
+      size += write_approx_size (v);
+      size += 1; // comma
+    }
+  }
+
+  //////////////////////////////////
+  else if (val->is_string ())
+  //////////////////////////////////
+  {
+    kvr::sz_t slen = 0;
+    const char *str = val->get_string (&slen);
+    size += (slen + 2); // + quotes
+  }
+
+  //////////////////////////////////
+  else if (val->is_number_i ())
+  //////////////////////////////////
+  {
+    int64_t n = val->get_number_i ();
+    size += kvr_internal::ndigitsi64 (n);
+  }
+
+  //////////////////////////////////
+  else if (val->is_number_f ())
+  //////////////////////////////////
+  {
+    double n = val->get_number_f ();
+    size += 13; // average (guess) // 25 is max
+  }
+
+  //////////////////////////////////
+  else if (val->is_boolean ())
+  //////////////////////////////////
+  {
+    bool b = val->get_boolean ();
+    size += b ? 4 : 5;
+  }
+
+  //////////////////////////////////
+  else if (val->is_null ())
+  //////////////////////////////////
+  {
+    size += 4;
+  }
+
+  return size;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// kvr_json
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////

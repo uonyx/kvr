@@ -22,11 +22,16 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
+// msgpack_write_context
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct msgpack_write_context
 {
-  msgpack_write_context (kvr::stream *stream) : m_stream (stream)
+  msgpack_write_context (const kvr::value *val, kvr::stream *stream) : m_root (val), m_stream (stream)
   {
+    KVR_ASSERT (m_root);
     KVR_ASSERT (m_stream);
     m_stream->seek (0);
   }
@@ -43,22 +48,22 @@ struct msgpack_write_context
 
   bool write_array (kvr::sz_t size)
   {
-    const uint64_t sz16 = (1 << 16) - 1;
-    const uint64_t sz32 = (1ULL << 32) - 1;
-    
+    //const uint64_t sz16 = (1 << 16) - 1;
+    //const uint64_t sz32 = (1ULL << 32) - 1;
+
     if (size <= 15)
     {
       uint8_t sz = (uint8_t) size;
       put ((9u << 4) | sz);
     }
-    else if (size < sz16)
+    else if (size < 0xffff)
     {
       put (0xdc);
       uint16_t sz = bigendian16 (size);
       uint8_t *buf = push (2);
       memcpy (buf, &sz, 2);
     }
-    else if (size < sz32)
+    else if (size < 0xffffffff)
     {
       put (0xdd);
       uint32_t sz = bigendian32 (size);
@@ -74,23 +79,20 @@ struct msgpack_write_context
   }
 
   bool write_map (kvr::sz_t size)
-  {
-    const uint64_t sz16 = (1 << 16) - 1;
-    const uint64_t sz32 = (1ULL << 32) - 1;
-    
+  {    
     if (size <= 15)
     {
       uint8_t sz = (uint8_t) size;
       put ((8u << 4) | sz);
     }
-    else if (size < sz16)
+    else if (size < 0xffff)
     {
       put (0xde);
       uint16_t sz = bigendian16 (size);
       uint8_t *buf = push (2);
       memcpy (buf, &sz, 2);
     }
-    else if (size < sz32)
+    else if (size < 0xffffffff)
     {
       put (0xdf);      
       uint16_t sz = bigendian32 (size);
@@ -103,29 +105,25 @@ struct msgpack_write_context
 
   bool write_string (const char *str, kvr::sz_t slen)
   {
-    const uint64_t str8 = (1 << 8) - 1;
-    const uint64_t str16 = (1 << 16) - 1;
-    const uint64_t str32 = (1ULL << 32) - 1;
-
     if (slen <= 31)
     {
       uint8_t len = (uint8_t) slen;
       put ((5u << 5) | len);
     }
-    else if (slen <= str8)
+    else if (slen <= 0xff)
     {
       uint8_t len = (uint8_t) slen;
       put (0xd9);
       put (len);
     }
-    else if (slen <= str16)
+    else if (slen <= 0xffffULL)
     {
       put (0xda);
       uint16_t len = bigendian16 (slen);
       uint8_t *buf = push (2);
       memcpy (buf, &len, 2);
     }
-    else if (slen <= str32)
+    else if (slen <= 0xffffffffULL)
     {
       put (0xdb);
       uint32_t len = bigendian32 (slen);
@@ -147,72 +145,27 @@ struct msgpack_write_context
 
   bool write_integer (int64_t i64)
   {
-    if (i64 < 0) // signed
+    if (i64 > 0) // unsigned
     {
-      const int64_t nint5 =   -((1 << 5) - 1);
-      const int64_t nint8 =   -((1 << 7) - 1);
-      const int64_t nint16 =  -((1 << 15) - 1);
-      const int64_t nint32 =  -((1LL << 31) - 1);
-
-      if (i64 >= nint5)
-      {
-        uint8_t i = (uint8_t) i64;
-        put ((7u << 5) | i);
-      }
-      else if (i64 > nint8)
-      {
-        uint8_t i = (uint8_t) i64;
-        put (0xd0);
-        put (i);
-      }
-      else if (i64 > nint16)
-      {
-        put (0xd1);
-        uint16_t i = bigendian16 (i64);
-        uint8_t *buf = push (2);
-        memcpy (buf, &i, 2);
-      }
-      else if (i64 > nint32)
-      {
-        put (0xd2);
-        uint32_t i = bigendian32 (i64);
-        uint8_t *buf = push (4);
-        memcpy (buf, &i, 4);
-      }
-      else // max is int64_t
-      {
-        put (0xd3);
-        uint64_t i = bigendian64 (i64);
-        uint8_t *buf = push (8);
-        memcpy (buf, &i, 8);
-      }
-    }
-    else  // unsigned
-    {
-      const uint64_t uint7 = (1 << 7) - 1;
-      const uint64_t uint8 = (1 << 8) - 1;
-      const uint64_t uint16 = (1 << 16) - 1;
-      const uint64_t uint32 = (1ULL << 32) - 1;
-
-      if (i64 <= uint7)
+      if (i64 <= 127)
       {
         uint8_t i = (uint8_t) i64;
         put (i);
       }
-      else if (i64 <= uint8)
+      else if (i64 <= 0xff)
       {
         uint8_t i = (uint8_t) i64;
         put (0xcc);
         put (i);
       }
-      else if (i64 <= uint16)
+      else if (i64 <= 0xffff)
       {
         put (0xcd);
         uint16_t i = bigendian16 (i64);
         uint8_t *buf = push (2);
         memcpy (buf, &i, 2);
       }
-      else if (i64 <= uint32)
+      else if (i64 <= 0xffffffff)
       {
         put (0xce);
         uint32_t i = bigendian32 (i64);
@@ -221,7 +174,47 @@ struct msgpack_write_context
       }
       else // max is int64_t;
       {
-        put (0xd3); 
+        put (0xd3);
+        uint64_t i = bigendian64 (i64);
+        uint8_t *buf = push (8);
+        memcpy (buf, &i, 8);
+      }
+    }
+    else // signed
+    {
+      const int64_t nint5 = -((1 << 5) - 1);
+      const int64_t nint8 = -((1 << 7) - 1);
+      const int64_t nint16 = -((1 << 15) - 1);
+      const int64_t nint32 = -((1LL << 31) - 1);
+
+      if (i64 >= nint5)
+      {
+        uint8_t i = (uint8_t) i64;
+        put ((7u << 5) | i);
+      }
+      else if (i64 >= nint8)
+      {
+        uint8_t i = (uint8_t) i64;
+        put (0xd0);
+        put (i);
+      }
+      else if (i64 >= nint16)
+      {
+        put (0xd1);
+        uint16_t i = bigendian16 (i64);
+        uint8_t *buf = push (2);
+        memcpy (buf, &i, 2);
+      }
+      else if (i64 >= nint32)
+      {
+        put (0xd2);
+        uint32_t i = bigendian32 (i64);
+        uint8_t *buf = push (4);
+        memcpy (buf, &i, 4);
+      }
+      else
+      {
+        put (0xd3);
         uint64_t i = bigendian64 (i64);
         uint8_t *buf = push (8);
         memcpy (buf, &i, 8);
@@ -271,7 +264,8 @@ struct msgpack_write_context
   {
     if (m_stream->full ())
     {
-      m_stream->resize (m_stream->capacity () * 2);
+      size_t newcap = (write_approx_size (m_root) + 7u) & ~7u;
+      m_stream->resize (newcap);
     }
 
     m_stream->put (ch);
@@ -281,7 +275,8 @@ struct msgpack_write_context
   {
     if (m_stream->full ())
     {
-      m_stream->resize (m_stream->capacity () * 2);
+      size_t newcap = (write_approx_size (m_root) + 7u) & ~7u;
+      m_stream->resize (newcap);
     }
 
     return m_stream->push (count);
@@ -290,6 +285,16 @@ struct msgpack_write_context
   void pop (size_t count)
   {
     m_stream->pop (count);
+  }
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
+  bool write_stream ()
+  {
+    KVR_ASSERT (m_root);
+    return write_stream (m_root);
   }
 
   ///////////////////////////////////////////
@@ -382,15 +387,230 @@ struct msgpack_write_context
 
     return success;
   }
-
+  
   ///////////////////////////////////////////
   ///////////////////////////////////////////
   ///////////////////////////////////////////
 
   kvr::stream *m_stream;
+  const kvr::value *m_root;
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
+  static size_t write_approx_size (const kvr::value *val);
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
+size_t msgpack_write_context::write_approx_size (const kvr::value *val)
+{
+  size_t size = 0;
+
+  //////////////////////////////////
+  if (val->is_map ())
+  //////////////////////////////////
+  {
+    kvr::sz_t msz = val->size ();
+
+    if (msz <= 15)
+    {
+      size += 1;
+    }
+    else if (msz <= 0xffff)
+    {
+      size += 3;
+    }
+    else if (msz <= 0xffffffff)
+    {
+      size += 5;
+    }
+
+    kvr::value::cursor c = val->fcursor ();
+    kvr::pair  *p = c.get ();
+    while (p)
+    {
+      kvr::key *k = p->get_key ();
+      kvr::value *v = p->get_value ();
+
+      kvr::sz_t klen = k->get_length ();
+
+      if (klen <= 31)
+      {
+        size += 1;
+      }
+      else if (klen <= 0xffULL)
+      {
+        size += 2;
+      }
+      else if (klen <= 0xffffULL)
+      {
+        size += 3;
+      }
+      else
+      {
+        size += 5;
+      }
+
+      size += klen;
+      size += write_approx_size (v);
+
+      p = c.get ();
+    }
+  }
+
+  //////////////////////////////////
+  else if (val->is_array ())
+  //////////////////////////////////
+  {
+    kvr::sz_t alen = val->length ();
+
+    if (alen <= 15)
+    {
+      size += 1;
+    }
+    else if (alen <= 0xffff)
+    {
+      size += 3;
+    }
+    else if (alen <= 0xffffffff)
+    {
+      size += 5;
+    }
+
+    for (kvr::sz_t i = 0, c = val->length (); i < c; ++i)
+    {
+      kvr::value *v = val->element (i);
+      size += write_approx_size (v);
+    }
+  }
+
+  //////////////////////////////////
+  else if (val->is_string ())
+  //////////////////////////////////
+  {
+    kvr::sz_t slen = 0;
+    const char *str = val->get_string (&slen);
+
+    if (slen <= 31)
+    {
+      size += 1;
+    }
+    else if (slen <= 0xff)
+    {
+      size += 2;
+    }
+    else if (slen <= 0xffff)
+    {
+      size += 3;
+    }
+    else
+    {
+      size += 5;
+    }
+
+    size += slen;
+  }
+
+  //////////////////////////////////
+  else if (val->is_number_i ())
+  //////////////////////////////////
+  {
+    int64_t n = val->get_number_i ();
+
+    if (n > 0) // unsigned
+    {
+      if (n <= 127)
+      {
+        size += 1;
+      }
+      else if (n <= 0xff)
+      {
+        size += 2;
+      }
+      else if (n <= 0xffff)
+      {
+        size += 3;
+      }
+      else if (n <= 0xffffffff)
+      {
+        size += 5;
+      }
+      else
+      {
+        size += 9;
+      }
+    }
+    else // signed
+    {
+      const int64_t nint5 = -((1 << 5) - 1);
+      const int64_t nint8 = -((1 << 7) - 1);
+      const int64_t nint16 = -((1 << 15) - 1);
+      const int64_t nint32 = -((1LL << 31) - 1);
+
+      if (n >= nint5)
+      {
+        size += 1;
+      }
+      else if (n >= nint8)
+      {
+        size += 2;
+      }
+      else if (n >= nint16)
+      {
+        size += 3;
+      }
+      else if (n >= nint32)
+      {
+        size += 5;
+      }
+      else
+      {
+        size += 9;
+      }
+    }
+  }
+
+  //////////////////////////////////
+  else if (val->is_number_f ())
+  //////////////////////////////////
+  {
+    const double fmax = std::numeric_limits<float>::max ();
+    double n = val->get_number_f ();
+    if (n <= fmax)
+    {
+      size += 5;
+    }
+    else
+    {
+      size += 9;
+    }
+  }
+
+  //////////////////////////////////
+  else if (val->is_boolean ())
+  //////////////////////////////////
+  {
+    size += 1;
+  }
+
+  //////////////////////////////////
+  else if (val->is_null ())
+  //////////////////////////////////
+  {
+    size += 1;
+  }
+
+  return size;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// kvr_msgpack
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -409,10 +629,16 @@ bool kvr_msgpack::write (const kvr::value *src, kvr::stream *str)
 {
   bool success = false;
 
-  msgpack_write_context ctx (str);
-  success = ctx.write_stream (src);
+  msgpack_write_context ctx (src, str);
+  success = ctx.write_stream ();
 
-#if KVR_DEBUG && 1
+  size_t sz = msgpack_write_context::write_approx_size (src);
+  (void) sz;
+
+  size_t sz2 = str->tell ();
+  (void) sz2;
+
+#if KVR_DEBUG && 0
   kvr::stream hex (512);
   if (kvr_internal::hex_encode (str->bytes (), str->tell (), &hex))
   {
@@ -420,7 +646,7 @@ bool kvr_msgpack::write (const kvr::value *src, kvr::stream *str)
     const char *hexstr = (const char *) hex.bytes ();
     fprintf (stderr, "msgpack: %s\n", hexstr);
 
-#if 0
+#if 1
     FILE *fp = NULL;
     fopen_s (&fp, "msgpack_out.txt", "w");
     fwrite (hexstr, 1, hex.tell (), fp);
@@ -438,8 +664,7 @@ bool kvr_msgpack::write (const kvr::value *src, kvr::stream *str)
 
 size_t kvr_msgpack::write_approx_size (const kvr::value *val)
 {
-  KVR_ASSERT (false);
-  return 0;
+  return msgpack_write_context::write_approx_size (val);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
