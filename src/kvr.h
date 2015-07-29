@@ -284,7 +284,7 @@ public:
       bool    remove (pair *p);
       pair *  find (const key *k) const;
       sz_t    size () const;
-      sz_t    trucap () const;      
+      sz_t    _cap () const; // true cap
 
       pair *  m_ptr;
       sz_t    m_len;
@@ -415,19 +415,20 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class stream
+  class ostream
   {
   public:
 
-    stream (size_t cap);
-    ~stream ();
+    ostream (size_t cap);
+    ~ostream ();
     
     const uint8_t * bytes () const;
     size_t          capacity () const;
-    size_t          tell () const;
-    void            seek (size_t pos);
+    size_t          tell () const;    
     bool            full () const;
+    void            seek (size_t pos);
     void            put (uint8_t byte);
+    void            put (uint8_t *bytes, size_t count);
     uint8_t *       push (size_t count);
     void            pop (size_t count);    
     void            set_eos (uint8_t eos);
@@ -461,7 +462,7 @@ public:
     
     static const int DEFAULT_CAPACITY = 256;
 
-    stream m_stream;
+    ostream m_stream;
     friend class kvr;
   };
 

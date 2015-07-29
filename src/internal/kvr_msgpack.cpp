@@ -29,7 +29,7 @@
 
 struct msgpack_write_context
 {
-  msgpack_write_context (const kvr::value *val, kvr::stream *stream) : m_root (val), m_stream (stream)
+  msgpack_write_context (const kvr::value *val, kvr::ostream *ostream) : m_root (val), m_stream (ostream)
   {
     KVR_ASSERT (m_root);
     KVR_ASSERT (m_stream);
@@ -60,15 +60,13 @@ struct msgpack_write_context
     {
       put (0xdc);
       uint16_t sz = bigendian16 (size);
-      uint8_t *buf = push (2);
-      memcpy (buf, &sz, 2);
+      put ((uint8_t *) &sz, 2);
     }
     else if (size < 0xffffffff)
     {
       put (0xdd);
       uint32_t sz = bigendian32 (size);
-      uint8_t *buf = push (4);
-      memcpy (buf, &sz, 4);
+      put ((uint8_t *) &sz, 4);
     }
     else
     {
@@ -89,15 +87,13 @@ struct msgpack_write_context
     {
       put (0xde);
       uint16_t sz = bigendian16 (size);
-      uint8_t *buf = push (2);
-      memcpy (buf, &sz, 2);
+      put ((uint8_t *) &sz, 2);
     }
     else if (size < 0xffffffff)
     {
       put (0xdf);      
       uint16_t sz = bigendian32 (size);
-      uint8_t *buf = push (4);
-      memcpy (buf, &sz, 4);
+      put ((uint8_t *) &sz, 4);
     }
 
     return true;
@@ -120,15 +116,13 @@ struct msgpack_write_context
     {
       put (0xda);
       uint16_t len = bigendian16 (slen);
-      uint8_t *buf = push (2);
-      memcpy (buf, &len, 2);
+      put ((uint8_t *) &len, 2);
     }
     else if (slen <= 0xffffffff)
     {
       put (0xdb);
       uint32_t len = bigendian32 (slen);
-      uint8_t *buf = push (4);
-      memcpy (buf, &len, 4);
+      put ((uint8_t *) &len, 4);
     }
     else
     {
@@ -162,22 +156,19 @@ struct msgpack_write_context
       {
         put (0xcd);
         uint16_t i = bigendian16 (i64);
-        uint8_t *buf = push (2);
-        memcpy (buf, &i, 2);
+        put ((uint8_t *) &i, 2);
       }
       else if (i64 <= 0xffffffff)
       {
         put (0xce);
         uint32_t i = bigendian32 (i64);
-        uint8_t *buf = push (4);
-        memcpy (buf, &i, 4);
+        put ((uint8_t *) &i, 4);
       }
       else // max is int64_t;
       {
         put (0xd3);
         uint64_t i = bigendian64 (i64);
-        uint8_t *buf = push (8);
-        memcpy (buf, &i, 8);
+        put ((uint8_t *) &i, 8);
       }
     }
     else // signed
@@ -202,22 +193,19 @@ struct msgpack_write_context
       {
         put (0xd1);
         uint16_t i = bigendian16 (i64);
-        uint8_t *buf = push (2);
-        memcpy (buf, &i, 2);
+        put ((uint8_t *) &i, 2);
       }
       else if (i64 >= nint32)
       {
         put (0xd2);
         uint32_t i = bigendian32 (i64);
-        uint8_t *buf = push (4);
-        memcpy (buf, &i, 4);
+        put ((uint8_t *) i, 4);
       }
       else
       {
         put (0xd3);
         uint64_t i = bigendian64 (i64);
-        uint8_t *buf = push (8);
-        memcpy (buf, &i, 8);
+        put ((uint8_t *) &i, 8);
       }
     }
 
@@ -233,9 +221,7 @@ struct msgpack_write_context
       union { float f; uint32_t i; } mem;
       mem.f = (float) f;
       uint32_t fi = bigendian32 (mem.i);
-      uint8_t *buf = push (4);
-      KVR_ASSERT (buf);
-      memcpy (buf, &fi, 4);
+      put ((uint8_t *) &fi, 4);
     }
     else
     {
@@ -243,8 +229,7 @@ struct msgpack_write_context
       union { double f; uint64_t i; } mem;
       mem.f = (double) f;
       uint64_t fi = bigendian64 (mem.i);
-      uint8_t *buf = push (8);
-      memcpy (buf, &fi, 8);
+      put ((uint8_t *) &fi, 8);
     }
 
     return true;
@@ -260,7 +245,7 @@ struct msgpack_write_context
   ///////////////////////////////////////////
   ///////////////////////////////////////////
 
-  void put (uint8_t ch)
+  void put (uint8_t byte)
   {
     if (m_stream->full ())
     {
@@ -268,7 +253,18 @@ struct msgpack_write_context
       m_stream->resize (newcap);
     }
 
-    m_stream->put (ch);
+    m_stream->put (byte);
+  }
+
+  void put (uint8_t *bytes, size_t count)
+  {
+    if (m_stream->full ())
+    {
+      size_t newcap = (write_approx_size (m_root) + 7u) & ~7u;
+      m_stream->resize (newcap);
+    }
+
+    m_stream->put (bytes, count);
   }
 
   uint8_t * push (size_t count)
@@ -397,7 +393,7 @@ struct msgpack_write_context
   ///////////////////////////////////////////
   ///////////////////////////////////////////
 
-  kvr::stream *m_stream;
+  kvr::ostream *m_stream;
   const kvr::value *m_root;
 
   ///////////////////////////////////////////
@@ -630,16 +626,16 @@ bool kvr_msgpack::read (kvr::value *dest, const uint8_t *data, size_t size)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr_msgpack::write (const kvr::value *src, kvr::stream *str)
+bool kvr_msgpack::write (const kvr::value *src, kvr::ostream *ostr)
 {
   bool success = false;
 
-  msgpack_write_context ctx (src, str);
+  msgpack_write_context ctx (src, ostr);
   success = ctx.write_stream ();
 
-#if KVR_DEBUG && 0
-  kvr::stream hex (512);
-  if (kvr_internal::hex_encode (str->bytes (), str->tell (), &hex))
+#if KVR_DEBUG && 1
+  kvr::ostream hex (512);
+  if (kvr_internal::hex_encode (ostr->bytes (), ostr->tell (), &hex))
   {
     hex.set_eos (0);
     const char *hexstr = (const char *) hex.bytes ();

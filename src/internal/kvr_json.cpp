@@ -314,10 +314,10 @@ struct json_read_context
 
 struct json_write_context
 {
-  json_write_context (const kvr::value *val, kvr::stream *stream) : m_root (val), m_stream (stream)
+  json_write_context (const kvr::value *val, kvr::ostream *ostream) : m_root (val), m_stream (ostream)
   {
     KVR_ASSERT (val);
-    KVR_ASSERT (stream);
+    KVR_ASSERT (ostream);
 
     m_stream->seek (0);
     m_stream->set_eos (0);
@@ -361,7 +361,7 @@ struct json_write_context
   ///////////////////////////////////////////
   
   const kvr::value  *m_root;
-  kvr::stream       *m_stream;
+  kvr::ostream       *m_stream;
 
   ///////////////////////////////////////////
   ///////////////////////////////////////////
@@ -573,16 +573,16 @@ bool kvr_json::read (kvr::value *dest, const char *json, size_t len)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr_json::write (const kvr::value *src, kvr::stream *str)
+bool kvr_json::write (const kvr::value *src, kvr::ostream *ostr)
 {
-  KVR_ASSERT (str);
+  KVR_ASSERT (ostr);
 
   bool success = false;
 
-  json_write_context wctx (src, str);
+  json_write_context wctx (src, ostr);
   kvr_rapidjson::Writer<json_write_context> writer (wctx);
   success = json_write_context::write_stream (src, writer);
-  str->set_eos (0);
+  ostr->set_eos (0);
 
   return success;
 }

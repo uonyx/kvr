@@ -152,6 +152,7 @@ public:
   static uint32_t strhash (const char *str)
   {
     KVR_ASSERT (str);
+
     // djb hash function (fast)
 
     uint32_t hash = 5381;
@@ -169,7 +170,7 @@ public:
   //////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////
 
-  static bool hex_encode (const uint8_t *data, size_t size, kvr::stream *str)
+  static bool hex_encode (const uint8_t *data, size_t size, kvr::ostream *ostr)
   {
     static const char lut [] = "0123456789abcdef";
 
@@ -178,23 +179,41 @@ public:
     if (data && (size > 0))
     {
       size_t tcap = (size * 2) + 1;
-      if (str->capacity () < tcap) { str->resize (tcap); }
+      if (ostr->capacity () < tcap) { ostr->resize (tcap); }
 
       for (size_t i = 0; i < size; ++i)
       {
         uint8_t c = data [i];
-
         char hi = lut [(c >> 4)];
         char lo = lut [(c & 15)];
-
-        str->put (hi);
-        str->put (lo);
+        ostr->put (hi);
+        ostr->put (lo);
       }
 
       success = true;
     }
 
     return success;
+  }
+
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+  template<typename T>
+  static const T& min (const T& a, const T& b)
+  {
+    return (a < b) ? a : b;
+  }
+
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+
+  template<typename T>
+  static const T& max (const T& a, const T& b)
+  {
+    return (a > b) ? a : b;
   }
 
   //////////////////////////////////////////////////////////////////////////
