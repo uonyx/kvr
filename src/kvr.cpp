@@ -2161,11 +2161,10 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   {
     fprintf (stderr, "value = -> [array]\n");
 
-    char k [16];
-
+    char k [21];
     for (sz_t i = 0, c = this->length (); i < c; ++i)
     {
-      size_t kl = kvr_internal::u32toa (i, k);
+      size_t kl = kvr_internal::i64toa (i, k);
       k [kl] = 0;
       value *v = this->element (i);
       v->_dump (lpad + 1, k);
@@ -2313,10 +2312,10 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
     {
       KVR_ASSERT (md->is_array ());
 
-      char k [16];
+      char k [21];
       for (sz_t i = 0, c = og->length (); i < c; ++i)
       {
-        size_t kl = kvr_internal::u32toa (i, k);
+        size_t kl = kvr_internal::i64toa (i, k);
         k [kl] = 0;
 
         KVR_ASSERT (pathcnt < pathsz);
@@ -2596,11 +2595,10 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
     {
       KVR_ASSERT (og->is_array ());
 
-      char k [16];
-
+      char k [21];
       for (sz_t i = 0, c = md->length (); i < c; ++i)
       {
-        size_t kl = kvr_internal::u32toa (i, k);
+        size_t kl = kvr_internal::i64toa (i, k);
         k [kl] = 0;
 
         KVR_ASSERT (pathcnt < pathsz);

@@ -548,16 +548,16 @@ size_t json_write_context::write_approx_size (const kvr::value *val)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr_json::read (kvr::value *dest, const char *json, size_t len)
+bool kvr_json::read (kvr::value *dest, const char *str, size_t len)
 {
   KVR_ASSERT (dest);
-  KVR_ASSERT (json);
+  KVR_ASSERT (str);
   KVR_ASSERT (len > 0);
 
   bool success = false;
 
   json_read_context rctx (dest);
-  kvr_rapidjson::StringStream ss (json);
+  kvr_rapidjson::StringStream ss (str);
   kvr_rapidjson::Reader reader;
 
   kvr_rapidjson::ParseResult ok = reader.Parse (ss, rctx);

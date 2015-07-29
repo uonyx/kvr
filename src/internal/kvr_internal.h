@@ -94,15 +94,46 @@ public:
 
   static uint32_t ndigitsi64 (int64_t i64)
   {
+#if 0
     int64_t n = i64;
     uint32_t count = (n < 0) ? 1 : 0; // sign
     do
     {
-      count++;
+      ++count;
       n /= 10;
     } while (n);
 
     return count;
+#else
+    uint32_t neg = 0;
+    uint64_t u64 = static_cast<uint64_t>(i64);
+    if (i64 < 0) 
+    {      
+      neg = 1;
+      u64 = ~u64 + 1;
+    }
+
+    if (u64 < 10) return 1 + neg;
+    if (u64 < 100) return 2 + neg;
+    if (u64 < 1000) return 3 + neg;
+    if (u64 < 10000) return 4 + neg;
+    if (u64 < 100000) return 5 + neg;
+    if (u64 < 1000000) return 6 + neg;
+    if (u64 < 10000000) return 7 + neg;
+    if (u64 < 100000000) return 8 + neg;
+    if (u64 < 1000000000) return 9 + neg;
+    if (u64 < 10000000000) return 10 + neg;
+    if (u64 < 100000000000) return 11 + neg;
+    if (u64 < 1000000000000) return 12 + neg;
+    if (u64 < 10000000000000) return 13 + neg;
+    if (u64 < 100000000000000) return 14 + neg;
+    if (u64 < 1000000000000000) return 15 + neg;
+    if (u64 < 10000000000000000) return 16 + neg;
+    if (u64 < 100000000000000000) return 17 + neg;
+    if (u64 < 1000000000000000000) return 18 + neg;
+    if (u64 < 10000000000000000000) return 19 + neg;
+    return 20 + neg;
+#endif
   }
 
   //////////////////////////////////////////////////////////////////////////

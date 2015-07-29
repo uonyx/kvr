@@ -18,6 +18,291 @@
 #define bigendian32(X) (X)
 #define bigendian64(X) (X)
 #endif
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// msgpack_read_context
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct msgpack_read_context
+{
+  msgpack_read_context (kvr::value *value) : m_root (value), m_pair (NULL), m_depth (0)
+  {
+    memset (m_stack, 0, sizeof (m_stack));
+  }
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
+  bool read_null ()
+  {
+    bool success = false;
+
+    KVR_ASSERT_SAFE (m_depth != 0, success);
+    kvr::value *node = m_stack [m_depth - 1];
+    KVR_ASSERT (node);
+    KVR_ASSERT (node->is_map () || node->is_array ());
+
+    if (node->is_map ())
+    {
+      KVR_ASSERT_SAFE (m_pair, false);
+      kvr::value *pv = m_pair->get_value ();
+      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+      m_pair = NULL;
+      success = true;
+    }
+    else if (node->is_array ())
+    {
+      node->push_null ();
+      success = true;
+    }
+
+    return success;
+  }
+
+  bool read_boolean (bool b)
+  {
+    bool success = false;
+
+    KVR_ASSERT_SAFE (m_depth != 0, success);
+    kvr::value *node = m_stack [m_depth - 1];
+    KVR_ASSERT (node);
+    KVR_ASSERT (node->is_map () || node->is_array ());
+
+    if (node->is_map ())
+    {
+      KVR_ASSERT_SAFE (m_pair, false);
+      kvr::value *pv = m_pair->get_value ();
+      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+      pv->conv_boolean ();
+#endif
+      pv->set_boolean (b);
+      m_pair = NULL;
+      success = true;
+    }
+    else if (node->is_array ())
+    {
+      node->push (b);
+      success = true;
+    }
+
+    return success;
+  }
+
+  bool read_integer (int64_t i)
+  {
+    bool success = false;
+
+    KVR_ASSERT_SAFE (m_depth != 0, success);
+    kvr::value *node = m_stack [m_depth - 1];
+    KVR_ASSERT (node);
+    KVR_ASSERT (node->is_map () || node->is_array ());
+
+    if (node->is_map ())
+    {
+      KVR_ASSERT_SAFE (m_pair, false);
+      kvr::value *pv = m_pair->get_value ();
+      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+      pv->conv_number_i ();
+#endif
+      pv->set_number_i (i);
+      m_pair = NULL;
+      success = true;
+    }
+    else if (node->is_array ())
+    {
+      node->push (i);
+      success = true;
+    }
+
+    return success;
+  }
+
+  bool _read_uint64 (uint64_t u)
+  {
+    KVR_ASSERT (m_depth != 0);
+    KVR_ASSERT (false && "not supported");
+    return false;
+  }
+
+  bool read_float (double d)
+  {
+    bool success = false;
+
+    KVR_ASSERT_SAFE (m_depth != 0, success);
+    kvr::value *node = m_stack [m_depth - 1];
+    KVR_ASSERT (node);
+    KVR_ASSERT (node->is_map () || node->is_array ());
+
+    if (node->is_map ())
+    {
+      KVR_ASSERT_SAFE (m_pair, false);
+      kvr::value *pv = m_pair->get_value ();
+      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+      pv->conv_number_f ();
+#endif
+      pv->set_number_f (d);
+      m_pair = NULL;
+      success = true;
+    }
+    else if (node->is_array ())
+    {
+      node->push (d);
+      success = true;
+    }
+
+    return success;
+  }
+
+  bool read_string (const char *str, size_t length, bool copy)
+  {
+    bool success = false;
+
+    KVR_ASSERT_SAFE (m_depth != 0, success);
+    kvr::value *node = m_stack [m_depth - 1];
+    KVR_ASSERT (node);
+    KVR_ASSERT (node->is_map () || node->is_array ());
+
+    if (node->is_map ())
+    {
+      KVR_ASSERT_SAFE (m_pair, false);
+      kvr::value *pv = m_pair->get_value ();
+      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+      pv->conv_string ();
+      pv->set_string (str, (kvr::sz_t) length);
+      m_pair = NULL;
+      success = true;
+    }
+    else if (node->is_array ())
+    {
+      kvr::value *vstr = node->push_null (); KVR_ASSERT (vstr);
+      vstr->conv_string ();
+      vstr->set_string (str, (kvr::sz_t) length);
+      success = true;
+    }
+
+    return success;
+  }
+
+  bool read_object_start ()
+  {
+    bool success = false;
+    kvr::value *node = NULL;
+
+    if (m_depth > 0)
+    {
+      node = m_stack [m_depth - 1];
+      KVR_ASSERT (node);
+      KVR_ASSERT (node->is_map () || node->is_array ());
+
+      if (node->is_map ())
+      {
+        KVR_ASSERT_SAFE (m_pair, false);
+        node = m_pair->get_value ();
+        KVR_ASSERT_SAFE (node && node->is_null (), false);
+        node->conv_map ();
+        m_pair = NULL;
+        success = true;
+      }
+      else if (node->is_array ())
+      {
+        node = node->push_map ();
+        success = true;
+      }
+    }
+    else
+    {
+      node = m_root->conv_map ();
+      success = true;
+    }
+
+    KVR_ASSERT (m_depth < KVR_CONSTANT_MAX_TREE_DEPTH);
+    m_stack [m_depth++] = node;
+
+    return success;
+  }
+
+  bool read_key (const char *str, size_t length, bool copy)
+  {
+    kvr::value *node = m_stack [m_depth - 1];
+    KVR_ASSERT_SAFE (node && node->is_map (), false);
+
+    KVR_ASSERT (!m_pair);
+    m_pair = node->insert_null (str);
+    return (m_pair != NULL);
+  }
+
+  bool read_object_end (size_t memberCount)
+  {
+    kvr::value *node = m_stack [m_depth - 1];
+    KVR_ASSERT_SAFE (node && node->is_map (), false);
+    KVR_ASSERT (node->size () == (kvr::sz_t) memberCount);
+    m_stack [--m_depth] = NULL;
+    return true;
+  }
+
+  bool read_array_start ()
+  {
+    bool success = false;
+    kvr::value *node = NULL;
+
+    if (m_depth > 0)
+    {
+      node = m_stack [m_depth - 1];
+      KVR_ASSERT (node);
+      KVR_ASSERT (node->is_map () || node->is_array ());
+
+      if (node->is_map ())
+      {
+        KVR_ASSERT_SAFE (m_pair, false);
+        node = m_pair->get_value ();
+        KVR_ASSERT_SAFE (node && node->is_null (), false);
+        node->conv_array ();
+        m_pair = NULL;
+        success = true;
+      }
+      else if (node->is_array ())
+      {
+        node = node->push_array ();
+        success = true;
+      }
+    }
+    else
+    {
+      node = m_root->conv_array ();
+      success = true;
+    }
+
+    KVR_ASSERT (m_depth < KVR_CONSTANT_MAX_TREE_DEPTH);
+    m_stack [m_depth++] = node;
+
+    return success;
+  }
+
+  bool read_array_end (size_t elementCount)
+  {
+    kvr::value *node = m_stack [m_depth - 1];
+    KVR_ASSERT_SAFE (node && node->is_array (), false);
+    KVR_ASSERT (node->length () == (kvr::sz_t) elementCount);
+    m_stack [--m_depth] = NULL;
+    return true;
+  }
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
+  kvr::value  * m_stack [KVR_CONSTANT_MAX_TREE_DEPTH];
+  kvr::value  * m_root;
+  kvr::pair   * m_pair;
+  kvr::sz_t     m_depth;
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -618,8 +903,58 @@ size_t msgpack_write_context::write_approx_size (const kvr::value *val)
 
 bool kvr_msgpack::read (kvr::value *dest, const uint8_t *data, size_t size)
 {
+  KVR_ASSERT (false && "not implemented");
+
   bool success = false;
-  return success;
+
+  msgpack_read_context ctx (dest);
+  
+  size_t sz = size;
+  size_t pos = 0;
+  size_t adv = 0;
+
+  bool error = false;
+
+  while (!error && (pos < sz))
+  {
+    adv = 0;
+
+    uint8_t curr = data [pos];
+
+    switch (curr)
+    {
+      case 0xc0: // null
+      {
+        error = !ctx.read_null ();
+        ++adv;
+        break;
+      }
+
+      case 0xc2: // false
+      {
+        error = !ctx.read_boolean (false);
+        ++adv;
+        break;
+      }
+
+      case 0xc3: // true
+      {
+        error = !ctx.read_boolean (true);
+        ++adv;
+        break;
+      }
+
+      default:
+      {
+        // todo: map, array, integer, float, string
+        break;
+      }
+    }
+
+    if (!error) { pos += adv; }
+  }
+
+  return success;  
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
