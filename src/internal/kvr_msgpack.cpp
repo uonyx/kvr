@@ -34,6 +34,9 @@ struct msgpack_write_context
     KVR_ASSERT (m_root);
     KVR_ASSERT (m_stream);
     m_stream->seek (0);
+#if KVR_DEBUG
+    m_stream->set_eos (0);
+#endif
   }
 
   ///////////////////////////////////////////
@@ -48,9 +51,6 @@ struct msgpack_write_context
 
   bool write_array (kvr::sz_t size)
   {
-    //const uint64_t sz16 = (1 << 16) - 1;
-    //const uint64_t sz32 = (1ULL << 32) - 1;
-
     if (size <= 15)
     {
       uint8_t sz = (uint8_t) size;
@@ -116,14 +116,14 @@ struct msgpack_write_context
       put (0xd9);
       put (len);
     }
-    else if (slen <= 0xffffULL)
+    else if (slen <= 0xffff)
     {
       put (0xda);
       uint16_t len = bigendian16 (slen);
       uint8_t *buf = push (2);
       memcpy (buf, &len, 2);
     }
-    else if (slen <= 0xffffffffULL)
+    else if (slen <= 0xffffffff)
     {
       put (0xdb);
       uint32_t len = bigendian32 (slen);
@@ -294,7 +294,12 @@ struct msgpack_write_context
   bool write_stream ()
   {
     KVR_ASSERT (m_root);
-    return write_stream (m_root);
+
+    bool success = write_stream (m_root);
+#if KVR_DEBUG
+    if (success) { m_stream->set_eos (0); }
+#endif
+    return success;
   }
 
   ///////////////////////////////////////////
@@ -442,11 +447,11 @@ size_t msgpack_write_context::write_approx_size (const kvr::value *val)
       {
         size += 1;
       }
-      else if (klen <= 0xffULL)
+      else if (klen <= 0xff)
       {
         size += 2;
       }
-      else if (klen <= 0xffffULL)
+      else if (klen <= 0xffff)
       {
         size += 3;
       }
@@ -632,17 +637,11 @@ bool kvr_msgpack::write (const kvr::value *src, kvr::stream *str)
   msgpack_write_context ctx (src, str);
   success = ctx.write_stream ();
 
-  size_t sz = msgpack_write_context::write_approx_size (src);
-  (void) sz;
-
-  size_t sz2 = str->tell ();
-  (void) sz2;
-
 #if KVR_DEBUG && 0
   kvr::stream hex (512);
   if (kvr_internal::hex_encode (str->bytes (), str->tell (), &hex))
   {
-    hex.setEOS ();
+    hex.set_eos (0);
     const char *hexstr = (const char *) hex.bytes ();
     fprintf (stderr, "msgpack: %s\n", hexstr);
 

@@ -427,10 +427,10 @@ public:
     size_t          tell () const;
     void            seek (size_t pos);
     bool            full () const;
-    void            put (uint8_t ch);
+    void            put (uint8_t byte);
     uint8_t *       push (size_t count);
     void            pop (size_t count);    
-    void            setEOS ();
+    void            set_eos (uint8_t eos);
     void            resize (size_t newcap);
 
   private:

@@ -320,7 +320,7 @@ struct json_write_context
     KVR_ASSERT (stream);
 
     m_stream->seek (0);
-    m_stream->setEOS ();
+    m_stream->set_eos (0);
   }
 
   ///////////////////////////////////////////
@@ -582,7 +582,7 @@ bool kvr_json::write (const kvr::value *src, kvr::stream *str)
   json_write_context wctx (src, str);
   kvr_rapidjson::Writer<json_write_context> writer (wctx);
   success = json_write_context::write_stream (src, writer);
-  str->setEOS ();
+  str->set_eos (0);
 
   return success;
 }
