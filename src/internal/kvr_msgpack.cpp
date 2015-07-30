@@ -18,6 +18,35 @@
 #define bigendian32(X) (X)
 #define bigendian64(X) (X)
 #endif
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+static const uint8_t MSGPACK_HEADER_NULL        = 0xc0;
+static const uint8_t MSGPACK_HEADER_BOOL_FALSE  = 0xc2;
+static const uint8_t MSGPACK_HEADER_BOOL_TRUE   = 0xc3;
+static const uint8_t MSGPACK_HEADER_UNSIGNED_8  = 0xcc;
+static const uint8_t MSGPACK_HEADER_UNSIGNED_16 = 0xcd;
+static const uint8_t MSGPACK_HEADER_UNSIGNED_32 = 0xce;
+static const uint8_t MSGPACK_HEADER_SIGNED_5    = 7u << 5;
+static const uint8_t MSGPACK_HEADER_SIGNED_8    = 0xd0;
+static const uint8_t MSGPACK_HEADER_SIGNED_16   = 0xd1;
+static const uint8_t MSGPACK_HEADER_SIGNED_32   = 0xd2;
+static const uint8_t MSGPACK_HEADER_SIGNED_64   = 0xd3;
+static const uint8_t MSGPACK_HEADER_FLOAT_32    = 0xca;
+static const uint8_t MSGPACK_HEADER_FLOAT_64    = 0xcb;
+static const uint8_t MSGPACK_HEADER_ARRAY_4     = 9u << 4;
+static const uint8_t MSGPACK_HEADER_ARRAY_16    = 0xdc;
+static const uint8_t MSGPACK_HEADER_ARRAY_32    = 0xdd;
+static const uint8_t MSGPACK_HEADER_MAP_4       = 8u << 4;
+static const uint8_t MSGPACK_HEADER_MAP_16      = 0xde;
+static const uint8_t MSGPACK_HEADER_MAP_32      = 0xdf;
+static const uint8_t MSGPACK_HEADER_STRING_5    = 5u << 5;
+static const uint8_t MSGPACK_HEADER_STRING_8    = 0xd9;
+static const uint8_t MSGPACK_HEADER_STRING_16   = 0xda;
+static const uint8_t MSGPACK_HEADER_STRING_32   = 0xdb;
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,7 +189,7 @@ struct msgpack_read_context
     return success;
   }
 
-  bool read_string (const char *str, size_t length, bool copy)
+  bool read_string (const char *str, size_t length)
   {
     bool success = false;
 
@@ -330,7 +359,7 @@ struct msgpack_write_context
 
   bool write_null ()
   {
-    put (0xc0);
+    put (MSGPACK_HEADER_NULL);
     return true;
   }
 
@@ -339,17 +368,17 @@ struct msgpack_write_context
     if (size <= 15)
     {
       uint8_t sz = (uint8_t) size;
-      put ((9u << 4) | sz);
+      put (MSGPACK_HEADER_ARRAY_4 | sz);
     }
-    else if (size < 0xffff)
+    else if (size <= 0xffff)
     {
-      put (0xdc);
+      put (MSGPACK_HEADER_ARRAY_16);
       uint16_t sz = bigendian16 (size);
       put ((uint8_t *) &sz, 2);
     }
-    else if (size < 0xffffffff)
+    else if (size <= 0xffffffff)
     {
-      put (0xdd);
+      put (MSGPACK_HEADER_ARRAY_32);
       uint32_t sz = bigendian32 (size);
       put ((uint8_t *) &sz, 4);
     }
@@ -366,17 +395,17 @@ struct msgpack_write_context
     if (size <= 15)
     {
       uint8_t sz = (uint8_t) size;
-      put ((8u << 4) | sz);
+      put (MSGPACK_HEADER_MAP_4 | sz);
     }
-    else if (size < 0xffff)
+    else if (size <= 0xffff)
     {
-      put (0xde);
+      put (MSGPACK_HEADER_MAP_16);
       uint16_t sz = bigendian16 (size);
       put ((uint8_t *) &sz, 2);
     }
-    else if (size < 0xffffffff)
+    else if (size <= 0xffffffff)
     {
-      put (0xdf);      
+      put (MSGPACK_HEADER_MAP_32);
       uint16_t sz = bigendian32 (size);
       put ((uint8_t *) &sz, 4);
     }
@@ -389,23 +418,23 @@ struct msgpack_write_context
     if (slen <= 31)
     {
       uint8_t len = (uint8_t) slen;
-      put ((5u << 5) | len);
+      put (MSGPACK_HEADER_STRING_5 | len);
     }
     else if (slen <= 0xff)
     {
       uint8_t len = (uint8_t) slen;
-      put (0xd9);
+      put (MSGPACK_HEADER_STRING_8);
       put (len);
     }
     else if (slen <= 0xffff)
     {
-      put (0xda);
+      put (MSGPACK_HEADER_STRING_16);
       uint16_t len = bigendian16 (slen);
       put ((uint8_t *) &len, 2);
     }
     else if (slen <= 0xffffffff)
     {
-      put (0xdb);
+      put (MSGPACK_HEADER_STRING_32);
       uint32_t len = bigendian32 (slen);
       put ((uint8_t *) &len, 4);
     }
@@ -414,10 +443,7 @@ struct msgpack_write_context
       return false;
     }
 
-    for (kvr::sz_t i = 0; i < slen; ++i)
-    {
-      put (str [i]);
-    }
+    put ((uint8_t *) str, (size_t) slen);
 
     return true;
   }
@@ -434,24 +460,24 @@ struct msgpack_write_context
       else if (i64 <= 0xff)
       {
         uint8_t i = (uint8_t) i64;
-        put (0xcc);
+        put (MSGPACK_HEADER_UNSIGNED_8);
         put (i);
       }
       else if (i64 <= 0xffff)
       {
-        put (0xcd);
+        put (MSGPACK_HEADER_UNSIGNED_16);
         uint16_t i = bigendian16 (i64);
         put ((uint8_t *) &i, 2);
       }
       else if (i64 <= 0xffffffff)
       {
-        put (0xce);
+        put (MSGPACK_HEADER_UNSIGNED_32);
         uint32_t i = bigendian32 (i64);
         put ((uint8_t *) &i, 4);
       }
       else // max is int64_t;
       {
-        put (0xd3);
+        put (MSGPACK_HEADER_SIGNED_64);
         uint64_t i = bigendian64 (i64);
         put ((uint8_t *) &i, 8);
       }
@@ -466,29 +492,29 @@ struct msgpack_write_context
       if (i64 >= nint5)
       {
         uint8_t i = (uint8_t) i64;
-        put ((7u << 5) | i);
+        put (MSGPACK_HEADER_SIGNED_5 | i);
       }
       else if (i64 >= nint8)
       {
         uint8_t i = (uint8_t) i64;
-        put (0xd0);
+        put (MSGPACK_HEADER_SIGNED_8);
         put (i);
       }
       else if (i64 >= nint16)
       {
-        put (0xd1);
+        put (MSGPACK_HEADER_SIGNED_16);
         uint16_t i = bigendian16 (i64);
         put ((uint8_t *) &i, 2);
       }
       else if (i64 >= nint32)
       {
-        put (0xd2);
+        put (MSGPACK_HEADER_SIGNED_32);
         uint32_t i = bigendian32 (i64);
         put ((uint8_t *) i, 4);
       }
       else
       {
-        put (0xd3);
+        put (MSGPACK_HEADER_SIGNED_64);
         uint64_t i = bigendian64 (i64);
         put ((uint8_t *) &i, 8);
       }
@@ -502,7 +528,7 @@ struct msgpack_write_context
     const double fmax = std::numeric_limits<float>::max ();   
     if (f <= fmax)
     {
-      put (0xca);      
+      put (MSGPACK_HEADER_FLOAT_32);
       union { float f; uint32_t i; } mem;
       mem.f = (float) f;
       uint32_t fi = bigendian32 (mem.i);
@@ -510,7 +536,7 @@ struct msgpack_write_context
     }
     else
     {
-      put (0xcb);
+      put (MSGPACK_HEADER_FLOAT_64);
       union { double f; uint64_t i; } mem;
       mem.f = (double) f;
       uint64_t fi = bigendian64 (mem.i);
@@ -522,7 +548,7 @@ struct msgpack_write_context
 
   bool write_boolean (bool b)
   {
-    put (b ? 0xc3 : 0xc2);
+    put (b ? MSGPACK_HEADER_BOOL_TRUE : MSGPACK_HEADER_BOOL_FALSE);
     return true; 
   }
   
@@ -907,6 +933,7 @@ bool kvr_msgpack::read (kvr::value *dest, const uint8_t *data, size_t size)
 
   bool success = false;
 
+#if 0
   msgpack_read_context ctx (dest);
   
   size_t sz = size;
@@ -923,36 +950,150 @@ bool kvr_msgpack::read (kvr::value *dest, const uint8_t *data, size_t size)
 
     switch (curr)
     {
-      case 0xc0: // null
+      case MSGPACK_HEADER_NULL:       // null
       {
         error = !ctx.read_null ();
         ++adv;
         break;
       }
 
-      case 0xc2: // false
+      case MSGPACK_HEADER_BOOL_FALSE: // false
       {
         error = !ctx.read_boolean (false);
         ++adv;
         break;
       }
 
-      case 0xc3: // true
+      case MSGPACK_HEADER_BOOL_TRUE:  // true
       {
         error = !ctx.read_boolean (true);
         ++adv;
         break;
       }
 
+      case MSGPACK_HEADER_FLOAT_32:   // float32
+      {
+        uint32_t fi;
+        memcpy (&fi, &data [pos], 4);
+        union { float f; uint32_t i; } mem;
+        mem.i = bigendian32 (fi);
+        
+        error = !ctx.read_float (fi);
+        adv += 5;
+        break;
+      }
+
+      case MSGPACK_HEADER_FLOAT_64:   // float64
+      {
+        uint64_t fi;
+        memcpy (&fi, &data [pos], 4);
+        union { double f; uint64_t i; } mem;
+        mem.i = bigendian64 (fi);
+        
+        error = !ctx.read_float (fi);
+        adv += 9;
+        break;
+      }
+
+      case MSGPACK_HEADER_STRING_8:   // string8
+      {
+        uint8_t slen = data [pos + 1];
+        const char *str = (const char *) &data [pos + 2];
+
+        error = !ctx.read_string (str, slen);
+        adv += (1 + 1 + slen);
+        break;
+      }
+
+      case MSGPACK_HEADER_STRING_16:  // string16
+      {
+        uint16_t len;
+        memcpy (&len, &data [pos + 1], 2);
+
+        uint16_t slen = bigendian16 (len);
+        const char *str = (const char *) &data [pos + 3];
+
+        error = !ctx.read_string (str, slen);
+        adv += (1 + 2 + slen);
+        break;
+      }
+
+      case MSGPACK_HEADER_STRING_32:  // string32
+      {
+        uint32_t len;
+        memcpy (&len, &data [pos + 1], 4);
+
+        uint32_t slen = bigendian32 (len);
+        const char *str = (const char *) &data [pos + 5];
+
+        error = !ctx.read_string (str, slen);
+        adv += (1 + 4 + slen);
+        break;
+      }
+
+      case MSGPACK_HEADER_ARRAY_16:   // array16
+      {
+        break;
+      }
+
+      case MSGPACK_HEADER_ARRAY_32:   // array32
+      {
+        break;
+      }
+
+      case MSGPACK_HEADER_MAP_16:     // map16
+      case MSGPACK_HEADER_MAP_32:     // map32
+      {
+        break;
+      }
+
       default:
       {
-        // todo: map, array, integer, float, string
+        if (curr <= 127)
+        {
+        }
+        else if ((curr & MSGPACK_HEADER_SIGNED_5) == 0)
+        {
+        }
+        else
+        {
+          uint8_t hi4 = (curr & 0xf0);
+
+          if (hi4 == MSGPACK_HEADER_STRING_5)
+          {
+            uint8_t slen = (curr & 0x0f);
+            const char *str = (const char *) &data [pos + 1];
+            error = !ctx.read_string (str, slen);
+            adv += (1 + 1 + slen);
+          }
+          else if (hi4 == MSGPACK_HEADER_MAP_4)
+          {
+            uint8_t msz = (curr & 0x0f);
+            for (uint8_t i = 0; i < msz; ++i)
+            {
+            }
+          }
+          else if (hi4 == MSGPACK_HEADER_ARRAY_4)
+          {
+            uint8_t alen = (curr & 0x0f);
+            for (uint8_t i = 0; i < alen; ++i)
+            {
+            }
+          }
+          else
+          {
+            KVR_ASSERT (false);
+            error = true;
+          }
+        }
+
         break;
       }
     }
 
     if (!error) { pos += adv; }
   }
+#endif
 
   return success;  
 }
