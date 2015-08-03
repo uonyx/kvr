@@ -29,6 +29,7 @@ static const uint8_t MSGPACK_HEADER_BOOL_TRUE   = 0xc3;
 static const uint8_t MSGPACK_HEADER_UNSIGNED_8  = 0xcc;
 static const uint8_t MSGPACK_HEADER_UNSIGNED_16 = 0xcd;
 static const uint8_t MSGPACK_HEADER_UNSIGNED_32 = 0xce;
+static const uint8_t MSGPACK_HEADER_UNSIGNED_64 = 0xcf;
 static const uint8_t MSGPACK_HEADER_SIGNED_5    = 7u << 5;
 static const uint8_t MSGPACK_HEADER_SIGNED_8    = 0xd0;
 static const uint8_t MSGPACK_HEADER_SIGNED_16   = 0xd1;
@@ -46,6 +47,7 @@ static const uint8_t MSGPACK_HEADER_STRING_5    = 5u << 5;
 static const uint8_t MSGPACK_HEADER_STRING_8    = 0xd9;
 static const uint8_t MSGPACK_HEADER_STRING_16   = 0xda;
 static const uint8_t MSGPACK_HEADER_STRING_32   = 0xdb;
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -189,10 +191,11 @@ struct msgpack_read_context
     return success;
   }
 
-  bool read_string (const char *str, size_t length)
+  bool read_string (const char *str, kvr::sz_t length)
   {
     bool success = false;
 
+    KVR_ASSERT (str);
     KVR_ASSERT_SAFE (m_depth != 0, success);
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT (node);
@@ -204,7 +207,7 @@ struct msgpack_read_context
       kvr::value *pv = m_pair->get_value ();
       KVR_ASSERT_SAFE (pv && pv->is_null (), false);
       pv->conv_string ();
-      pv->set_string (str, (kvr::sz_t) length);
+      pv->set_string (str, length);
       m_pair = NULL;
       success = true;
     }
@@ -212,14 +215,14 @@ struct msgpack_read_context
     {
       kvr::value *vstr = node->push_null (); KVR_ASSERT (vstr);
       vstr->conv_string ();
-      vstr->set_string (str, (kvr::sz_t) length);
+      vstr->set_string (str, length);
       success = true;
     }
 
     return success;
   }
 
-  bool read_object_start ()
+  bool read_map_start (kvr::sz_t size)
   {
     bool success = false;
     kvr::value *node = NULL;
@@ -257,26 +260,32 @@ struct msgpack_read_context
     return success;
   }
 
-  bool read_key (const char *str, size_t length, bool copy)
+  bool read_key (const char *str, kvr::sz_t length)
   {
+    KVR_ASSERT (str);
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_map (), false);
 
     KVR_ASSERT (!m_pair);
-    m_pair = node->insert_null (str);
+
+    char key [KVR_CONSTANT_MAX_KEY_LENGTH];
+    KVR_ASSERT (length < KVR_CONSTANT_MAX_KEY_LENGTH);
+    kvr_strncpy (key, str, length);
+
+    m_pair = node->insert_null (key);
     return (m_pair != NULL);
   }
 
-  bool read_object_end (size_t memberCount)
+  bool read_map_end (kvr::sz_t size)
   {
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_map (), false);
-    KVR_ASSERT (node->size () == (kvr::sz_t) memberCount);
+    KVR_ASSERT (node->size () == size);
     m_stack [--m_depth] = NULL;
     return true;
   }
 
-  bool read_array_start ()
+  bool read_array_start (kvr::sz_t length)
   {
     bool success = false;
     kvr::value *node = NULL;
@@ -293,6 +302,7 @@ struct msgpack_read_context
         node = m_pair->get_value ();
         KVR_ASSERT_SAFE (node && node->is_null (), false);
         node->conv_array ();
+        //node->_conv_array (length);
         m_pair = NULL;
         success = true;
       }
@@ -314,11 +324,11 @@ struct msgpack_read_context
     return success;
   }
 
-  bool read_array_end (size_t elementCount)
+  bool read_array_end (kvr::sz_t length)
   {
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_array (), false);
-    KVR_ASSERT (node->length () == (kvr::sz_t) elementCount);
+    KVR_ASSERT (node->length () == length);
     m_stack [--m_depth] = NULL;
     return true;
   }
@@ -331,6 +341,408 @@ struct msgpack_read_context
   kvr::value  * m_root;
   kvr::pair   * m_pair;
   kvr::sz_t     m_depth;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// msgpack_reader
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct msgpack_reader
+{
+  enum parse_error
+  {
+    PARSE_ERROR_OK,
+    PARSE_ERROR_EOS,
+    PARSE_ERROR_UNKNOWN,
+  };
+
+  kvr::istream *m_stream;
+  parse_error m_error;
+
+  //void get 
+
+  msgpack_reader (kvr::istream *istr) : m_stream (istr)
+  {
+    m_stream->seek (0);
+  }
+
+  bool get (uint8_t *byte)
+  {
+    bool ok = m_stream->get (byte);
+    if (!ok) { m_error = PARSE_ERROR_EOS; }
+    return ok;
+  }
+
+  bool get (uint8_t *bytes, size_t count)
+  {
+    bool ok = m_stream->get (bytes, count);
+    if (!ok) { m_error = PARSE_ERROR_EOS; }
+    return ok;
+  }
+
+  const uint8_t * push (size_t count)
+  {
+    const uint8_t *bytes = m_stream->push (count);
+    if (!bytes) { m_error = PARSE_ERROR_EOS; }
+    return bytes;
+  }
+
+  bool parse_key (msgpack_read_context &ctx)
+  {
+    uint8_t curr = 0;
+    bool success = this->get (&curr);
+
+    switch (curr)
+    {
+      case MSGPACK_HEADER_STRING_8:   // string8
+      {
+        uint8_t slen = 0;
+        success = this->get (&slen);
+        const char *str = success ? (const char *) this->push (slen) : NULL;
+        success = str ? ctx.read_key (str, slen) : false;
+        break;
+      }
+
+      case MSGPACK_HEADER_STRING_16:  // string16
+      {
+        uint16_t len = 0;
+        success = this->get ((uint8_t *) &len, 2);
+        uint16_t slen = bigendian16 (len);
+        KVR_ASSERT (slen <= kvr::SZ_T_MAX);
+        const char *str = success ? (const char *) this->push (slen) : NULL;
+        success = str ? ctx.read_key (str, slen) : false;
+        break;
+      }
+
+      case MSGPACK_HEADER_STRING_32:  // string32
+      {
+        uint32_t len = 0;
+        success = this->get ((uint8_t *) &len, 4);
+        uint32_t slen = bigendian32 (len);
+        KVR_ASSERT (slen <= kvr::SZ_T_MAX);
+        const char *str = success ? (const char *) this->push (slen) : NULL;
+        success = str ? ctx.read_key (str, slen) : false;
+        break;
+      }
+
+      default:
+      {
+        uint8_t hi4 = (curr & 0xf0);
+        if (hi4 == MSGPACK_HEADER_STRING_5)
+        {
+          uint8_t slen = (curr & 0x0f);
+          const char *str = success ? (const char *) this->push (slen) : NULL;          
+          success = str ? ctx.read_key (str, slen) : false;
+        }
+        else
+        {
+          success = false;
+        }
+
+        break;
+      }
+    }
+
+    return success;
+  };
+
+  bool parse (msgpack_read_context &ctx)
+  {
+    uint8_t curr = 0;
+    bool success = this->get (&curr);
+    if (success)
+    {
+      switch (curr)
+      {
+        case MSGPACK_HEADER_NULL:       // null
+        {
+          success = ctx.read_null ();
+          break;
+        }
+
+        case MSGPACK_HEADER_BOOL_FALSE: // false
+        {
+          success = ctx.read_boolean (false);
+          break;
+        }
+
+        case MSGPACK_HEADER_BOOL_TRUE:  // true
+        {
+          success = ctx.read_boolean (true);
+          break;
+        }
+
+        case MSGPACK_HEADER_FLOAT_32:   // float32
+        {
+          uint32_t fi = 0;
+          success = this->get ((uint8_t *) &fi, 4);
+          if (success)
+          {
+            union { float f; uint32_t i; } mem;
+            mem.i = bigendian32 (fi);
+            success = ctx.read_float (mem.f);
+          }
+
+          break;
+        }
+
+        case MSGPACK_HEADER_FLOAT_64:   // float64
+        {
+          uint64_t fi = 0;
+          success = this->get ((uint8_t *) &fi, 8);
+          if (success)
+          {
+            union { double f; uint64_t i; } mem;
+            mem.i = bigendian64 (fi);
+            success = ctx.read_float (mem.f);
+          }
+          break;
+        }
+
+        case MSGPACK_HEADER_STRING_8:   // string8
+        {
+          uint8_t slen = 0;
+          success = this->get (&slen);
+          const char *str = success ? (const char *) this->push (slen) : NULL;
+          success = str ? ctx.read_string (str, slen) : false;
+          break;
+        }
+
+        case MSGPACK_HEADER_STRING_16:  // string16
+        {
+          uint16_t len = 0;
+          success = this->get ((uint8_t *) &len, 2);
+          uint16_t slen = bigendian16 (len);
+          KVR_ASSERT (slen <= kvr::SZ_T_MAX);
+          const char *str = success ? (const char *) this->push (slen) : NULL;
+          success = str ? ctx.read_string (str, slen) : false;
+          break;
+        }
+
+        case MSGPACK_HEADER_STRING_32:  // string32
+        {
+          uint32_t len = 0;
+          success = this->get ((uint8_t *) &len, 4);
+          uint32_t slen = bigendian32 (len);
+          KVR_ASSERT (slen <= kvr::SZ_T_MAX);
+          const char *str = success ? (const char *) this->push (slen) : NULL;
+          success = str ? ctx.read_string (str, slen) : false;
+          break;
+        }
+
+        case MSGPACK_HEADER_ARRAY_16:   // array16
+        {
+          uint16_t len = 0;
+          success = this->get ((uint8_t *) &len, 2);
+          uint16_t alen = bigendian16 (len);
+          KVR_ASSERT (alen <= kvr::SZ_T_MAX);
+          bool ok = success && ctx.read_array_start (alen);
+          for (uint16_t i = 0; ok && (i < alen); ++i)
+          {
+            ok &= parse (ctx);
+          }          
+#if KVR_DEBUG
+          ok &= ctx.read_array_end (alen);
+#endif
+          success = ok;
+          break;
+        }
+
+        case MSGPACK_HEADER_ARRAY_32:   // array32
+        {
+          uint32_t len = 0;
+          success = this->get ((uint8_t *) &len, 4);          
+          uint32_t alen = bigendian32 (len);
+          KVR_ASSERT (alen <= kvr::SZ_T_MAX);
+          bool ok = success && ctx.read_array_start (alen);
+          for (uint32_t i = 0; ok && (i < alen); ++i)
+          {
+            ok &= parse (ctx);
+          }
+#if KVR_DEBUG
+          ok &= ctx.read_array_end (alen);
+#endif
+          success = ok;
+
+          break;
+        }
+
+        case MSGPACK_HEADER_MAP_16:     // map16
+        {
+          uint16_t len = 0;
+          success = this->get ((uint8_t *) &len, 2);
+          uint16_t msz = bigendian16 (len);
+          KVR_ASSERT (msz <= kvr::SZ_T_MAX);
+          bool ok = success && ctx.read_map_start (msz);
+          for (uint16_t i = 0; ok && (i < msz); ++i)
+          {
+            ok &= parse_key (ctx);
+            ok &= parse (ctx);
+          }
+#if KVR_DEBUG
+          ok &= ctx.read_map_end (msz);
+#endif
+          success = ok;
+          break;
+        }
+
+        case MSGPACK_HEADER_MAP_32:     // map32
+        {
+          uint32_t len = 0;
+          success = this->get ((uint8_t *) &len, 4);
+          uint32_t msz = bigendian32 (len);
+          KVR_ASSERT (msz <= kvr::SZ_T_MAX);
+          bool ok = success && ctx.read_map_start (msz);
+          for (uint32_t i = 0; ok && (i < msz); ++i)
+          {
+            ok &= parse_key (ctx);
+            ok &= parse (ctx);
+          }
+#if KVR_DEBUG
+          ok &= ctx.read_map_end (msz);
+#endif
+          success = ok;
+          break;
+        }
+        case MSGPACK_HEADER_UNSIGNED_8:
+        {
+          uint8_t i = 0;
+          success = this->get (&i);
+          success = success ? ctx.read_integer (i) : false;
+          break;
+        }
+
+        case MSGPACK_HEADER_UNSIGNED_16:
+        {
+          uint16_t u16 = 0;
+          success = this->get ((uint8_t *) &u16, 2);
+          uint16_t i = bigendian16 (u16);
+          success = success ? ctx.read_integer (i) : false;
+          break;
+        }
+
+        case MSGPACK_HEADER_UNSIGNED_32:
+        {
+          uint32_t u32 = 0;
+          success = this->get ((uint8_t *) &u32, 4);
+          uint32_t i = bigendian32 (u32);
+          success = success ? ctx.read_integer (i) : false;
+          break;
+        }
+
+        case MSGPACK_HEADER_UNSIGNED_64:
+        {
+          KVR_ASSERT (false && "not supported");
+          success = false;
+          break;
+        }
+
+        case MSGPACK_HEADER_SIGNED_8:
+        {
+          uint8_t u8 = 0;
+          success = this->get (&u8);
+          int8_t i = (int8_t) u8;
+          success = success ? ctx.read_integer (i) : false;
+          break;
+        }
+
+        case MSGPACK_HEADER_SIGNED_16:
+        {
+          uint16_t u16 = 0;
+          success = this->get ((uint8_t *) &u16, 2);          
+          uint16_t u = bigendian32 (u16);
+          int16_t i = (int16_t) u;
+          success = success ? ctx.read_integer (i) : false;
+          break;
+        }
+
+        case MSGPACK_HEADER_SIGNED_32:
+        {
+          uint32_t u32 = 0;
+          success = this->get ((uint8_t *) &u32, 4);
+          uint32_t u = bigendian32 (u32);
+          int32_t i = (int32_t) u;
+          success = success ? ctx.read_integer (i) : false;
+
+          break;
+        }
+
+        case MSGPACK_HEADER_SIGNED_64:
+        {
+          uint64_t u64 = 0;
+          success = this->get ((uint8_t *) &u64, 8);
+          uint64_t u = bigendian64 (u64);
+          int64_t i = (int64_t) u;
+          success = success ? ctx.read_integer (i) : false;
+          break;
+        }
+
+        default:
+        {
+          if (curr <= 127) // 7-bit positive int
+          {
+            int64_t i = (int64_t) curr;
+            success = ctx.read_integer (i);
+          }
+          else if ((curr & MSGPACK_HEADER_SIGNED_5) == 0)
+          {
+            int64_t i = (int64_t) curr;
+            success = ctx.read_integer (i);
+          }
+          else
+          {
+            uint8_t hi4 = (curr & 0xf0);
+            if (hi4 == MSGPACK_HEADER_STRING_5)
+            {
+              uint8_t slen = (curr & 0x0f);
+              const char *str = success ? (const char *) this->push (slen) : NULL;
+              success = str ? ctx.read_string (str, slen) : false;
+            }
+            else if (hi4 == MSGPACK_HEADER_MAP_4)
+            {
+              uint8_t msz = (curr & 0x0f);
+              bool ok = ctx.read_map_start (msz);
+              for (uint8_t i = 0; ok && (i < msz); ++i)
+              {
+                ok &= parse_key (ctx);
+                ok &= parse (ctx);
+              }
+#if KVR_DEBUG
+              ok &= ctx.read_map_end (msz);
+#endif
+              success = ok;
+            }
+            else if (hi4 == MSGPACK_HEADER_ARRAY_4)
+            {
+              uint8_t alen = (curr & 0x0f);
+              bool ok = ctx.read_array_start (alen);
+              for (uint8_t i = 0; ok && (i < alen); ++i)
+              {
+                ok &= parse (ctx);
+              }
+#if KVR_DEBUG
+              ok &= ctx.read_array_end (alen);
+#endif
+              success = ok;
+            }
+            else
+            {
+              KVR_ASSERT (false);
+              success = false;
+            }
+          }
+
+          break;
+        }
+      }
+    }
+    
+    return success;
+  }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -558,40 +970,20 @@ struct msgpack_write_context
 
   void put (uint8_t byte)
   {
-    if (m_stream->full ())
+    while (!m_stream->put (byte))
     {
       size_t newcap = (write_approx_size (m_root) + 7u) & ~7u;
       m_stream->resize (newcap);
     }
-
-    m_stream->put (byte);
   }
 
   void put (uint8_t *bytes, size_t count)
   {
-    if (m_stream->full ())
+    while (!m_stream->put (bytes, count))
     {
       size_t newcap = (write_approx_size (m_root) + 7u) & ~7u;
       m_stream->resize (newcap);
     }
-
-    m_stream->put (bytes, count);
-  }
-
-  uint8_t * push (size_t count)
-  {
-    if (m_stream->full ())
-    {
-      size_t newcap = (write_approx_size (m_root) + 7u) & ~7u;
-      m_stream->resize (newcap);
-    }
-
-    return m_stream->push (count);
-  }
-
-  void pop (size_t count)
-  {
-    m_stream->pop (count);
   }
 
   ///////////////////////////////////////////
@@ -747,9 +1139,8 @@ size_t msgpack_write_context::write_approx_size (const kvr::value *val)
     {
       kvr::key *k = p->get_key ();
       kvr::value *v = p->get_value ();
-
       kvr::sz_t klen = k->get_length ();
-
+      
       if (klen <= 31)
       {
         size += 1;
@@ -929,170 +1320,20 @@ size_t msgpack_write_context::write_approx_size (const kvr::value *val)
 
 bool kvr_msgpack::read (kvr::value *dest, const uint8_t *data, size_t size)
 {
-  KVR_ASSERT (false && "not implemented");
-
   bool success = false;
 
-#if 0
+#if 1
+
+  kvr::istream stream (data, size);
   msgpack_read_context ctx (dest);
+  msgpack_reader reader (&stream);
+
+  success = reader.parse (ctx);
   
-  size_t sz = size;
-  size_t pos = 0;
-  size_t adv = 0;
+#else
 
-  bool error = false;
+  KVR_ASSERT (false && "not implemented");
 
-  while (!error && (pos < sz))
-  {
-    adv = 0;
-
-    uint8_t curr = data [pos];
-
-    switch (curr)
-    {
-      case MSGPACK_HEADER_NULL:       // null
-      {
-        error = !ctx.read_null ();
-        ++adv;
-        break;
-      }
-
-      case MSGPACK_HEADER_BOOL_FALSE: // false
-      {
-        error = !ctx.read_boolean (false);
-        ++adv;
-        break;
-      }
-
-      case MSGPACK_HEADER_BOOL_TRUE:  // true
-      {
-        error = !ctx.read_boolean (true);
-        ++adv;
-        break;
-      }
-
-      case MSGPACK_HEADER_FLOAT_32:   // float32
-      {
-        uint32_t fi;
-        memcpy (&fi, &data [pos], 4);
-        union { float f; uint32_t i; } mem;
-        mem.i = bigendian32 (fi);
-        
-        error = !ctx.read_float (fi);
-        adv += 5;
-        break;
-      }
-
-      case MSGPACK_HEADER_FLOAT_64:   // float64
-      {
-        uint64_t fi;
-        memcpy (&fi, &data [pos], 4);
-        union { double f; uint64_t i; } mem;
-        mem.i = bigendian64 (fi);
-        
-        error = !ctx.read_float (fi);
-        adv += 9;
-        break;
-      }
-
-      case MSGPACK_HEADER_STRING_8:   // string8
-      {
-        uint8_t slen = data [pos + 1];
-        const char *str = (const char *) &data [pos + 2];
-
-        error = !ctx.read_string (str, slen);
-        adv += (1 + 1 + slen);
-        break;
-      }
-
-      case MSGPACK_HEADER_STRING_16:  // string16
-      {
-        uint16_t len;
-        memcpy (&len, &data [pos + 1], 2);
-
-        uint16_t slen = bigendian16 (len);
-        const char *str = (const char *) &data [pos + 3];
-
-        error = !ctx.read_string (str, slen);
-        adv += (1 + 2 + slen);
-        break;
-      }
-
-      case MSGPACK_HEADER_STRING_32:  // string32
-      {
-        uint32_t len;
-        memcpy (&len, &data [pos + 1], 4);
-
-        uint32_t slen = bigendian32 (len);
-        const char *str = (const char *) &data [pos + 5];
-
-        error = !ctx.read_string (str, slen);
-        adv += (1 + 4 + slen);
-        break;
-      }
-
-      case MSGPACK_HEADER_ARRAY_16:   // array16
-      {
-        break;
-      }
-
-      case MSGPACK_HEADER_ARRAY_32:   // array32
-      {
-        break;
-      }
-
-      case MSGPACK_HEADER_MAP_16:     // map16
-      case MSGPACK_HEADER_MAP_32:     // map32
-      {
-        break;
-      }
-
-      default:
-      {
-        if (curr <= 127)
-        {
-        }
-        else if ((curr & MSGPACK_HEADER_SIGNED_5) == 0)
-        {
-        }
-        else
-        {
-          uint8_t hi4 = (curr & 0xf0);
-
-          if (hi4 == MSGPACK_HEADER_STRING_5)
-          {
-            uint8_t slen = (curr & 0x0f);
-            const char *str = (const char *) &data [pos + 1];
-            error = !ctx.read_string (str, slen);
-            adv += (1 + 1 + slen);
-          }
-          else if (hi4 == MSGPACK_HEADER_MAP_4)
-          {
-            uint8_t msz = (curr & 0x0f);
-            for (uint8_t i = 0; i < msz; ++i)
-            {
-            }
-          }
-          else if (hi4 == MSGPACK_HEADER_ARRAY_4)
-          {
-            uint8_t alen = (curr & 0x0f);
-            for (uint8_t i = 0; i < alen; ++i)
-            {
-            }
-          }
-          else
-          {
-            KVR_ASSERT (false);
-            error = true;
-          }
-        }
-
-        break;
-      }
-    }
-
-    if (!error) { pos += adv; }
-  }
 #endif
 
   return success;  

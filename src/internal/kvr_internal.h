@@ -43,10 +43,12 @@
 #if defined (_MSC_VER)
 #define kvr_strcpy(dst, dsz, src) strcpy_s (dst, dsz, src)
 #define kvr_strncpy(dst, src, n) strncpy_s (dst, src, n)
+#define kvr_strncpy2(dst, dsz, src, n) strncpy_s (dst, dsz, src, n)
 #define kvr_strdup(src, sz) _strdup (src)
 #else
 #define kvr_strcpy(dst, dsz, src) { strncpy (dst, src, dsz); dst [dsz - 1] = 0; }
 #define kvr_strncpy(dst, src, n) strncpy (dst, src, n)
+#define kvr_strncpy2(dst, dsz, src, n) kvr_strncpy(dst, src, n)
 #define kvr_strdup(src, sz) strndup (src, sz)
 #endif
 
@@ -219,7 +221,7 @@ public:
     if (data && (size > 0))
     {
       size_t tcap = (size * 2) + 1;
-      if (ostr->capacity () < tcap) { ostr->resize (tcap); }
+      ostr->resize (tcap);
 
       for (size_t i = 0; i < size; ++i)
       {

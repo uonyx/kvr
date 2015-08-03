@@ -60,7 +60,7 @@
 // ideal to have the first 3 constants constants statically bound by client (aka templates)
 
 #define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
-#define KVR_CONSTANT_MAX_KEY_LENGTH                     (127)
+#define KVR_CONSTANT_MAX_KEY_LENGTH                     (127ULL)
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (64)
 #define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 #define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
@@ -78,6 +78,9 @@ public:
   ///////////////////////////////////////////////////////////////
 
   typedef uint16_t sz_t;
+#if KVR_DEBUG
+  static const uint64_t SZ_T_MAX = std::numeric_limits<kvr::sz_t>::max ();
+#endif
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -344,8 +347,8 @@ public:
     sz_t    _get_string_length () const;
     sz_t    _get_string_size () const;
     void    _set_string (const char *str, sz_t len);
-    void    _set_string_stt (const char *str);
-    void    _set_string_dyn (const char *str, sz_t size);
+    void    _set_string_stt (const char *str, sz_t len);
+    void    _set_string_dyn (const char *str, sz_t len);
     void    _move_string (char *str, sz_t size);
 
     value * _search_path_expr (const char *expr, const char **lastkey = NULL, 
@@ -427,10 +430,10 @@ public:
     size_t          tell () const;    
     bool            full () const;
     void            seek (size_t pos);
-    void            put (uint8_t byte);
-    void            put (uint8_t *bytes, size_t count);
+    bool            put (uint8_t byte);
+    bool            put (uint8_t *bytes, size_t count);
     uint8_t *       push (size_t count);
-    void            pop (size_t count);    
+    uint8_t *       pop (size_t count);
     void            set_eos (uint8_t eos);
     void            resize (size_t newcap);
 
@@ -439,10 +442,39 @@ public:
     uint8_t *       alloc (size_t size);
     void            free (uint8_t *bytes);
 
+    ostream (const ostream &);
+    ostream &operator=(const ostream &);
+
     uint8_t * m_bytes;
     size_t    m_cap;
     size_t    m_pos;
     bool      m_heap;
+  };
+
+  class istream
+  {
+  public:
+
+    istream (const uint8_t *bytes, size_t size);
+    
+    const uint8_t * bytes () const;
+    size_t          size () const;
+    size_t          tell () const;
+    bool            end () const;
+    void            seek (size_t pos);
+    bool            get (uint8_t *byte);
+    bool            get (uint8_t *bytes, size_t count);
+    const uint8_t * push (size_t count);
+    const uint8_t * pop (size_t count);
+    
+  private:
+
+    istream (const istream &);
+    istream &operator=(const istream &);
+
+    const uint8_t * m_bytes;
+    size_t    m_size;
+    size_t    m_pos;
   };
 
   ///////////////////////////////////////////////////////////////

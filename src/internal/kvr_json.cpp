@@ -329,29 +329,34 @@ struct json_write_context
 
   void Put (char ch)
   {
-    if (m_stream->full ())
+    bool ok = m_stream->put (ch);
+    if (!ok)
     {
       size_t newcap = (write_approx_size (m_root) + 7ULL) & ~7ULL;
       m_stream->resize (newcap);
+      ok = m_stream->put (ch);
     }
-
-    m_stream->put (ch);
+    KVR_ASSERT (ok);
   }
 
-  char* Push (size_t count)
+  char *Push (size_t count)
   {
-    if (m_stream->full ())
+    uint8_t *bytes = m_stream->push (count);
+    if (!bytes)
     {
       size_t newcap = (write_approx_size (m_root) + 7ULL) & ~7ULL;
       m_stream->resize (newcap);
+      bytes = m_stream->push (count);
     }
-
-    return (char *) m_stream->push (count);
+    KVR_ASSERT (bytes);
+    return (char *) bytes;
   }
 
-  void Pop (size_t count)
+  char *Pop (size_t count)
   {
-    m_stream->pop (count);
+    uint8_t *bytes = m_stream->pop (count);
+    KVR_ASSERT (bytes);
+    return (char *) bytes;
   }
 
   void Flush () {}
@@ -519,7 +524,15 @@ size_t json_write_context::write_approx_size (const kvr::value *val)
   //////////////////////////////////
   {
     double n = val->get_number_f ();
-    size += 13; // average (guess) // 25 is max
+
+    if (n < std::numeric_limits<float>::max ())
+    {
+      size += 13; // average (guess) 
+    }
+    else
+    {
+      size += 25; // 25 is max
+    }    
   }
 
   //////////////////////////////////
