@@ -314,9 +314,8 @@ struct json_read_context
 
 struct json_write_context
 {
-  json_write_context (const kvr::value *val, kvr::ostream *ostream) : m_root (val), m_stream (ostream)
+  json_write_context (kvr::ostream *ostream) : m_stream (ostream)
   {
-    KVR_ASSERT (val);
     KVR_ASSERT (ostream);
 
     m_stream->seek (0);
@@ -332,7 +331,7 @@ struct json_write_context
     bool ok = m_stream->put (ch);
     if (!ok)
     {
-      size_t newcap = (write_approx_size (m_root) + 7ULL) & ~7ULL;
+      size_t newcap = m_stream->capacity () * 2;
       m_stream->resize (newcap);
       ok = m_stream->put (ch);
     }
@@ -344,7 +343,7 @@ struct json_write_context
     uint8_t *bytes = m_stream->push (count);
     if (!bytes)
     {
-      size_t newcap = (write_approx_size (m_root) + 7ULL) & ~7ULL;
+      size_t newcap = m_stream->capacity () * 2;
       m_stream->resize (newcap);
       bytes = m_stream->push (count);
     }
@@ -365,7 +364,6 @@ struct json_write_context
   ///////////////////////////////////////////
   ///////////////////////////////////////////
   
-  const kvr::value  *m_root;
   kvr::ostream      *m_stream;
 
   ///////////////////////////////////////////
@@ -592,7 +590,7 @@ bool kvr_json::write (const kvr::value *src, kvr::ostream *ostr)
 
   bool success = false;
 
-  json_write_context wctx (src, ostr);
+  json_write_context wctx (ostr);
   kvr_rapidjson::Writer<json_write_context> writer (wctx);
   success = json_write_context::write_stream (src, writer);
   ostr->set_eos (0);

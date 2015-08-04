@@ -1817,7 +1817,7 @@ void kvr::value::_set_string_stt (const char *str, sz_t len)
   KVR_ASSERT (is_string ());
   KVR_ASSERT (len < string::stt_str::CAP);
 
-  kvr_strncpy (m_data.s.m_stt.data, str, len);
+  kvr_strncpy (m_data.s.m_stt.data, string::stt_str::CAP, str, len);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1843,7 +1843,7 @@ void kvr::value::_set_string_dyn (const char *str, sz_t len)
     ssize = allocsz;
   }
 
-  kvr_strncpy2 (sdata, ssize, str, len);
+  kvr_strncpy (sdata, ssize, str, len);
   slen = len;
 }
 
@@ -1896,7 +1896,7 @@ kvr::value * kvr::value::_search_path_expr (const char *expr, const char **lastk
   {
     sz_t klen = e2 - e1;
     KVR_ASSERT_SAFE ((klen <= KVR_CONSTANT_MAX_KEY_LENGTH), NULL);
-    kvr_strncpy (k, e1, klen);
+    kvr_strncpy (k, KVR_CONSTANT_MAX_KEY_LENGTH, e1, klen);
     v = v->_search_key (k);
 
     e1 = ++e2;
@@ -3329,6 +3329,8 @@ void kvr::ostream::free (uint8_t *bytes)
 
 kvr::istream::istream (const uint8_t *bytes, size_t size) : m_bytes (bytes), m_size (size), m_pos (0)
 {
+  KVR_ASSERT (bytes);
+  KVR_ASSERT (size > 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

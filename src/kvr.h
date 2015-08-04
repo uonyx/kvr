@@ -238,7 +238,7 @@ public:
 
       struct stt_str
       {
-        static const sz_t CAP = ((sizeof (sz_t) * 2) + sizeof (char *));
+        static const sz_t CAP = ((sizeof (sz_t) * 2) + sizeof (char *)); // sizeof dyn_str
 
         char data [CAP];
       } m_stt;
