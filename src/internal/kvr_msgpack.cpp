@@ -238,7 +238,7 @@ struct msgpack_read_context
         KVR_ASSERT_SAFE (m_pair, false);
         node = m_pair->get_value ();
         KVR_ASSERT_SAFE (node && node->is_null (), false);
-        node->conv_map ();
+        node->conv_map (size);
         m_pair = NULL;
         success = true;
       }
@@ -250,7 +250,7 @@ struct msgpack_read_context
     }
     else
     {
-      node = m_root->conv_map ();
+      node = m_root->conv_map (size);
       success = true;
     }
 

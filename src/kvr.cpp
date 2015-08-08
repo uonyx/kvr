@@ -436,14 +436,7 @@ kvr::value::~value ()
 
 kvr::value * kvr::value::conv_map (sz_t cap)
 {
-  if (!is_map ())
-  {
-    this->_clear ();
-    m_flags |= VALUE_FLAG_TYPE_MAP;
-    m_data.m.init (cap);
-  }
-
-  return this;
+  return this->_conv_map (cap);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -452,14 +445,7 @@ kvr::value * kvr::value::conv_map (sz_t cap)
 
 kvr::value * kvr::value::conv_array (sz_t cap)
 {
-  if (!is_array ())
-  {
-    this->_clear ();
-    m_flags |= VALUE_FLAG_TYPE_ARRAY;
-    m_data.a.init (cap);
-  }
-
-  return this;
+  return this->_conv_array (cap);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2773,6 +2759,38 @@ void kvr::value::_push_v (value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+kvr::value * kvr::value::_conv_map (sz_t cap)
+{
+  if (!is_map ())
+  {
+    this->_clear ();
+    m_flags |= VALUE_FLAG_TYPE_MAP;
+    m_data.m.init (cap);
+  }
+
+  return this;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value * kvr::value::_conv_array (sz_t cap)
+{
+  if (!is_array ())
+  {
+    this->_clear ();
+    m_flags |= VALUE_FLAG_TYPE_ARRAY;
+    m_data.a.init (cap);
+  }
+
+  return this;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 kvr::sz_t kvr::value::_size1 () const
 {
   KVR_ASSERT (is_map ());
@@ -3093,7 +3111,24 @@ kvr::sz_t kvr::value::map::size () const
 
 kvr::sz_t kvr::value::map::_cap () const
 {
+#if 0
   sz_t capa = m_len ? ((m_len + (CAP_INCR - 1)) & ~(CAP_INCR - 1)) : m_cap;
+#else
+  sz_t capa = 0;
+
+  if ((m_cap % CAP_INCR) == 0)
+  {
+    capa = m_cap;
+  }
+  else if (m_len)
+  {
+    capa = (m_len + (CAP_INCR - 1)) & ~(CAP_INCR - 1);
+  }
+  else
+  {
+    capa = m_cap;
+  }
+#endif
 
   return capa;
 }

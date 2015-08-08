@@ -401,6 +401,9 @@ public:
     pair  * _insert_kv (key *k, value *v);
     void    _push_v (value *v);
 
+    value * _conv_map (sz_t cap);
+    value * _conv_array (sz_t cap);
+
     sz_t    _size1 () const;
     sz_t    _size2 () const;
 
