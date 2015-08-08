@@ -301,8 +301,8 @@ struct msgpack_read_context
         KVR_ASSERT_SAFE (m_pair, false);
         node = m_pair->get_value ();
         KVR_ASSERT_SAFE (node && node->is_null (), false);
-        node->conv_array ();
-        //node->_conv_array (length);
+        node->conv_array (length);
+
         m_pair = NULL;
         success = true;
       }
@@ -314,7 +314,7 @@ struct msgpack_read_context
     }
     else
     {
-      node = m_root->conv_array ();
+      node = m_root->conv_array (length);
       success = true;
     }
 
@@ -361,10 +361,18 @@ public:
     PARSE_ERROR_EOS,
   };
 
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
   msgpack_reader (kvr::istream *istr) : m_stream (istr), m_error (PARSE_ERROR_OK)
   {
     m_stream->seek (0);
   }
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
 
   bool parse (msgpack_read_context &ctx)
   {
@@ -612,16 +620,16 @@ public:
             int64_t i = (int64_t) curr;
             success = ctx.read_integer (i);
           }
+          else if ((curr & 0xe0) == MSGPACK_HEADER_STRING_5)
+          {
+            uint8_t slen = (curr & 0x1f);
+            const char *str = (const char *) this->push (slen);
+            success = str ? ctx.read_string (str, slen) : false;
+          }
           else
           {
             uint8_t hi4 = (curr & 0xf0);
-            if (hi4 == MSGPACK_HEADER_STRING_5)
-            {
-              uint8_t slen = (curr & 0x0f);
-              const char *str = (const char *) this->push (slen);
-              success = str ? ctx.read_string (str, slen) : false;
-            }
-            else if (hi4 == MSGPACK_HEADER_MAP_4)
+            if (hi4 == MSGPACK_HEADER_MAP_4)
             {
               uint8_t msz = (curr & 0x0f);
               bool ok = ctx.read_map_start (msz);
@@ -644,7 +652,7 @@ public:
                 ok &= parse (ctx);
               }
 #if KVR_DEBUG
-              ok &= ctx.read_array_end (alen);
+              ok = ok && ctx.read_array_end (alen);
 #endif
               success = ok;
             }
@@ -664,6 +672,10 @@ public:
   }
 
 private:
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
 
   bool parse_key (msgpack_read_context &ctx)
   {
@@ -708,10 +720,9 @@ private:
 
         default:
         {
-          uint8_t hi4 = (curr & 0xf0);
-          if (hi4 == MSGPACK_HEADER_STRING_5)
+          if ((curr & 0xe0) == MSGPACK_HEADER_STRING_5)
           {
-            uint8_t slen = (curr & 0x0f);
+            uint8_t slen = (curr & 0x1f);
             const char *str = (const char *) this->push (slen);
             success = str ? ctx.read_key (str, slen) : false;
           }
@@ -727,6 +738,10 @@ private:
 
     return success;
   };
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
 
   bool get (uint8_t *byte)
   {
@@ -1364,7 +1379,7 @@ bool kvr_msgpack::write (const kvr::value *src, kvr::ostream *ostr)
   msgpack_write_context ctx (ostr);
 
   bool success = writer.print (ctx);
-#if KVR_DEBUG && 0
+#if KVR_DEBUG && 1
   kvr::ostream hex (512);
   if (kvr_internal::hex_encode (ostr->bytes (), ostr->tell (), &hex))
   {

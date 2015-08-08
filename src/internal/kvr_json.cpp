@@ -29,7 +29,7 @@ struct json_read_context
 
   bool Null ()
   {
-    bool success = false;
+    bool success = true;
 
     KVR_ASSERT_SAFE (m_depth != 0, success);
     kvr::value *node = m_stack [m_depth - 1];
@@ -42,12 +42,14 @@ struct json_read_context
       kvr::value *pv = m_pair->get_value ();
       KVR_ASSERT_SAFE (pv && pv->is_null (), false);
       m_pair = NULL;
-      success = true;
     }
     else if (node->is_array ())
     {
       node->push_null ();
-      success = true;
+    }
+    else
+    {
+      success = false;
     }
 
     return success;
@@ -55,7 +57,7 @@ struct json_read_context
 
   bool Bool (bool b)
   {
-    bool success = false;
+    bool success = true;
 
     KVR_ASSERT_SAFE (m_depth != 0, success);
     kvr::value *node = m_stack [m_depth - 1];
@@ -72,12 +74,14 @@ struct json_read_context
 #endif
       pv->set_boolean (b);
       m_pair = NULL;
-      success = true;
     }
     else if (node->is_array ())
     {
       node->push (b);
-      success = true;
+    }
+    else
+    {
+      success = false;
     }
 
     return success;
@@ -95,7 +99,7 @@ struct json_read_context
 
   bool Int64 (int64_t i)
   {
-    bool success = false;
+    bool success = true;
 
     KVR_ASSERT_SAFE (m_depth != 0, success);
     kvr::value *node = m_stack [m_depth - 1];
@@ -112,12 +116,14 @@ struct json_read_context
 #endif
       pv->set_number_i (i);
       m_pair = NULL;
-      success = true;
     }
     else if (node->is_array ())
     {
       node->push (i);
-      success = true;
+    }
+    else
+    {
+      success = false;
     }
 
     return success;
@@ -132,7 +138,7 @@ struct json_read_context
 
   bool Double (double d)
   {
-    bool success = false;
+    bool success = true;
 
     KVR_ASSERT_SAFE (m_depth != 0, success);
     kvr::value *node = m_stack [m_depth - 1];
@@ -149,12 +155,14 @@ struct json_read_context
 #endif
       pv->set_number_f (d);
       m_pair = NULL;
-      success = true;
     }
     else if (node->is_array ())
     {
       node->push (d);
-      success = true;
+    }
+    else
+    {
+      success = false;
     }
 
     return success;
@@ -162,7 +170,7 @@ struct json_read_context
 
   bool String (const char *str, kvr_rapidjson::SizeType length, bool copy)
   {
-    bool success = false;
+    bool success = true;
 
     KVR_ASSERT_SAFE (m_depth != 0, success);
     kvr::value *node = m_stack [m_depth - 1];
@@ -177,14 +185,16 @@ struct json_read_context
       pv->conv_string ();
       pv->set_string (str, (kvr::sz_t) length);
       m_pair = NULL;
-      success = true;
     }
     else if (node->is_array ())
     {
       kvr::value *vstr = node->push_null (); KVR_ASSERT (vstr);
       vstr->conv_string ();
       vstr->set_string (str, (kvr::sz_t) length);
-      success = true;
+    }
+    else
+    {
+      success = false;
     }
 
     return success;
@@ -192,7 +202,7 @@ struct json_read_context
 
   bool StartObject ()
   {
-    bool success = false;
+    bool success = true;
     kvr::value *node = NULL;
 
     if (m_depth > 0)
@@ -208,18 +218,19 @@ struct json_read_context
         KVR_ASSERT_SAFE (node && node->is_null (), false);
         node->conv_map ();
         m_pair = NULL;
-        success = true;
       }
       else if (node->is_array ())
       {
         node = node->push_map ();
-        success = true;
+      }
+      else
+      {
+        success = false;
       }
     }
     else
     {
       node = m_root->conv_map ();
-      success = true;
     }
 
     KVR_ASSERT (m_depth < KVR_CONSTANT_MAX_TREE_DEPTH);
@@ -249,7 +260,7 @@ struct json_read_context
 
   bool StartArray ()
   {
-    bool success = false;
+    bool success = true;
     kvr::value *node = NULL;
 
     if (m_depth > 0)
@@ -265,18 +276,19 @@ struct json_read_context
         KVR_ASSERT_SAFE (node && node->is_null (), false);
         node->conv_array ();
         m_pair = NULL;
-        success = true;
       }
       else if (node->is_array ())
       {
         node = node->push_array ();
-        success = true;
+      }
+      else
+      {
+        success = false;
       }
     }
     else
     {
       node = m_root->conv_array ();
-      success = true;
     }
 
     KVR_ASSERT (m_depth < KVR_CONSTANT_MAX_TREE_DEPTH);

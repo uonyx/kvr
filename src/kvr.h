@@ -11,9 +11,35 @@
 
 #if defined (_MSC_VER)
 #define KVR_DEBUG          _DEBUG
+#define KVR_INLINE         __forceinline
 #else
 #define KVR_DEBUG          DEBUG
+#define KVR_INLINE         inline
 #endif
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if _WIN32 || _WIN64
+#if _WIN64
+#define KVR_64
+#else
+#define KVR_32
+#endif
+#endif
+
+#if __GNUC__ || __clang__
+#if __x86_64__ || __ppc64__
+#define KVR_64
+#else
+#define KVR_32
+#endif
+#endif
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if __cplusplus >= 201103L
 #define KVR_CPP11 1
@@ -64,6 +90,7 @@
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (64)
 #define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 #define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
+#define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +104,12 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
+#if defined (KVR_64)
+  typedef uint32_t sz_t;
+#else
   typedef uint16_t sz_t;
+#endif
+
 #if KVR_DEBUG
   static const uint64_t SZ_T_MAX = std::numeric_limits<kvr::sz_t>::max ();
 #endif
@@ -141,23 +173,23 @@ public:
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
-    // type checking
-    bool          is_null () const;
+    // type checking    
     bool          is_map () const;
     bool          is_array () const;
     bool          is_string () const;
     bool          is_boolean () const;
     bool          is_number_i () const;
     bool          is_number_f () const;
+    bool          is_null () const;
     
-    // type conversion
-    value *       conv_null ();
-    value *       conv_map ();
-    value *       conv_array ();
+    // type conversion    
+    value *       conv_map (sz_t cap = KVR_CONSTANT_COMMON_BLOCK_SZ);
+    value *       conv_array (sz_t cap = KVR_CONSTANT_COMMON_BLOCK_SZ);
     value *       conv_string ();
     value *       conv_boolean ();
     value *       conv_number_i ();
     value *       conv_number_f ();
+    value *       conv_null ();
 
     // native variant ops
     void          set_string (const char *str, sz_t len);
@@ -229,7 +261,7 @@ public:
     {
       struct dyn_str
       {
-        static const sz_t PAD = 8;
+        static const sz_t PAD = (KVR_CONSTANT_COMMON_BLOCK_SZ - 1);
 
         char *  data;
         sz_t    size;
@@ -260,7 +292,7 @@ public:
 
     struct array
     {
-      static const sz_t CAP_INCR = 8;
+      static const sz_t CAP_INCR = KVR_CONSTANT_COMMON_BLOCK_SZ;
 
       void    init (sz_t size);
       void    deinit ();
@@ -279,7 +311,7 @@ public:
 
     struct map
     {
-      static const sz_t CAP_INCR = 8;
+      static const sz_t CAP_INCR = KVR_CONSTANT_COMMON_BLOCK_SZ;
 
       void    init (sz_t size);
       void    deinit ();
@@ -340,10 +372,7 @@ public:
     bool    _is_number () const;
     bool    _is_string_dynamic () const;
     bool    _is_string_static () const;
-
-    value * _conv_map (sz_t size = map::CAP_INCR);
-    value * _conv_array (sz_t size = array::CAP_INCR);
-
+    
     sz_t    _get_string_length () const;
     sz_t    _get_string_size () const;
     void    _set_string (const char *str, sz_t len);
@@ -612,7 +641,7 @@ private:
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline const char *kvr::key::get_string () const
+KVR_INLINE const char *kvr::key::get_string () const
 {
   return m_str;
 }
@@ -621,7 +650,7 @@ inline const char *kvr::key::get_string () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline kvr::sz_t kvr::key::get_length () const
+KVR_INLINE kvr::sz_t kvr::key::get_length () const
 {
   return m_len;
 }
@@ -630,7 +659,7 @@ inline kvr::sz_t kvr::key::get_length () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_null () const
+KVR_INLINE bool kvr::value::is_null () const
 {
   return (m_flags & VALUE_FLAG_TYPE_NULL) != 0;
 }
@@ -639,7 +668,7 @@ inline bool kvr::value::is_null () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_map () const
+KVR_INLINE bool kvr::value::is_map () const
 {
   return (m_flags & VALUE_FLAG_TYPE_MAP) != 0;
 }
@@ -648,7 +677,7 @@ inline bool kvr::value::is_map () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_array () const
+KVR_INLINE bool kvr::value::is_array () const
 {
   return (m_flags & VALUE_FLAG_TYPE_ARRAY) != 0;
 }
@@ -657,7 +686,7 @@ inline bool kvr::value::is_array () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_string () const
+KVR_INLINE bool kvr::value::is_string () const
 {
   return (m_flags & (VALUE_FLAG_TYPE_DYN_STRING | VALUE_FLAG_TYPE_STT_STRING)) != 0;
 }
@@ -666,7 +695,7 @@ inline bool kvr::value::is_string () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_boolean () const
+KVR_INLINE bool kvr::value::is_boolean () const
 {
   return (m_flags & VALUE_FLAG_TYPE_BOOLEAN) != 0;
 }
@@ -675,7 +704,7 @@ inline bool kvr::value::is_boolean () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::_is_number () const
+KVR_INLINE bool kvr::value::_is_number () const
 {
   return (m_flags & (VALUE_FLAG_TYPE_NUMBER_INTEGER | VALUE_FLAG_TYPE_NUMBER_FLOAT)) != 0;
 }
@@ -684,7 +713,7 @@ inline bool kvr::value::_is_number () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_number_i () const
+KVR_INLINE bool kvr::value::is_number_i () const
 {
   return (m_flags & VALUE_FLAG_TYPE_NUMBER_INTEGER) != 0;
 }
@@ -693,7 +722,7 @@ inline bool kvr::value::is_number_i () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::is_number_f () const
+KVR_INLINE bool kvr::value::is_number_f () const
 {
   return (m_flags & VALUE_FLAG_TYPE_NUMBER_FLOAT) != 0;
 }
@@ -702,7 +731,7 @@ inline bool kvr::value::is_number_f () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::_is_string_dynamic () const
+KVR_INLINE bool kvr::value::_is_string_dynamic () const
 {
   return (m_flags & VALUE_FLAG_TYPE_DYN_STRING) != 0;
 }
@@ -711,7 +740,7 @@ inline bool kvr::value::_is_string_dynamic () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline bool kvr::value::_is_string_static () const
+KVR_INLINE bool kvr::value::_is_string_static () const
 {
   return (m_flags & VALUE_FLAG_TYPE_STT_STRING) != 0;
 }
@@ -720,7 +749,7 @@ inline bool kvr::value::_is_string_static () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline kvr::key * kvr::pair::get_key () const
+KVR_INLINE kvr::key * kvr::pair::get_key () const
 {
   return m_k;
 }
@@ -729,7 +758,7 @@ inline kvr::key * kvr::pair::get_key () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline kvr::value * kvr::pair::get_value ()
+KVR_INLINE kvr::value * kvr::pair::get_value ()
 {
   return m_v;
 }
@@ -738,7 +767,7 @@ inline kvr::value * kvr::pair::get_value ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline const uint8_t * kvr::buffer::get_data () const
+KVR_INLINE const uint8_t * kvr::buffer::get_data () const
 {
   return m_stream.bytes ();
 }
@@ -747,7 +776,7 @@ inline const uint8_t * kvr::buffer::get_data () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline size_t kvr::buffer::get_size () const
+KVR_INLINE size_t kvr::buffer::get_size () const
 {
   return m_stream.tell ();
 }
