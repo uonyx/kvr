@@ -122,25 +122,25 @@ public:
       u64 = ~u64 + 1;
     }
 
-    if (u64 < 10) return 1 + neg;
-    if (u64 < 100) return 2 + neg;
-    if (u64 < 1000) return 3 + neg;
-    if (u64 < 10000) return 4 + neg;
-    if (u64 < 100000) return 5 + neg;
-    if (u64 < 1000000) return 6 + neg;
-    if (u64 < 10000000) return 7 + neg;
-    if (u64 < 100000000) return 8 + neg;
-    if (u64 < 1000000000) return 9 + neg;
-    if (u64 < 10000000000) return 10 + neg;
-    if (u64 < 100000000000) return 11 + neg;
-    if (u64 < 1000000000000) return 12 + neg;
-    if (u64 < 10000000000000) return 13 + neg;
-    if (u64 < 100000000000000) return 14 + neg;
-    if (u64 < 1000000000000000) return 15 + neg;
-    if (u64 < 10000000000000000) return 16 + neg;
-    if (u64 < 100000000000000000) return 17 + neg;
-    if (u64 < 1000000000000000000) return 18 + neg;
-    if (u64 < 10000000000000000000) return 19 + neg;
+    if (u64 < 10ULL) return 1 + neg;
+    if (u64 < 100ULL) return 2 + neg;
+    if (u64 < 1000ULL) return 3 + neg;
+    if (u64 < 10000ULL) return 4 + neg;
+    if (u64 < 100000ULL) return 5 + neg;
+    if (u64 < 1000000ULL) return 6 + neg;
+    if (u64 < 10000000ULL) return 7 + neg;
+    if (u64 < 100000000ULL) return 8 + neg;
+    if (u64 < 1000000000ULL) return 9 + neg;
+    if (u64 < 10000000000ULL) return 10 + neg;
+    if (u64 < 100000000000ULL) return 11 + neg;
+    if (u64 < 1000000000000ULL) return 12 + neg;
+    if (u64 < 10000000000000ULL) return 13 + neg;
+    if (u64 < 100000000000000ULL) return 14 + neg;
+    if (u64 < 1000000000000000ULL) return 15 + neg;
+    if (u64 < 10000000000000000ULL) return 16 + neg;
+    if (u64 < 100000000000000000ULL) return 17 + neg;
+    if (u64 < 1000000000000000000ULL) return 18 + neg;
+    if (u64 < 10000000000000000000ULL) return 19 + neg;
     return 20 + neg;
 #endif
   }
