@@ -106,13 +106,16 @@ public:
 
 #if defined (KVR_64)
   typedef uint32_t sz_t;
+#if KVR_DEBUG
+  static const uint64_t SZ_T_MAX = 0xffffffff; 
+#endif
 #else
   typedef uint16_t sz_t;
+#if KVR_DEBUG
+  static const uint64_t SZ_T_MAX = 0xffff;
+#endif
 #endif
 
-#if KVR_DEBUG
-  static const uint64_t SZ_T_MAX = std::numeric_limits<kvr::sz_t>::max ();
-#endif
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////

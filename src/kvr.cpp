@@ -67,11 +67,11 @@ kvr::~kvr ()
 #if KVR_DEBUG
   KVR_ASSERT (m_keystore.empty ());
 
-  printf ("load_factor:       %f\n", m_keystore.load_factor ());
-  printf ("bucket_count:      %d\n", m_keystore.bucket_count ());
-  printf ("max_size:          %d\n", m_keystore.max_size ());
-  printf ("max_load_factor:   %f\n", m_keystore.max_load_factor ());
-  printf ("max_bucket_count:  %d\n", m_keystore.max_bucket_count ());
+  printf ("load_factor:       %f\n",  m_keystore.load_factor ());
+  printf ("bucket_count:      %zu\n", m_keystore.bucket_count ());
+  printf ("max_size:          %zu\n",  m_keystore.max_size ());
+  printf ("max_load_factor:   %f\n",  m_keystore.max_load_factor ());
+  printf ("max_bucket_count:  %zu\n",  m_keystore.max_bucket_count ());
 
 #else
   // clean up left-over keys
