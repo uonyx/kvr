@@ -1943,9 +1943,9 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                 const char *pks = pk->get_string ();
                 sz_t pkslen = pk->get_length ();
 
-                if (pks && (pkslen == sklen) && (strncmp (pks, sk, sklen) == 0))
+                if (pks && (pkslen == sklen) && (strncmp (pks, sk, sklen) == 0)) 
                 {
-                  // got key, now check value
+                  // got key (unique), now check value
                   value *pv = p->get_value ();
                   KVR_ASSERT (pv);
 
@@ -1956,30 +1956,27 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                     {
                       v = pv;
                       f = 1;
-                      break;
                     }
                   }
                   else if (pv->is_number_f ())
                   {
-                    double svf = strtod (sv, NULL); //atof (sv);
+                    double svf = strtod (sv, NULL);
                     double pvf = pv->get_number_f ();                    
                     if (fabs (svf - pvf) <= KVR_CONSTANT_ZERO_TOLERANCE)
                     {
                       v = pv;
                       f = 1;
-                      break;
                     }
                   }
                   else if (pv->is_number_i ())
                   {
-                    char *end;
-                    int64_t svi = strtoll (sv, &end, 10); KVR_ASSERT (!*end);
+                    char *end = NULL;
+                    int64_t svi = strtoll (sv, &end, 10);
                     int64_t pvi = pv->get_number_i ();
-                    if (svi == pvi)
+                    if (end && (!*end) && (svi == pvi))
                     {
                       v = pv;
                       f = 1;
-                      break;
                     }
                   }
                   else if (pv->is_boolean ())
@@ -1993,7 +1990,6 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                       {
                         v = pv;
                         f = 1;
-                        break;
                       }
                     }
                   }
@@ -2004,9 +2000,10 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                     {
                       v = pv;
                       f = 1;
-                      break;
                     }
                   }
+
+                  break;
                 }
 
                 p = cur.get ();
@@ -2019,8 +2016,9 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
 
       default:
       {
-        char *end;
-        int64_t ki64 = strtoll (keystr, &end, 10); KVR_ASSERT (!*end);
+        char *end = NULL;
+        int64_t ki64 = strtoll (keystr, &end, 10);
+        KVR_ASSERT_SAFE ((end && (!*end) && "non-integral array index"), NULL);
         KVR_ASSERT (ki64 <= kvr::SZ_T_MAX);
         sz_t ki = (sz_t) ki64;
         v = this->element (ki);
