@@ -181,8 +181,8 @@ public:
     bool          is_array () const;
     bool          is_string () const;
     bool          is_boolean () const;
-    bool          is_number_i () const;
-    bool          is_number_f () const;
+    bool          is_integer () const;
+    bool          is_float () const;
     bool          is_null () const;
     
     // type conversion    
@@ -190,22 +190,22 @@ public:
     value *       conv_array (sz_t cap = KVR_CONSTANT_COMMON_BLOCK_SZ);
     value *       conv_string ();
     value *       conv_boolean ();
-    value *       conv_number_i ();
-    value *       conv_number_f ();
+    value *       conv_integer ();
+    value *       conv_float ();
     value *       conv_null ();
 
     // native variant ops
     void          set_string (const char *str, sz_t len);
     void          set_string (const char *str);
     void          set_boolean (bool b);
-    void          set_number_i (int64_t n);
-    void          set_number_f (double n);
+    void          set_integer (int64_t n);
+    void          set_float (double n);
 
     const char *  get_string () const;
     const char *  get_string (sz_t *len) const;
     bool          get_boolean () const;
-    int64_t       get_number_i () const;
-    double        get_number_f () const;
+    int64_t       get_integer () const;
+    double        get_float () const;
 
     // array variant ops
     value *       push (int64_t number);
@@ -710,16 +710,7 @@ KVR_INLINE bool kvr::value::is_boolean () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-KVR_INLINE bool kvr::value::_is_number () const
-{
-  return (m_flags & (VALUE_FLAG_TYPE_NUMBER_INTEGER | VALUE_FLAG_TYPE_NUMBER_FLOAT)) != 0;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-KVR_INLINE bool kvr::value::is_number_i () const
+KVR_INLINE bool kvr::value::is_integer () const
 {
   return (m_flags & VALUE_FLAG_TYPE_NUMBER_INTEGER) != 0;
 }
@@ -728,7 +719,7 @@ KVR_INLINE bool kvr::value::is_number_i () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-KVR_INLINE bool kvr::value::is_number_f () const
+KVR_INLINE bool kvr::value::is_float () const
 {
   return (m_flags & VALUE_FLAG_TYPE_NUMBER_FLOAT) != 0;
 }
@@ -749,6 +740,15 @@ KVR_INLINE bool kvr::value::_is_string_dynamic () const
 KVR_INLINE bool kvr::value::_is_string_static () const
 {
   return (m_flags & VALUE_FLAG_TYPE_STT_STRING) != 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+KVR_INLINE bool kvr::value::_is_number () const
+{
+  return (m_flags & (VALUE_FLAG_TYPE_NUMBER_INTEGER | VALUE_FLAG_TYPE_NUMBER_FLOAT)) != 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

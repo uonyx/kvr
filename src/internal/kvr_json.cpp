@@ -112,9 +112,9 @@ struct json_read_context
       kvr::value *pv = m_pair->get_value ();
       KVR_ASSERT_SAFE (pv && pv->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_number_i ();
+      pv->conv_integer ();
 #endif
-      pv->set_number_i (i);
+      pv->set_integer (i);
       m_pair = NULL;
     }
     else if (node->is_array ())
@@ -151,9 +151,9 @@ struct json_read_context
       kvr::value *pv = m_pair->get_value ();
       KVR_ASSERT_SAFE (pv && pv->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_number_f ();
+      pv->conv_float ();
 #endif
-      pv->set_number_f (d);
+      pv->set_float (d);
       m_pair = NULL;
     }
     else if (node->is_array ())
@@ -437,18 +437,18 @@ bool json_write_context::write_stream (const kvr::value *val, kvr_rapidjson::Wri
   }
 
   //////////////////////////////////
-  else if (val->is_number_i ())
+  else if (val->is_integer ())
   //////////////////////////////////
   {
-    int64_t n = val->get_number_i ();
+    int64_t n = val->get_integer ();
     success = writer.Int64 (n);
   }
 
   //////////////////////////////////
-  else if (val->is_number_f ())
+  else if (val->is_float ())
   //////////////////////////////////
   {
-    double n = val->get_number_f ();
+    double n = val->get_float ();
     success = writer.Double (n);
   }
 
@@ -522,18 +522,18 @@ size_t json_write_context::write_approx_size (const kvr::value *val)
   }
 
   //////////////////////////////////
-  else if (val->is_number_i ())
+  else if (val->is_integer ())
   //////////////////////////////////
   {
-    int64_t n = val->get_number_i ();
+    int64_t n = val->get_integer ();
     size += kvr_internal::ndigitsi64 (n);
   }
 
   //////////////////////////////////
-  else if (val->is_number_f ())
+  else if (val->is_float ())
   //////////////////////////////////
   {
-    double n = val->get_number_f ();
+    double n = val->get_float ();
 
     if (n < std::numeric_limits<float>::max ())
     {

@@ -48,7 +48,6 @@ static const uint8_t MSGPACK_HEADER_STRING_8    = 0xd9;
 static const uint8_t MSGPACK_HEADER_STRING_16   = 0xda;
 static const uint8_t MSGPACK_HEADER_STRING_32   = 0xdb;
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,9 +138,9 @@ struct msgpack_read_context
       kvr::value *pv = m_pair->get_value ();
       KVR_ASSERT_SAFE (pv && pv->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_number_i ();
+      pv->conv_integer ();
 #endif
-      pv->set_number_i (i);
+      pv->set_integer (i);
       m_pair = NULL;
       success = true;
     }
@@ -176,9 +175,9 @@ struct msgpack_read_context
       kvr::value *pv = m_pair->get_value ();
       KVR_ASSERT_SAFE (pv && pv->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_number_f ();
+      pv->conv_float ();
 #endif
-      pv->set_number_f (d);
+      pv->set_float (d);
       m_pair = NULL;
       success = true;
     }
@@ -1138,10 +1137,10 @@ size_t msgpack_write_context::write_approx_size (const kvr::value *val)
   }
 
   //////////////////////////////////
-  else if (val->is_number_i ())
+  else if (val->is_integer ())
   //////////////////////////////////
   {
-    int64_t n = val->get_number_i ();
+    int64_t n = val->get_integer ();
 
     if (n > 0) // unsigned
     {
@@ -1197,11 +1196,11 @@ size_t msgpack_write_context::write_approx_size (const kvr::value *val)
   }
 
   //////////////////////////////////
-  else if (val->is_number_f ())
+  else if (val->is_float ())
   //////////////////////////////////
   {
     const double fmax = std::numeric_limits<float>::max ();
-    double n = val->get_number_f ();
+    double n = val->get_float ();
     if (n <= fmax)
     {
       size += 5;
@@ -1304,18 +1303,18 @@ private:
     }
 
     //////////////////////////////////
-    else if (val->is_number_i ())
+    else if (val->is_integer ())
     //////////////////////////////////
     {
-      int64_t n = val->get_number_i ();
+      int64_t n = val->get_integer ();
       success = ctx.write_integer (n);
     }
 
     //////////////////////////////////
-    else if (val->is_number_f ())
+    else if (val->is_float ())
     //////////////////////////////////
     {
-      double n = val->get_number_f ();
+      double n = val->get_float ();
       success = ctx.write_float (n);
     }
 
