@@ -70,16 +70,8 @@ kvr::kvr () : m_keystore (256)
 
 kvr::~kvr ()
 {
-#if KVR_DEBUG
-  KVR_ASSERT (m_keystore.empty ());
+  KVR_ASSERT (m_keystore.empty ()); // debug warning assert
 
-  printf ("load_factor:       %f\n",  m_keystore.load_factor ());
-  printf ("bucket_count:      %zu\n", m_keystore.bucket_count ());
-  printf ("max_size:          %zu\n",  m_keystore.max_size ());
-  printf ("max_load_factor:   %f\n",  m_keystore.max_load_factor ());
-  printf ("max_bucket_count:  %zu\n",  m_keystore.max_bucket_count ());
-
-#else
   // clean up left-over keys
   keystore::iterator iter = m_keystore.begin ();  
   while (iter != m_keystore.end ())
@@ -91,7 +83,8 @@ kvr::~kvr ()
     m_keystore.erase (iter);
     iter = m_keystore.begin ();
   }
-#endif
+
+  //this->dump ();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -112,6 +105,22 @@ kvr::value * kvr::create_value ()
 void kvr::destroy_value (value *v)
 {
   this->_destroy_value (VALUE_FLAG_PARENT_CTX, v);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::dump (int id)
+{
+  fprintf (stderr, "\n--------------------------------\n");
+  fprintf (stderr, "kvr context state debug dump [%02d]\n", id);
+  fprintf (stderr, "--------------------------------\n");
+  fprintf (stderr, "load_factor:       %f\n",   m_keystore.load_factor ());
+  fprintf (stderr, "bucket_count:      %zu\n",  m_keystore.bucket_count ());
+  fprintf (stderr, "max_size:          %zu\n",  m_keystore.max_size ());
+  fprintf (stderr, "max_load_factor:   %f\n",   m_keystore.max_load_factor ());
+  fprintf (stderr, "max_bucket_count:  %zu\n",  m_keystore.max_bucket_count ());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
