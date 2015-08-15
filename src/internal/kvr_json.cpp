@@ -18,7 +18,7 @@
 
 struct json_read_context
 {
-  json_read_context (kvr::value *value) : m_root (value), m_pair (NULL), m_depth (0)
+  json_read_context (kvr::value *value) : m_root (value), m_temp (NULL), m_depth (0)
   {
     memset (m_stack, 0, sizeof (m_stack));
   }
@@ -38,10 +38,8 @@ struct json_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
-      m_pair = NULL;
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
+      m_temp = NULL;
     }
     else if (node->is_array ())
     {
@@ -66,14 +64,12 @@ struct json_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_boolean ();
+      m_temp->conv_boolean ();
 #endif
-      pv->set_boolean (b);
-      m_pair = NULL;
+      m_temp->set_boolean (b);
+      m_temp = NULL;
     }
     else if (node->is_array ())
     {
@@ -108,14 +104,12 @@ struct json_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_integer ();
+      m_temp->conv_integer ();
 #endif
-      pv->set_integer (i);
-      m_pair = NULL;
+      m_temp->set_integer (i);
+      m_temp = NULL;
     }
     else if (node->is_array ())
     {
@@ -147,14 +141,12 @@ struct json_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_float ();
+      m_temp->conv_float ();
 #endif
-      pv->set_float (d);
-      m_pair = NULL;
+      m_temp->set_float (d);
+      m_temp = NULL;
     }
     else if (node->is_array ())
     {
@@ -179,12 +171,12 @@ struct json_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
-      pv->conv_string ();
-      pv->set_string (str, (kvr::sz_t) length);
-      m_pair = NULL;
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+      m_temp->conv_string ();
+#endif
+      m_temp->set_string (str, (kvr::sz_t) length);
+      m_temp = NULL;
     }
     else if (node->is_array ())
     {
@@ -213,11 +205,10 @@ struct json_read_context
 
       if (node->is_map ())
       {
-        KVR_ASSERT_SAFE (m_pair, false);
-        node = m_pair->get_value ();
-        KVR_ASSERT_SAFE (node && node->is_null (), false);
-        node->conv_map ();
-        m_pair = NULL;
+        node = m_temp;
+        KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);        
+        m_temp->conv_map ();
+        m_temp = NULL;
       }
       else if (node->is_array ())
       {
@@ -244,9 +235,9 @@ struct json_read_context
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_map (), false);
 
-    KVR_ASSERT (!m_pair);
-    m_pair = node->insert_null (str);
-    return (m_pair != NULL);
+    KVR_ASSERT (!m_temp);
+    m_temp = node->insert_null (str);
+    return (m_temp != NULL);
   }
 
   bool EndObject (kvr_rapidjson::SizeType memberCount)
@@ -271,11 +262,10 @@ struct json_read_context
 
       if (node->is_map ())
       {
-        KVR_ASSERT_SAFE (m_pair, false);
-        node = m_pair->get_value ();
-        KVR_ASSERT_SAFE (node && node->is_null (), false);
-        node->conv_array ();
-        m_pair = NULL;
+        node = m_temp;
+        KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
+        m_temp->conv_array ();        
+        m_temp = NULL;
       }
       else if (node->is_array ())
       {
@@ -312,7 +302,7 @@ struct json_read_context
 
   kvr::value  * m_stack [KVR_CONSTANT_MAX_TREE_DEPTH];
   kvr::value  * m_root;
-  kvr::pair   * m_pair;
+  kvr::value  * m_temp;
   kvr::sz_t     m_depth;
 };
 

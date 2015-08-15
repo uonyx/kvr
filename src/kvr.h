@@ -77,7 +77,6 @@
 
 #define KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF   0   // type conversion is on you
 #define KVR_OPTIMIZATION_FAST_MAP_INSERT_ON             0   // ignore duplicate keys in maps
-#define KVR_OPTIMIZATION_FAST_MAP_REMOVE_ON             0   // no ownership check - be careful
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -219,16 +218,16 @@ public:
     value *       element (sz_t index) const;
     sz_t          length () const;
 
-    // map variant ops
-    pair *        find (const char *key) const;
-    pair *        insert (const char *key, int64_t number);
-    pair *        insert (const char *key, double number);
-    pair *        insert (const char *key, bool boolean);
-    pair *        insert (const char *key, const char *str);
-    pair *        insert_map (const char *key);
-    pair *        insert_array (const char *key);
-    pair *        insert_null (const char *key);    
-    bool          remove (pair *node);
+    // map variant ops    
+    value *       insert (const char *key, int64_t number);
+    value *       insert (const char *key, double number);
+    value *       insert (const char *key, bool boolean);
+    value *       insert (const char *key, const char *str);
+    value *       insert_map (const char *key);
+    value *       insert_array (const char *key);
+    value *       insert_null (const char *key);
+    value *       find (const char *key) const;
+    bool          remove (const char *key);
     cursor        fcursor () const;
     sz_t          size () const;
 
@@ -319,14 +318,16 @@ public:
       void    init (sz_t size);
       void    deinit ();
       pair *  insert (key *k, value *v);
-      bool    remove (pair *p);
+      void    remove (pair *p);
       pair *  find (const key *k) const;
       sz_t    size () const;
       sz_t    _cap () const; // true cap
 
       pair *  m_ptr;
       sz_t    m_len;
-      sz_t    m_cap;      
+      sz_t    m_cap;
+      sz_t    m_blk;
+      pair ** m_ptr2;
     };
 
   public:

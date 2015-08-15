@@ -58,7 +58,7 @@ static const uint8_t MSGPACK_HEADER_STRING_32   = 0xdb;
 
 struct msgpack_read_context
 {
-  msgpack_read_context (kvr::value *value) : m_root (value), m_pair (NULL), m_depth (0)
+  msgpack_read_context (kvr::value *value) : m_root (value), m_temp (NULL), m_depth (0)
   {
     memset (m_stack, 0, sizeof (m_stack));
   }
@@ -78,10 +78,8 @@ struct msgpack_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
-      m_pair = NULL;
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
+      m_temp = NULL;
       success = true;
     }
     else if (node->is_array ())
@@ -104,14 +102,12 @@ struct msgpack_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_boolean ();
+      m_temp->conv_boolean ();
 #endif
-      pv->set_boolean (b);
-      m_pair = NULL;
+      m_temp->set_boolean (b);
+      m_temp = NULL;
       success = true;
     }
     else if (node->is_array ())
@@ -134,14 +130,12 @@ struct msgpack_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_integer ();
+      m_temp->conv_integer ();
 #endif
-      pv->set_integer (i);
-      m_pair = NULL;
+      m_temp->set_integer (i);
+      m_temp = NULL;
       success = true;
     }
     else if (node->is_array ())
@@ -171,14 +165,12 @@ struct msgpack_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
-      pv->conv_float ();
+      m_temp->conv_float ();
 #endif
-      pv->set_float (d);
-      m_pair = NULL;
+      m_temp->set_float (d);
+      m_temp = NULL;
       success = true;
     }
     else if (node->is_array ())
@@ -202,12 +194,10 @@ struct msgpack_read_context
 
     if (node->is_map ())
     {
-      KVR_ASSERT_SAFE (m_pair, false);
-      kvr::value *pv = m_pair->get_value ();
-      KVR_ASSERT_SAFE (pv && pv->is_null (), false);
-      pv->conv_string ();
-      pv->set_string (str, length);
-      m_pair = NULL;
+      KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
+      m_temp->conv_string ();
+      m_temp->set_string (str, length);
+      m_temp = NULL;
       success = true;
     }
     else if (node->is_array ())
@@ -234,11 +224,10 @@ struct msgpack_read_context
 
       if (node->is_map ())
       {
-        KVR_ASSERT_SAFE (m_pair, false);
-        node = m_pair->get_value ();
-        KVR_ASSERT_SAFE (node && node->is_null (), false);
-        node->conv_map (size);
-        m_pair = NULL;
+        node = m_temp;
+        KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
+        m_temp->conv_map (size);
+        m_temp = NULL;
         success = true;
       }
       else if (node->is_array ())
@@ -265,14 +254,14 @@ struct msgpack_read_context
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_map (), false);
 
-    KVR_ASSERT (!m_pair);
+    KVR_ASSERT (!m_temp);
 
     char key [KVR_CONSTANT_MAX_KEY_LENGTH];
     KVR_ASSERT (length < KVR_CONSTANT_MAX_KEY_LENGTH);
     kvr_strncpy (key, KVR_CONSTANT_MAX_KEY_LENGTH, str, length);
 
-    m_pair = node->insert_null (key);
-    return (m_pair != NULL);
+    m_temp = node->insert_null (key);
+    return (m_temp != NULL);
   }
 
   bool read_map_end (kvr::sz_t size)
@@ -297,12 +286,10 @@ struct msgpack_read_context
 
       if (node->is_map ())
       {
-        KVR_ASSERT_SAFE (m_pair, false);
-        node = m_pair->get_value ();
-        KVR_ASSERT_SAFE (node && node->is_null (), false);
-        node->conv_array (length);
-
-        m_pair = NULL;
+        node = m_temp;
+        KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
+        m_temp->conv_array (length);
+        m_temp = NULL;
         success = true;
       }
       else if (node->is_array ())
@@ -338,7 +325,7 @@ struct msgpack_read_context
 
   kvr::value  * m_stack [KVR_CONSTANT_MAX_TREE_DEPTH];
   kvr::value  * m_root;
-  kvr::pair   * m_pair;
+  kvr::value  * m_temp;
   kvr::sz_t     m_depth;
 };
 
