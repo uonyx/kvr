@@ -315,20 +315,24 @@ public:
     {
       static const sz_t CAP_INCR = KVR_CONSTANT_COMMON_BLOCK_SZ;
 
+      struct node
+      {
+        key   *k;
+        value *v;
+      };
+
       void    init (sz_t size);
       void    deinit ();
-      pair *  insert (key *k, value *v);
-      void    remove (pair *p);
-      pair *  find (const key *k) const;
+      node *  insert (key *k, value *v);
+      void    remove (node *n);
+      node *  find (const key *k) const;
       sz_t    size_l () const;
       sz_t    size_c () const;
       sz_t    _cap () const; // true cap
 
-      pair *  m_ptr;
+      node *  m_ptr;
       sz_t    m_len;
       sz_t    m_cap;
-      sz_t    m_blk;
-      pair ** m_ptr2;
     };
 
   public:
@@ -345,7 +349,7 @@ public:
 
     private:
 
-      pair * _get ();
+      const map::node * _get ();
 
       cursor (const map *m) : m_map (m), m_index (0) {}      
 #if KVR_CPP11
@@ -405,7 +409,7 @@ public:
     void    _patch_add (const value *add);
     void    _patch_rem (const value *rem);
    
-    pair  * _insert_kv (key *k, value *v);
+    bool    _insert_kv (key *k, value *v);
     void    _push_v (value *v);
 
     value * _conv_map (sz_t cap);

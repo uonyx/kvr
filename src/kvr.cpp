@@ -883,28 +883,25 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t number)
   conv_map ();
 #endif
 
-  value *v = NULL;
-  pair *p = NULL;
+  map::node *n = NULL;
   key *k = m_ctx->_create_key_copy (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
-  if (p)
+  n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
+  if (n)
   {
-    v = p->m_v;
-    v->set_integer (number);
+    n->v->set_integer (number);
     m_ctx->_destroy_key (k);
   }
   else
 #endif
   {
-    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number);    
-    p = m_data.m.insert (k, v);
-    KVR_ASSERT (p);
+    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number));
+    KVR_ASSERT (n);
   }
 
-  return v;
+  return n ? n->v : NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -923,28 +920,25 @@ kvr::value * kvr::value::insert (const char *keystr, double number)
   conv_map ();
 #endif
 
-  value *v = NULL;
-  pair *p = NULL;
+  map::node *n = NULL;
   key *k = m_ctx->_create_key_copy (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
-  if (p)
+  n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
+  if (n)
   {
-    v = p->m_v;
-    v->set_float (number);
+    n->v->set_float (number);
     m_ctx->_destroy_key (k);
   }
   else
 #endif
   {
-    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number);    
-    p = m_data.m.insert (k, v);
-    KVR_ASSERT (p);
+    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number));
+    KVR_ASSERT (n);
   }
 
-  return v;
+  return n ? n->v : NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -962,28 +956,25 @@ kvr::value * kvr::value::insert (const char *keystr, bool boolean)
   conv_map ();
 #endif
 
-  value *v = NULL;
-  pair *p = NULL;
+  map::node *n = NULL;
   key *k = m_ctx->_create_key_copy (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
-  if (p)
+  n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
+  if (n)
   {
-    v = p->m_v;
-    v->set_boolean (boolean);
+    n->v->set_boolean (boolean);
     m_ctx->_destroy_key (k);
   }
   else
 #endif
   {
-    value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, boolean);    
-    p = m_data.m.insert (k, v);
-    KVR_ASSERT (p);
+    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, boolean));
+    KVR_ASSERT (n);
   }
 
-  return v;
+  return n ? n->v : NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1002,28 +993,25 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
   conv_map ();
 #endif
 
-  value *v = NULL;
-  pair *p = NULL;
+  map::node *n = NULL;
   key *k = m_ctx->_create_key_copy (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
-  if (p)
+  n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
+  if (n)
   {
-    v = p->m_v;
-    v->set_string (str);
+    n->v->set_string (str);
     m_ctx->_destroy_key (k);
   }
   else
 #endif
   {
-    v = m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, str, (sz_t) strlen (str));    
-    p = m_data.m.insert (k, v);
-    KVR_ASSERT (p);
+    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, str, (sz_t) strlen (str)));
+    KVR_ASSERT (n);
   }
 
-  return v;
+  return n ? n->v : NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1041,28 +1029,25 @@ kvr::value * kvr::value::insert_map (const char *keystr)
   conv_map ();
 #endif
 
-  value *v = NULL;
-  pair *p = NULL;
+  map::node *n = NULL;
   key *k = m_ctx->_create_key_copy (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
-  if (p)
+  n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
+  if (n)
   {
-    v = p->m_v;
-    v->conv_map ();
+    n->v->conv_map ();
     m_ctx->_destroy_key (k);
   }
   else
 #endif
   {
-    v = m_ctx->_create_value_map (VALUE_FLAG_PARENT_MAP);    
-    p = m_data.m.insert (k, v);
-    KVR_ASSERT (p);
+    n = m_data.m.insert (k, m_ctx->_create_value_map (VALUE_FLAG_PARENT_MAP));
+    KVR_ASSERT (n);
   }
 
-  return v;
+  return n ? n->v : NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1080,28 +1065,25 @@ kvr::value * kvr::value::insert_array (const char *keystr)
   conv_map ();
 #endif
 
-  value *v = NULL;
-  pair *p = NULL;
+  map::node *n = NULL;
   key *k = m_ctx->_create_key_copy (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
-  if (p)
+  n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
+  if (n)
   {
-    v = p->m_v;
-    v->conv_array ();
+    n->v->conv_array ();
     m_ctx->_destroy_key (k);
   }
   else
 #endif
   {
-    v = m_ctx->_create_value_array (VALUE_FLAG_PARENT_MAP);    
-    p = m_data.m.insert (k, v);
-    KVR_ASSERT (p);
+    n = m_data.m.insert (k, m_ctx->_create_value_array (VALUE_FLAG_PARENT_MAP));
+    KVR_ASSERT (n);
   }
 
-  return v;
+  return n ? n->v : NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1119,28 +1101,25 @@ kvr::value * kvr::value::insert_null (const char *keystr)
   conv_map ();
 #endif
 
-  value *v = NULL;
-  pair *p = NULL;
+  map::node *n = NULL;
   key *k = m_ctx->_create_key_copy (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
-  if (p)
+  n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
+  if (n)
   {
-    v = p->m_v;
-    v->conv_null ();
+    n->v->conv_null ();
     m_ctx->_destroy_key (k);    
   }
   else
 #endif
   {
-    v = m_ctx->_create_value_null (VALUE_FLAG_PARENT_MAP);    
-    p = m_data.m.insert (k, v);
-    KVR_ASSERT (p);
+    n = m_data.m.insert (k, m_ctx->_create_value_null (VALUE_FLAG_PARENT_MAP));
+    KVR_ASSERT (n);
   }
   
-  return v;
+  return n ? n->v : NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1153,10 +1132,16 @@ kvr::value * kvr::value::find (const char *keystr) const
   KVR_ASSERT_SAFE (is_map (), NULL);
 
   key *k = m_ctx->_find_key (keystr);
-  pair *p = k ? this->m_data.m.find (k) : NULL;
-  value *v = p ? p->get_value () : NULL;
+  if (k)
+  {
+    map::node *n = this->m_data.m.find (k);
+    if (n)
+    {
+      return n->v;
+    }
+  }
 
-  return v;
+  return NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1169,13 +1154,13 @@ bool kvr::value::remove (const char *keystr)
   KVR_ASSERT_SAFE (is_map (), false);  
   
   key *k = m_ctx->_find_key (keystr);
-  pair *p = k ? this->m_data.m.find (k) : NULL;
+  map::node *n = k ? this->m_data.m.find (k) : NULL;
 
-  if (p)
+  if (n)
   {
-    m_ctx->_destroy_key (p->m_k);
-    m_ctx->_destroy_value (VALUE_FLAG_PARENT_MAP, p->m_v);
-    m_data.m.remove (p);
+    m_ctx->_destroy_key (n->k);
+    m_ctx->_destroy_value (VALUE_FLAG_PARENT_MAP, n->v);
+    m_data.m.remove (n);
     return true;
   }
   
@@ -2715,22 +2700,21 @@ void kvr::value::_patch_rem (const value *rem)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::pair * kvr::value::_insert_kv (key *k, value *v)
+bool kvr::value::_insert_kv (key *k, value *v)
 {
   KVR_ASSERT (k);
   KVR_ASSERT (v);
   KVR_ASSERT (is_map ());
 
-  pair *p = NULL;
+  map::node *n = NULL;
 
 #if KVR_DEBUG
-  p = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
-  KVR_ASSERT (p == NULL);
+  n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
+  KVR_ASSERT (n == NULL);
 #endif
 
-  p = m_data.m.insert (k, v);
-
-  return p;
+  n = m_data.m.insert (k, v);
+  return n ? true : false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2929,7 +2913,7 @@ void kvr::value::map::init (sz_t size)
   if (size == 0) { size = 1U; }
 
   sz_t allocsz = (size + (CAP_INCR - 1)) & ~(CAP_INCR - 1);
-  m_ptr = new pair [allocsz];
+  m_ptr = new node [allocsz];
   m_cap = allocsz;
   m_len = 0;
 }
@@ -2948,7 +2932,7 @@ void kvr::value::map::deinit ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::pair *kvr::value::map::insert (key *k, value *v)
+kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
 {
   KVR_ASSERT (k);
   KVR_ASSERT (v);
@@ -2961,8 +2945,8 @@ kvr::pair *kvr::value::map::insert (key *k, value *v)
 
     // resize
     sz_t newcap = cap + CAP_INCR;
-    pair *newPtr = new pair [newcap];
-    memcpy (newPtr, m_ptr, sizeof (pair) * cap);
+    node *newPtr = new node [newcap];
+    memcpy (newPtr, m_ptr, sizeof (node) * cap);
     delete [] m_ptr;
 
     m_ptr = newPtr;
@@ -2975,8 +2959,8 @@ kvr::pair *kvr::value::map::insert (key *k, value *v)
 
     // resize
     sz_t newcap = m_cap + CAP_INCR;
-    pair *newPtr = new pair [newcap];
-    memcpy (newPtr, m_ptr, sizeof (pair) * m_cap);
+    pair *newPtr = new node [newcap];
+    memcpy (newPtr, m_ptr, sizeof (node) * m_cap);
     delete [] m_ptr;
 
     m_ptr = newPtr;
@@ -2984,9 +2968,9 @@ kvr::pair *kvr::value::map::insert (key *k, value *v)
   }
 #endif
 
-  pair *p = &m_ptr [m_len++];
-  p->m_k = k;
-  p->m_v = v;
+  node *p = &m_ptr [m_len++];
+  p->k = k;
+  p->v = v;
 
   return p;
 }
@@ -2995,16 +2979,16 @@ kvr::pair *kvr::value::map::insert (key *k, value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::map::remove (pair *p)
+void kvr::value::map::remove (node *n)
 {
-  KVR_ASSERT (p);
-  KVR_ASSERT (p->m_k);
-  KVR_ASSERT (p->m_v);
+  KVR_ASSERT (n);
+  KVR_ASSERT (n->k);
+  KVR_ASSERT (n->v);
   
   if (m_len > 0)
   {
-    p->m_k = NULL;
-    p->m_v = NULL;
+    n->k = NULL;
+    n->v = NULL;
 
 #if EXPERIMENTAL_FAST_MAP_SIZE
     --m_cap;
@@ -3016,11 +3000,11 @@ void kvr::value::map::remove (pair *p)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::pair *kvr::value::map::find (const key *k) const
+kvr::value::map::node *kvr::value::map::find (const key *k) const
 {
   KVR_ASSERT (k);
 
-  pair *p = NULL;
+  node *n = NULL;
 
 #if EXPERIMENTAL_FAST_MAP_SIZE
   for (sz_t i = 0, c = _cap (); i < c; ++i)
@@ -3028,24 +3012,17 @@ kvr::pair *kvr::value::map::find (const key *k) const
   for (sz_t i = 0, c = m_cap; i < c; ++i)
 #endif
   {
-    pair *pp = &m_ptr [i];
+    node *pn = &m_ptr [i];   
 
-#if 0 // implicitly checked in next 'if' as k cannot be null
-    if (!pp->m_k)
+    if (pn->k == k)
     {
-      continue;
-    }
-#endif    
-
-    if (pp->m_k == k)
-    {
-      KVR_ASSERT (pp->m_v);
-      p = pp;
+      KVR_ASSERT (pn->v);
+      n = pn;
       break;
     }
   }
  
-  return p;
+  return n;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3057,13 +3034,13 @@ kvr::sz_t kvr::value::map::size_l () const
   sz_t size = 0;
   sz_t idx = 0;
 
-  const pair *p = NULL;
+  const node *n = NULL;
 
   while (idx < m_len)
   {
-    p = &m_ptr [idx++];
+    n = &m_ptr [idx++];
 
-    if (p->m_k && p->m_v)
+    if (n->k && n->v)
     {
       ++size;
     }
@@ -3123,12 +3100,12 @@ bool kvr::value::cursor::get (pair *outp)
 {
   KVR_ASSERT_SAFE (outp, false);
 
-  pair *p = this->_get ();
-  if (p)
+  const map::node *n = this->_get ();
+  if (n)
   {
-    KVR_ASSERT (p->m_k && p->m_v);
-    outp->m_k = p->m_k;
-    outp->m_v = p->m_v;
+    KVR_ASSERT (n->k && n->v);
+    outp->m_k = n->k;
+    outp->m_v = n->v;
     return true;
   }
   return false;
@@ -3138,14 +3115,14 @@ bool kvr::value::cursor::get (pair *outp)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::pair * kvr::value::cursor::_get ()
+const kvr::value::map::node * kvr::value::cursor::_get ()
 {
 #if 1
-  pair *p = (m_index < m_map->m_len) ? &m_map->m_ptr [m_index++] : NULL;
+  const map::node *n = (m_index < m_map->m_len) ? &m_map->m_ptr [m_index++] : NULL;
 
-  while (p && !p->m_k && !p->m_v)
+  while (n && !n->k && !n->v)
   {
-    p = (m_index < m_map->m_len) ? &m_map->m_ptr [m_index++] : NULL;
+    n = (m_index < m_map->m_len) ? &m_map->m_ptr [m_index++] : NULL;
   }
 #else
   static pair dummy;
@@ -3157,7 +3134,7 @@ kvr::pair * kvr::value::cursor::_get ()
   }
 #endif
 
-  return p;
+  return n;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
