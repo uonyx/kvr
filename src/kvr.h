@@ -218,7 +218,7 @@ public:
     value *       element (sz_t index) const;
     sz_t          length () const;
 
-    // map variant ops    
+    // map variant ops
     value *       insert (const char *key, int64_t number);
     value *       insert (const char *key, double number);
     value *       insert (const char *key, bool boolean);
@@ -320,7 +320,8 @@ public:
       pair *  insert (key *k, value *v);
       void    remove (pair *p);
       pair *  find (const key *k) const;
-      sz_t    size () const;
+      sz_t    size_l () const;
+      sz_t    size_c () const;
       sz_t    _cap () const; // true cap
 
       pair *  m_ptr;
@@ -340,9 +341,11 @@ public:
     {
     public:
 
-      pair *  get ();
+      bool get (pair *pair);
 
     private:
+
+      pair * _get ();
 
       cursor (const map *m) : m_map (m), m_index (0) {}      
 #if KVR_CPP11
@@ -440,9 +443,9 @@ public:
     key   *       get_key () const;
     value *       get_value ();
 
-  private:
-
     pair () : m_k (NULL), m_v (NULL) {}
+
+  private:
 
     key   * m_k;
     value * m_v;

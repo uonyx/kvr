@@ -1039,11 +1039,11 @@ size_t msgpack_write_context::write_approx_size (const kvr::value *val)
     }
 
     kvr::value::cursor c = val->fcursor ();
-    kvr::pair  *p = c.get ();
-    while (p)
+    kvr::pair p;
+    while (c.get (&p))
     {
-      kvr::key *k = p->get_key ();
-      kvr::value *v = p->get_value ();
+      kvr::key *k = p.get_key ();
+      kvr::value *v = p.get_value ();
       kvr::sz_t klen = k->get_length ();
       
       if (klen <= 31)
@@ -1065,8 +1065,6 @@ size_t msgpack_write_context::write_approx_size (const kvr::value *val)
 
       size += klen;
       size += write_approx_size (v);
-
-      p = c.get ();
     }
   }
 
@@ -1251,16 +1249,14 @@ private:
       kvr::sz_t msz = val->size ();
       bool ok = ctx.write_map (msz);
       kvr::value::cursor c = val->fcursor ();
-      kvr::pair *p = c.get ();
-      while (p && ok)
+      kvr::pair p;
+      while (ok && c.get (&p))
       {
-        kvr::key *k = p->get_key ();
+        kvr::key *k = p.get_key ();
         ok &= ctx.write_string (k->get_string (), k->get_length ());
 
-        kvr::value *v = p->get_value ();
+        kvr::value *v = p.get_value ();
         ok &= print_r (v, ctx);
-
-        p = c.get ();
       }
 
       success = ok;

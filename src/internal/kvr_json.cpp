@@ -390,16 +390,14 @@ bool json_write_context::write_stream (const kvr::value *val, kvr_rapidjson::Wri
   {
     bool ok = writer.StartObject ();
     kvr::value::cursor c = val->fcursor ();
-    kvr::pair *p = c.get ();
-    while (p && ok)
+    kvr::pair p;
+    while (ok && c.get (&p))
     {
-      kvr::key *k = p->get_key ();
+      kvr::key *k = p.get_key ();
       writer.Key (k->get_string (), k->get_length ());
 
-      kvr::value *v = p->get_value ();
+      kvr::value *v = p.get_value ();
       ok = write_stream (v, writer);
-
-      p = c.get ();
     }
     success = ok && writer.EndObject ();
   }
@@ -474,17 +472,15 @@ size_t json_write_context::write_approx_size (const kvr::value *val)
   {
     size += 2; // brackets
     kvr::value::cursor c = val->fcursor ();
-    kvr::pair  *p = c.get ();
-    while (p)
+    kvr::pair p;
+    while (c.get (&p))
     {
-      kvr::key *k = p->get_key ();
-      kvr::value *v = p->get_value ();
+      kvr::key *k = p.get_key ();
+      kvr::value *v = p.get_value ();
 
       size += k->get_length () + 2; // + quotes
       size += write_approx_size (v);
       size += 2; // colon and comma
-
-      p = c.get ();
     }
   }
 
