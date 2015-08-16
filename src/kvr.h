@@ -86,10 +86,10 @@
 
 #define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
 #define KVR_CONSTANT_MAX_KEY_LENGTH                     (127ULL)
-#define KVR_CONSTANT_MAX_TREE_DEPTH                     (64)
+#define KVR_CONSTANT_MAX_TREE_DEPTH                     (64ULL)
 #define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 #define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
-#define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8)
+#define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8U)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -114,7 +114,6 @@ public:
   static const uint64_t SZ_T_MAX = 0xffff;
 #endif
 #endif
-
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -207,9 +206,9 @@ public:
     double        get_float () const;
 
     // array variant ops
-    value *       push (int64_t number);
-    value *       push (double number);
-    value *       push (bool boolean);
+    value *       push (int64_t n);
+    value *       push (double n);
+    value *       push (bool b);
     value *       push (const char *str);
     value *       push_map ();
     value *       push_array ();
@@ -219,15 +218,15 @@ public:
     sz_t          length () const;
 
     // map variant ops
-    value *       insert (const char *key, int64_t number);
-    value *       insert (const char *key, double number);
-    value *       insert (const char *key, bool boolean);
+    value *       insert (const char *key, int64_t n);
+    value *       insert (const char *key, double n);
+    value *       insert (const char *key, bool b);
     value *       insert (const char *key, const char *str);
     value *       insert_map (const char *key);
     value *       insert_array (const char *key);
     value *       insert_null (const char *key);
     value *       find (const char *key) const;
-    bool          remove (const char *key);
+    void          remove (const char *key);
     cursor        fcursor () const;
     sz_t          size () const;
 

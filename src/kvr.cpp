@@ -707,7 +707,7 @@ double kvr::value::get_float () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::push (int64_t number)
+kvr::value * kvr::value::push (int64_t num)
 {
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_array ());
@@ -715,7 +715,7 @@ kvr::value * kvr::value::push (int64_t number)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, number);
+  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, num);
   this->m_data.a.push (v);
 
   return v;
@@ -725,7 +725,7 @@ kvr::value * kvr::value::push (int64_t number)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::push (double number)
+kvr::value * kvr::value::push (double num)
 {
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF  
   KVR_ASSERT (is_array ());
@@ -733,7 +733,7 @@ kvr::value * kvr::value::push (double number)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, number);
+  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, num);
   this->m_data.a.push (v);
 
   return v;
@@ -743,7 +743,7 @@ kvr::value * kvr::value::push (double number)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::push (bool boolean)
+kvr::value * kvr::value::push (bool b)
 {
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_array ());
@@ -751,7 +751,7 @@ kvr::value * kvr::value::push (bool boolean)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, boolean);  
+  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, b);  
   this->m_data.a.push (v);
 
   return v;
@@ -881,7 +881,7 @@ kvr::sz_t kvr::value::length () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::insert (const char *keystr, int64_t number)
+kvr::value * kvr::value::insert (const char *keystr, int64_t num)
 {
   KVR_ASSERT (keystr && "invalid input");
   KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
@@ -900,13 +900,13 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t number)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
-    n->v->set_integer (number);
+    n->v->set_integer (num);
     m_ctx->_destroy_key (k);
   }
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number));
+    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, num));
     KVR_ASSERT (n);
   }
 
@@ -917,11 +917,11 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t number)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::insert (const char *keystr, double number)
+kvr::value * kvr::value::insert (const char *keystr, double num)
 {
   KVR_ASSERT (keystr && "invalid input");
   KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
-  KVR_ASSERT_SAFE ((!kvr_internal::isnan (number) && "n is nan"), NULL);
+  KVR_ASSERT_SAFE ((!kvr_internal::isnan (num) && "n is nan"), NULL);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());  
@@ -937,13 +937,13 @@ kvr::value * kvr::value::insert (const char *keystr, double number)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
-    n->v->set_float (number);
+    n->v->set_float (num);
     m_ctx->_destroy_key (k);
   }
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, number));
+    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, num));
     KVR_ASSERT (n);
   }
 
@@ -954,7 +954,7 @@ kvr::value * kvr::value::insert (const char *keystr, double number)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::insert (const char *keystr, bool boolean)
+kvr::value * kvr::value::insert (const char *keystr, bool b)
 {
   KVR_ASSERT (keystr && "invalid input");
   KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
@@ -973,13 +973,13 @@ kvr::value * kvr::value::insert (const char *keystr, bool boolean)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
-    n->v->set_boolean (boolean);
+    n->v->set_boolean (b);
     m_ctx->_destroy_key (k);
   }
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, boolean));
+    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, b));
     KVR_ASSERT (n);
   }
 
@@ -1157,23 +1157,22 @@ kvr::value * kvr::value::find (const char *keystr) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::value::remove (const char *keystr)
+void kvr::value::remove (const char *keystr)
 {
   KVR_ASSERT (keystr);
-  KVR_ASSERT_SAFE (is_map (), false);  
+  KVR_ASSERT_SAFE (is_map (), (void) 0);  
   
   key *k = m_ctx->_find_key (keystr);
-  map::node *n = k ? this->m_data.m.find (k) : NULL;
-
-  if (n)
+  if (k)
   {
-    m_ctx->_destroy_key (n->k);
-    m_ctx->_destroy_value (VALUE_FLAG_PARENT_MAP, n->v);
-    m_data.m.remove (n);
-    return true;
+    map::node *n = this->m_data.m.find (k);
+    if (n)
+    {
+      m_ctx->_destroy_key (n->k);
+      m_ctx->_destroy_value (VALUE_FLAG_PARENT_MAP, n->v);
+      m_data.m.remove (n);
+    }
   }
-  
-  return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1193,7 +1192,7 @@ kvr::value::cursor kvr::value::fcursor () const
 
 kvr::sz_t kvr::value::size () const
 {
-  KVR_ASSERT (is_map ());
+  KVR_ASSERT_SAFE (is_map (), 0);
 
 #if EXPERIMENTAL_FAST_MAP_SIZE
   sz_t sz2 = this->_size2 ();
@@ -1310,8 +1309,8 @@ kvr::value * kvr::value::copy (const value *rhs)
 kvr::value * kvr::value::search (const char *pathexpr) const
 {
   KVR_ASSERT (is_map () || is_array ());
-  KVR_ASSERT (pathexpr);
-
+  KVR_ASSERT_SAFE ((pathexpr && (pathexpr [0] != 0)), NULL);
+  
   value *v = this->_search_path_expr (pathexpr);
 
   return v;
@@ -1324,10 +1323,9 @@ kvr::value * kvr::value::search (const char *pathexpr) const
 kvr::value * kvr::value::search (const char **path, sz_t pathsz) const
 {
   KVR_ASSERT (is_map () || is_array ());
-  KVR_ASSERT (path);
-  KVR_ASSERT (pathsz > 0);
+  KVR_ASSERT_SAFE ((path && (pathsz > 0)), NULL);
 
-  value *v = (pathsz > 0) ? (value *) this : NULL;
+  value *v = (value *) this;
 
   sz_t pc = 0;
 
@@ -1858,8 +1856,8 @@ void kvr::value::_move_string (char *str, sz_t size)
 
 kvr::value * kvr::value::_search_path_expr (const char *expr, const char **lastkey, value **lastparent) const
 {
-  KVR_ASSERT_SAFE (expr, NULL);
-  KVR_ASSERT_SAFE (expr [0] != 0, NULL);
+  KVR_ASSERT (expr);
+  KVR_ASSERT (expr [0] != 0);
 
   value *v = (value *) this;
 
