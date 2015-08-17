@@ -2916,7 +2916,6 @@ kvr::value * kvr::value::array::elem (sz_t index) const
 void kvr::value::map::init (sz_t size)
 {
   KVR_ASSERT (size > 0);
-
   if (size == 0) { size = 1U; }
 
   sz_t allocsz = (size + (CAP_INCR - 1)) & ~(CAP_INCR - 1);
@@ -2944,11 +2943,22 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
   KVR_ASSERT (k);
   KVR_ASSERT (v);
 
+  KVR_ASSERT (m_ptr);
+
 #if EXPERIMENTAL_FAST_MAP_SIZE
   sz_t cap = _cap ();
   if (m_len >= cap)
   {
-    KVR_ASSERT (m_ptr);
+#if 0
+    if ((m_cap % CAP_INCR) == 0)
+    {
+      // do shift
+      // - find first empty slot
+      // - shift left?
+      // - update/reduce m_len
+      // - assert m_len < cap
+    }
+#endif
 
     // resize
     sz_t newcap = cap + CAP_INCR;
@@ -2966,7 +2976,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
 
     // resize
     sz_t newcap = m_cap + CAP_INCR;
-    pair *newPtr = new node [newcap];
+    node *newPtr = new node [newcap];
     memcpy (newPtr, m_ptr, sizeof (node) * m_cap);
     delete [] m_ptr;
 
@@ -3040,7 +3050,6 @@ kvr::sz_t kvr::value::map::size_l () const
 {
   sz_t size = 0;
   sz_t idx = 0;
-
   const node *n = NULL;
 
   while (idx < m_len)
@@ -3103,16 +3112,16 @@ kvr::sz_t kvr::value::map::_cap () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::value::cursor::get (pair *outp)
+bool kvr::value::cursor::get (pair *p)
 {
-  KVR_ASSERT_SAFE (outp, false);
+  KVR_ASSERT_SAFE (p, false);
 
   const map::node *n = this->_get ();
   if (n)
   {
     KVR_ASSERT (n->k && n->v);
-    outp->m_k = n->k;
-    outp->m_v = n->v;
+    p->m_k = n->k;
+    p->m_v = n->v;
     return true;
   }
   return false;
@@ -3124,22 +3133,12 @@ bool kvr::value::cursor::get (pair *outp)
 
 const kvr::value::map::node * kvr::value::cursor::_get ()
 {
-#if 1
   const map::node *n = (m_index < m_map->m_len) ? &m_map->m_ptr [m_index++] : NULL;
 
   while (n && !n->k && !n->v)
   {
     n = (m_index < m_map->m_len) ? &m_map->m_ptr [m_index++] : NULL;
   }
-#else
-  static pair dummy;
-  pair *p = &dummy;
-
-  while (p && !p->m_k)
-  {
-    p = (m_index < m_map->m_len) ? &m_map->m_ptr [m_index++] : NULL;
-  }
-#endif
 
   return n;
 }
