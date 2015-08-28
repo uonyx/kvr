@@ -25,9 +25,9 @@ public:
     kvr::destroy_context (m_ctx);
   }
 
-  void xtestDiffAndPatch (void)
+  void testDiffAndPatch (void)
   {
-    const kvr::value *kvr_null = NULL;
+    //const kvr::value *null_val = NULL;
 
     kvr::value *val0 = m_ctx->create_value ();
 
@@ -66,8 +66,8 @@ public:
     ///////////////////////////////
 
     // copy
-    kvr::value *val1 = ctx->create_value ()->copy (val0);
-    TS_ASSERT (val0->hashcode () == val1->hashcode ());
+    kvr::value *val1 = m_ctx->create_value ()->copy (val0);
+    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
 
     // modify
     val1->find ("bill")->set_integer (9000);
@@ -83,7 +83,7 @@ public:
     // generate diff
     ///////////////////////////////
 
-    kvr::value *diff = ctx->create_value ();
+    kvr::value *diff = m_ctx->create_value ();
     diff->diff (val0, val1);
 
     ///////////////////////////////
@@ -91,10 +91,11 @@ public:
     ///////////////////////////////
 
     val0->patch (diff);
-    val0->dump ();
-    TS_ASSERT (val0->hashcode () == val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
 
-    m_ctx->destroy_value (map);
+    // clean up
+    m_ctx->destroy_value (val0);
+    m_ctx->destroy_value (val1);
   }
 };
 
