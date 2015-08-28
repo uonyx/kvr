@@ -278,7 +278,7 @@ kvr::key * kvr::_create_key_copy (const char *str)
     k = new key (str);    
     std::pair<const char *, key *> p (k->m_str, k);
     bool s = m_keystore.insert (p).second;
-    KVR_ASSERT (s);
+    KVR_ASSERT (s); KVR_REF_UNUSED (s);
   }
 
   return k;
@@ -302,7 +302,7 @@ kvr::key * kvr::_create_key_move (char *str, sz_t len)
     k = new key (str, len);    
     std::pair<const char *, key *> p (k->m_str, k);
     bool s = m_keystore.insert (p).second;
-    KVR_ASSERT (s);
+    KVR_ASSERT (s); KVR_REF_UNUSED (s);
   }
 
   return k;
@@ -2628,6 +2628,7 @@ void kvr::value::_patch_add (const value *add)
     value *tgp = NULL;
     value *tgv = tg->_search_path_expr (akey, &tgk, &tgp);
     KVR_ASSERT (tgv == NULL); // path shouldn't exist but we're interested in key and parent
+    KVR_REF_UNUSED (tgv);
 
     if (tgk && tgp)
     {

@@ -504,6 +504,7 @@ size_t json_write_context::write_approx_size (const kvr::value *val)
   {
     kvr::sz_t slen = 0;
     const char *str = val->get_string (&slen);
+    KVR_REF_UNUSED (str);
     size += (slen + 2); // + quotes
   }
 
