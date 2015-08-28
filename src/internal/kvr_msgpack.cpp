@@ -949,8 +949,10 @@ struct msgpack_write_context
 
   bool write_float (double f)
   {
-    const double fmax = std::numeric_limits<float>::max ();   
-    if (f <= fmax)
+    const double fmin = std::numeric_limits<float>::min ();
+    const double fmax = std::numeric_limits<float>::max ();
+
+    if ((f >= fmin) && (f <= fmax))
     {
       put (MSGPACK_HEADER_FLOAT_32);
       union { float f; uint32_t i; } mem;
@@ -1185,9 +1187,11 @@ size_t msgpack_write_context::write_approx_size (const kvr::value *val)
   else if (val->is_float ())
   //////////////////////////////////
   {
+    const double fmin = std::numeric_limits<float>::min ();
     const double fmax = std::numeric_limits<float>::max ();
+
     double n = val->get_float ();
-    if (n <= fmax)
+    if ((n >= fmin) && (n <= fmax))    
     {
       size += 5;
     }

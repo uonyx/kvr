@@ -520,16 +520,8 @@ size_t json_write_context::write_approx_size (const kvr::value *val)
   else if (val->is_float ())
   //////////////////////////////////
   {
-    double n = val->get_float ();
-
-    if (n < std::numeric_limits<float>::max ())
-    {
-      size += 13; // average (guess) 
-    }
-    else
-    {
-      size += 25; // 25 is max
-    }    
+    //size += 13; // average (guess)     
+    size += 25; // 25 is max
   }
 
   //////////////////////////////////
