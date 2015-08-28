@@ -275,7 +275,7 @@ public:
     return std::isnan (f);
 #else
 #if defined (_MSC_VER)
-    return _isnan (f) ? true : false;
+    return (_isnan (f) != 0);
 #else
     return (f != f); //return std::tr1::isnan (f);
 #endif
