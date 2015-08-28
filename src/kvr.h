@@ -11,10 +11,10 @@
 
 #if defined (_MSC_VER)
 #define KVR_DEBUG          _DEBUG
-#define KVR_INLINE         __forceinline
+#define KVR_INLINE         inline //__forceinline
 #else
 #define KVR_DEBUG          DEBUG
-#define KVR_INLINE         inline
+#define KVR_INLINE         inline // __attribute__((always_inline))
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,8 +184,8 @@ public:
     bool          is_null () const;
     
     // type conversion    
-    value *       conv_map (sz_t cap = KVR_CONSTANT_COMMON_BLOCK_SZ);
-    value *       conv_array (sz_t cap = KVR_CONSTANT_COMMON_BLOCK_SZ);
+    value *       conv_map (sz_t sz = KVR_CONSTANT_COMMON_BLOCK_SZ);
+    value *       conv_array (sz_t sz = KVR_CONSTANT_COMMON_BLOCK_SZ);
     value *       conv_string ();
     value *       conv_boolean ();
     value *       conv_integer ();

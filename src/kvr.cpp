@@ -449,18 +449,18 @@ kvr::value::~value ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::conv_map (sz_t cap)
+kvr::value * kvr::value::conv_map (sz_t sz)
 {
-  return this->_conv_map (cap);
+  return this->_conv_map (sz);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::conv_array (sz_t cap)
+kvr::value * kvr::value::conv_array (sz_t sz)
 {
-  return this->_conv_array (cap);
+  return this->_conv_array (sz);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2950,17 +2950,33 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
   sz_t cap = _cap ();
   if (m_len >= cap)
   {
-#if 0
-    if ((m_cap % CAP_INCR) == 0)
+#if 1
+    // see if we can shrink current space first
+    if ((m_cap % CAP_INCR) != 0)
     {
-      // do shift
-      // - find first empty slot
-      // - shift left?
-      // - update/reduce m_len
-      // - assert m_len < cap
+      sz_t ir, iw;
+      for (ir = 0, iw = 0; ir < cap; ++ir)
+      {
+        if (m_ptr [ir].k == NULL)
+        {
+          continue;
+        }
+        else
+        {
+          m_ptr [iw].k = m_ptr [ir].k;
+          m_ptr [iw++].v = m_ptr [ir].v;
+        }
+      }
+      m_len -= (ir - iw);
+      m_cap += (ir - iw);
+      KVR_ASSERT (m_len < cap);
     }
 #endif
+  }
 
+  // check again
+  if (m_len >= cap)
+  {
     // resize
     sz_t newcap = cap + CAP_INCR;
     node *newPtr = new node [newcap];
@@ -2969,6 +2985,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
 
     m_ptr = newPtr;
     m_cap += CAP_INCR;
+    //KVR_ASSERT (newcap >= m_cap);
   }
 #else
   if (m_len >= m_cap)
@@ -2986,11 +3003,11 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
   }
 #endif
 
-  node *p = &m_ptr [m_len++];
-  p->k = k;
-  p->v = v;
+  node *n = &m_ptr [m_len++];
+  n->k = k;
+  n->v = v;
 
-  return p;
+  return n;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3090,7 +3107,7 @@ kvr::sz_t kvr::value::map::_cap () const
 
   if ((m_cap % CAP_INCR) == 0)
   {
-    capa = m_cap;
+    capa = m_cap; // might not be correct (potential buffer overrun). hmm...
   }
   else if (m_len)
   {

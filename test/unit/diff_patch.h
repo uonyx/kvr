@@ -25,54 +25,74 @@ public:
     kvr::destroy_context (m_ctx);
   }
 
-  void testMap (void)
+  void xtestDiffAndPatch (void)
   {
     const kvr::value *kvr_null = NULL;
 
-    kvr::value *map = m_ctx->create_value ()->conv_map ();
-    TS_ASSERT (map->is_map ());
+    kvr::value *val0 = m_ctx->create_value ();
 
-    // inserts
-    {
-      kvr::value *vi = map->insert ("int", 16LL);
-      kvr::value *vf = map->insert ("float", 3.14);
-      kvr::value *vs = map->insert ("string", "hello world");
-      kvr::value *vb = map->insert ("boolean", true);
-      kvr::value *vn = map->insert_null ("null");
-      kvr::value *va = map->insert_array ("array");
-      kvr::value *vm = map->insert_map ("map");
+    ///////////////////////////////
+    // 1. set up source
+    ///////////////////////////////
 
-      TS_ASSERT (vi->is_integer ());
-      TS_ASSERT (vf->is_float ());
-      TS_ASSERT (vs->is_string ());
-      TS_ASSERT (vb->is_boolean ());
-      TS_ASSERT (vn->is_null ());
-      TS_ASSERT (va->is_array ());
-      TS_ASSERT (vm->is_map ());
-    }
+    val0->insert ("bill", 15LL);
+    val0->insert ("jane", 74LL);
+    val0->insert ("toby", 21LL);
 
-    // find
-    {
-      kvr::value *vi = map->find ("int");
-      kvr::value *vf = map->find ("float");
-      kvr::value *vs = map->find ("string");
-      kvr::value *vb = map->find ("boolean");
-      kvr::value *vn = map->find ("null");
-      kvr::value *vg = map->find ("garbage");
+    kvr::value *m = val0->insert_map ("father");
+    kvr::value *a = val0->insert_array ("mother");
 
-      TS_ASSERT_DIFFERS (vi, kvr_null);
-      TS_ASSERT_DIFFERS (vf, kvr_null);
-      TS_ASSERT_DIFFERS (vs, kvr_null);
-      TS_ASSERT_DIFFERS (vb, kvr_null);
-      TS_ASSERT_DIFFERS (vn, kvr_null);
-      TS_ASSERT_EQUALS  (vg, kvr_null);
+    m->insert ("a", "zero");
+    m->insert ("b", "one");
+    a->push (3.14);
+    a->push (5.0);
 
-      TS_ASSERT_EQUALS (vi->get_integer (), 16LL);
-      TS_ASSERT_EQUALS (vf->get_float (), 3.14);
-      TS_ASSERT_EQUALS (vb->get_boolean (), true);
-      TS_ASSERT (strcmp (vs->get_string (), "hello world") == 0);
-      TS_ASSERT (vn->is_null ());
-    }
+    kvr::value *am = a->push_map ();
+
+    am->insert ("int", 5LL);
+    am->insert ("dbl", 4.5);
+    am->insert ("bool", "true");
+    am->insert ("str1", "supah");
+    am->insert_null ("nowt");
+    am->insert ("int3", -5LL);
+    am->insert ("dbl3", -4.5);
+    am->insert_null ("nonce");
+    am->remove ("nonce");
+    am->insert ("bool3", false);
+    am->insert ("str13", "dupah");
+
+    ///////////////////////////////
+    // set up destination
+    ///////////////////////////////
+
+    // copy
+    kvr::value *val1 = ctx->create_value ()->copy (val0);
+    TS_ASSERT (val0->hashcode () == val1->hashcode ());
+
+    // modify
+    val1->find ("bill")->set_integer (9000);
+    kvr::value *v1m = val1->find ("father");
+    v1m->remove ("a");
+    v1m->find ("b")->set_string ("jacob123");
+    v1m->insert ("vettel", "f1");
+    kvr::value *v1a = val1->find ("mother");
+    v1a->pop ();
+    v1a->pop ();
+
+    ///////////////////////////////
+    // generate diff
+    ///////////////////////////////
+
+    kvr::value *diff = ctx->create_value ();
+    diff->diff (val0, val1);
+
+    ///////////////////////////////
+    // apply patch
+    ///////////////////////////////
+
+    val0->patch (diff);
+    val0->dump ();
+    TS_ASSERT (val0->hashcode () == val1->hashcode ());
 
     m_ctx->destroy_value (map);
   }

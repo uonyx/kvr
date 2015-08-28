@@ -27,7 +27,8 @@ public:
 
   void testMap (void)
   {
-    const kvr::value *kvr_null = NULL;
+    const kvr::key    * null_key = NULL;
+    const kvr::value  * null_val = NULL;
 
     kvr::value *map = m_ctx->create_value ()->conv_map ();
     TS_ASSERT (map->is_map ());
@@ -60,18 +61,39 @@ public:
       kvr::value *vn = map->find ("null");
       kvr::value *vg = map->find ("garbage");
 
-      TS_ASSERT_DIFFERS (vi, kvr_null);
-      TS_ASSERT_DIFFERS (vf, kvr_null);
-      TS_ASSERT_DIFFERS (vs, kvr_null);
-      TS_ASSERT_DIFFERS (vb, kvr_null);
-      TS_ASSERT_DIFFERS (vn, kvr_null);
-      TS_ASSERT_EQUALS  (vg, kvr_null);
+      TS_ASSERT_DIFFERS (vi, null_val);
+      TS_ASSERT_DIFFERS (vf, null_val);
+      TS_ASSERT_DIFFERS (vs, null_val);
+      TS_ASSERT_DIFFERS (vb, null_val);
+      TS_ASSERT_DIFFERS (vn, null_val);
+      TS_ASSERT_EQUALS  (vg, null_val);
 
       TS_ASSERT_EQUALS (vi->get_integer (), 16LL);
       TS_ASSERT_EQUALS (vf->get_float (), 3.14);
       TS_ASSERT_EQUALS (vb->get_boolean (), true);
       TS_ASSERT (strcmp (vs->get_string (), "hello world") == 0);
       TS_ASSERT (vn->is_null ());
+    }
+
+    // cursor
+    {
+      kvr::sz_t count = 0;
+      kvr::value::cursor cur = map->fcursor ();
+      kvr::pair p;
+
+      while (cur.get (&p))
+      {
+        kvr::key *k = p.get_key ();
+        kvr::value *v = p.get_value ();
+
+        TS_ASSERT_DIFFERS (k, null_key);
+        TS_ASSERT_DIFFERS (v, null_val);
+
+        count++;
+      }
+
+      kvr::sz_t size = map->size ();
+      TS_ASSERT_EQUALS (size, count);
     }
 
     m_ctx->destroy_value (map);
