@@ -96,6 +96,7 @@ public:
     // clean up
     m_ctx->destroy_value (val0);
     m_ctx->destroy_value (val1);
+    m_ctx->destroy_value (diff);
   }
 };
 

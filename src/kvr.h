@@ -10,10 +10,18 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if defined (_MSC_VER)
-#define KVR_DEBUG          _DEBUG
-#define KVR_INLINE         inline //__forceinline
+#ifdef _DEBUG
+#define KVR_DEBUG          1
 #else
-#define KVR_DEBUG          DEBUG
+#define KVR_DBUG           0
+#endif
+#define KVR_INLINE         inline // __forceinline
+#else
+#ifndef NDEBUG
+#define KVR_DEBUG          1
+#else
+#define KVR_DEBUG          0
+#endif
 #define KVR_INLINE         inline // __attribute__((always_inline))
 #endif
 
