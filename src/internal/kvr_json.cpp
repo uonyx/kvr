@@ -138,6 +138,7 @@ struct json_read_context
   {
     KVR_ASSERT (m_depth != 0);
     KVR_ASSERT (false && "not supported");
+    KVR_REF_UNUSED (u);
     return false;
   }
 
@@ -176,6 +177,8 @@ struct json_read_context
     bool success = true;
 
     KVR_ASSERT_SAFE (m_depth != 0, success);
+    KVR_REF_UNUSED (copy);
+
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT (node);
     KVR_ASSERT (node->is_map () || node->is_array ());
@@ -246,6 +249,9 @@ struct json_read_context
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_map (), false);
 
+    KVR_REF_UNUSED (length);
+    KVR_REF_UNUSED (copy);
+
     KVR_ASSERT (!m_temp);
     m_temp = node->insert_null (str);
     return (m_temp != NULL);
@@ -256,6 +262,8 @@ struct json_read_context
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_map (), false);
     KVR_ASSERT (node->size () == (kvr::sz_t) memberCount);
+    KVR_REF_UNUSED (memberCount);
+
     m_stack [--m_depth] = NULL;
     return true;
   }
@@ -303,6 +311,7 @@ struct json_read_context
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_array (), false);
     KVR_ASSERT (node->length () == (kvr::sz_t) elementCount);
+    KVR_REF_UNUSED (elementCount);
     m_stack [--m_depth] = NULL;
     return true;
   }
@@ -570,7 +579,7 @@ bool kvr_json::read (kvr::value *dest, const char *str, size_t len)
   bool success = false;
 
   json_read_context rctx (dest);
-  kvr_rapidjson::StringStream ss (str);
+  kvr_rapidjson::StringStream ss (str); KVR_REF_UNUSED (len);
   kvr_rapidjson::Reader reader;
 
   kvr_rapidjson::ParseResult ok = reader.Parse (ss, rctx);

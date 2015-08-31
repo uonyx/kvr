@@ -162,6 +162,7 @@ struct msgpack_read_context
   {
     KVR_ASSERT (m_depth != 0);
     KVR_ASSERT (false && "not supported");
+    KVR_REF_UNUSED (u);
     return false;
   }
 
@@ -280,6 +281,7 @@ struct msgpack_read_context
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_map (), false);
     KVR_ASSERT (node->size () == size);
+    KVR_REF_UNUSED (size);
     m_stack [--m_depth] = NULL;
     return true;
   }
@@ -326,6 +328,7 @@ struct msgpack_read_context
     kvr::value *node = m_stack [m_depth - 1];
     KVR_ASSERT_SAFE (node && node->is_array (), false);
     KVR_ASSERT (node->length () == length);
+    KVR_REF_UNUSED (length);
     m_stack [--m_depth] = NULL;
     return true;
   }

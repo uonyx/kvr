@@ -1,13 +1,27 @@
+#
+# Copyright (c) 2015 Ubaka Onyechi
+# 
+# kvr is free software.
+# See LICENSE file for details
+#
+
 cmake_minimum_required(VERSION 3.1.1)
 project(kvr)
 
 option (KVR_BUILD_TESTS "build tests" ON)
 
-set (KVR_CXX_FLAGS_BASE "-Wall -std=c++03")
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ${KVR_CXX_FLAGS_BASE}")
-set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${KVR_CXX_FLAGS_BASE}")
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${KVR_CXX_FLAGS_BASE}")
-set (CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_DEBUG})
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  set (KVR_CXX_FLAGS "-std=c++03 -march=native -Wall -Wextra -Werror")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set (KVR_CXX_FLAGS "-std=c++03 -march=native -Wall -Wextra -Werror")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS=1)
+endif()
+
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ${KVR_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${KVR_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${KVR_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
 
 if (OFF)
   message ("debug flags ${CMAKE_CXX_FLAGS_DEBUG}")
@@ -16,6 +30,10 @@ if (OFF)
   message ("none  flags ${CMAKE_CXX_FLAGS}")
 endif ()
 
+#if (CMAKE_BUILD_TYPE MATCHES "Release|release")
+#  message ("release build")
+#endif ()
+
 set (KVR_SOURCE_DIR "src")
 set (KVR_SOURCES "${KVR_SOURCE_DIR}/kvr.cpp ${KVR_SOURCE_DIR}/internal/kvr_json.cpp ${KVR_SOURCE_DIR}/internal/kvr_msgpack.cpp")
 separate_arguments (KVR_SOURCES)
@@ -23,10 +41,10 @@ include_directories (${KVR_SOURCE_DIR})
 add_library (kvr STATIC ${KVR_SOURCES})
 
 if (KVR_BUILD_TESTS)
-  option (KVR_UNIT_TEST_ENABLED "unit tests" ON)
-  option (KVR_PERF_TEST_ENABLED "performance tests" ON)
+  option (KVR_BUILD_TESTS_UNIT "unit tests" ON)
+  option (KVR_BUILD_TESTS_PERF "performance tests" ON)
 
-  if (KVR_UNIT_TEST_ENABLED)
+  if (KVR_BUILD_TESTS_UNIT)
     set (KVR_CXXTEST_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test/3rdparty/cxxtest-4.3")
     set (CXXTEST_INCLUDE_DIR "${KVR_CXXTEST_INSTALL_DIR}")
     set (CXXTEST_PYTHON_TESTGEN_EXECUTABLE "${KVR_CXXTEST_INSTALL_DIR}/bin/cxxtestgen")
@@ -47,7 +65,7 @@ if (KVR_BUILD_TESTS)
     endif ()
   endif ()
 
-  if (KVR_PERF_TEST_ENABLED)
+  if (KVR_BUILD_TESTS_PERF)
     set (KVR_PERF_TEST_LIST basic)
     foreach (ptest ${KVR_PERF_TEST_LIST})
       add_executable (perf_test_${ptest} ${CMAKE_CURRENT_SOURCE_DIR}/test/perf/${ptest}.cpp)

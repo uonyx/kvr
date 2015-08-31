@@ -51,6 +51,8 @@ static const uint32_t KVR_VALUE_TYPE_MASK     = 0xffffff00;
 
 kvr * kvr::create_context (uint32_t flags)
 {
+  KVR_REF_UNUSED (flags);
+
   kvr *ctx = new kvr ();
 
   return ctx;
@@ -235,7 +237,7 @@ kvr::value * kvr::_create_value (uint32_t parentType, const char *str, sz_t len)
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_string ();
 #endif
-  v->set_string (str);
+  v->set_string (str, len);
 
   return v;
 }
@@ -248,7 +250,8 @@ void kvr::_destroy_value (uint32_t parentType, value *v)
 {
   KVR_ASSERT (v);
   KVR_ASSERT ((v->m_flags & parentType) != 0);
-
+  
+  if ((v->m_flags & parentType) == 0) return;
   delete v;
 }
 
@@ -2031,7 +2034,7 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
         char *end = NULL;
         int64_t ki64 = strtoll (keystr, &end, 10);
         KVR_ASSERT_SAFE ((end && (!*end) && "non-integral array index"), NULL);
-        KVR_ASSERT (ki64 <= kvr::SZ_T_MAX);
+        KVR_ASSERT (ki64 <= (int64_t) kvr::SZ_T_MAX);
         sz_t ki = (sz_t) ki64;
         v = this->element (ki);
         break;
@@ -2654,7 +2657,7 @@ void kvr::value::_patch_add (const value *add)
 #if KVR_DEBUG
         char *end;
         int64_t ki64 = strtoll (tgk, &end, 10); KVR_ASSERT (!*end);
-        KVR_ASSERT (ki64 <= kvr::SZ_T_MAX);
+        KVR_ASSERT (ki64 <= (int64_t) kvr::SZ_T_MAX);
         sz_t ki = (sz_t) ki64;
         sz_t sz = tgp->length ();
         KVR_ASSERT (ki == sz);
@@ -2704,7 +2707,7 @@ void kvr::value::_patch_rem (const value *rem)
 #if KVR_DEBUG
         char *end;
         int64_t ki64 = strtoll (tgk, &end, 10); KVR_ASSERT (!*end);
-        KVR_ASSERT (ki64 <= kvr::SZ_T_MAX);
+        KVR_ASSERT (ki64 <= (int64_t) kvr::SZ_T_MAX);
         sz_t ki = (sz_t) ki64;
         sz_t sz = tgp->length ();
         KVR_ASSERT ((ki + 1) == sz);
