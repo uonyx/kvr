@@ -1689,7 +1689,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   {
     hc += (VALUE_FLAG_TYPE_BOOLEAN);
     bool b = get_boolean ();
-    uint32_t hv = b ? 4 : 5;
+    uint32_t hv = b ? 4u : 5u;
     hc += hv;
   }
 

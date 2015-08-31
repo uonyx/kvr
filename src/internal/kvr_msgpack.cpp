@@ -440,7 +440,7 @@ public:
           uint16_t len = 0;
           success = this->get ((uint8_t *) &len, 2);
           uint16_t slen = bigendian16 (len);
-          KVR_ASSERT ((uint64_t) slen <= kvr::SZ_T_MAX);
+          KVR_ASSERT (((uint64_t) slen) <= kvr::SZ_T_MAX);
           const char *str = success ? (const char *) this->push (slen) : NULL;
           success = str ? ctx.read_string (str, slen) : false;
           break;
@@ -451,7 +451,7 @@ public:
           uint32_t len = 0;
           success = this->get ((uint8_t *) &len, 4);
           uint32_t slen = bigendian32 (len);
-          KVR_ASSERT ((uint64_t) slen <= kvr::SZ_T_MAX);
+          //KVR_ASSERT ((uint64_t) slen <= kvr::SZ_T_MAX);
           const char *str = success ? (const char *) this->push (slen) : NULL;
           success = str ? ctx.read_string (str, slen) : false;
           break;
@@ -948,7 +948,7 @@ struct msgpack_write_context
       {
         put (MSGPACK_HEADER_SIGNED_32);
         uint32_t i = bigendian32 (i64);
-        put ((uint8_t *) i, 4);
+        put ((uint8_t *) &i, 4);
       }
       else
       {
