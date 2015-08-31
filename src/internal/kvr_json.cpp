@@ -584,7 +584,7 @@ bool kvr_json::read (kvr::value *dest, const char *str, size_t len)
 
   kvr_rapidjson::ParseResult ok = reader.Parse (ss, rctx);
 #if KVR_DEBUG
-  if (ok.IsError ()) { fprintf (stderr, "JSON parse error: %s (%lu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
+  if (ok.IsError ()) { std::fprintf (stderr, "JSON parse error: %s (%lu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
 #endif
   success = ok && (rctx.m_depth == 0);
 

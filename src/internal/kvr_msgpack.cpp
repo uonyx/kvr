@@ -1380,13 +1380,13 @@ bool kvr_msgpack::write (const kvr::value *src, kvr::ostream *ostr)
   msgpack_write_context ctx (ostr);
 
   bool success = writer.print (ctx);
-#if defined(_MSC_VER) && KVR_DEBUG && 1
+#if defined(_MSC_VER) && KVR_DEBUG && 0
   kvr::ostream hex (512);
   if (kvr_internal::hex_encode (ostr->bytes (), ostr->tell (), &hex))
   {
     hex.set_eos (0);
     const char *hexstr = (const char *) hex.bytes ();
-    fprintf (stderr, "msgpack: %s\n", hexstr);
+    std::fprintf (stderr, "msgpack: %s\n", hexstr);
 
 #if 1
     FILE *fp = NULL;

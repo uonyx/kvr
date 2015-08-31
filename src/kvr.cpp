@@ -126,14 +126,14 @@ void kvr::destroy_value (value *v)
 
 void kvr::dump (int id)
 {
-  fprintf (stderr, "\n--------------------------------\n");
-  fprintf (stderr, "kvr context state debug dump [%02d]\n", id);
-  fprintf (stderr, "--------------------------------\n");
-  fprintf (stderr, "load_factor:       %f\n",   m_keystore.load_factor ());
-  fprintf (stderr, "bucket_count:      %zu\n",  m_keystore.bucket_count ());
-  fprintf (stderr, "max_size:          %zu\n",  m_keystore.max_size ());
-  fprintf (stderr, "max_load_factor:   %f\n",   m_keystore.max_load_factor ());
-  fprintf (stderr, "max_bucket_count:  %zu\n",  m_keystore.max_bucket_count ());
+  std::fprintf (stderr, "\n--------------------------------\n");
+  std::fprintf (stderr, "kvr context state debug dump [%02d]\n", id);
+  std::fprintf (stderr, "--------------------------------\n");
+  std::fprintf (stderr, "load_factor:       %f\n",   m_keystore.load_factor ());
+  std::fprintf (stderr, "bucket_count:      %zu\n",  m_keystore.bucket_count ());
+  std::fprintf (stderr, "max_size:          %zu\n",  m_keystore.max_size ());
+  std::fprintf (stderr, "max_load_factor:   %f\n",   m_keystore.max_load_factor ());
+  std::fprintf (stderr, "max_bucket_count:  %zu\n",  m_keystore.max_bucket_count ());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1710,7 +1710,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
 void kvr::value::dump () const
 {
   this->_dump (0, NULL);
-  fprintf (stderr, "\n");
+  std::fprintf (stderr, "\n");
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2114,19 +2114,19 @@ void kvr::value::_dump (size_t lpad, const char *key) const
 {
   for (size_t t = 0; t < lpad; ++t)
   {
-    fprintf (stderr, "  ");
+    std::fprintf (stderr, "  ");
   }
 
   if (key)
   {
-    fprintf (stderr, "key = %s : ", key);
+    std::fprintf (stderr, "key = %s : ", key);
   }
 
   //////////////////////////////////
   if (this->is_map ())
   //////////////////////////////////
   {
-    fprintf (stderr, "value = -> [map]\n");
+    std::fprintf (stderr, "value = -> [map]\n");
 
     cursor c = fcursor ();
     pair   p;
@@ -2142,7 +2142,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   else if (this->is_array ())
   //////////////////////////////////
   {
-    fprintf (stderr, "value = -> [array]\n");
+    std::fprintf (stderr, "value = -> [array]\n");
 
     char k [21];
     for (sz_t i = 0, c = this->length (); i < c; ++i)
@@ -2159,7 +2159,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   //////////////////////////////////
   {
     const char *str = get_string ();
-    fprintf (stderr, "value = %s -> [string]\n", str);
+    std::fprintf (stderr, "value = %s -> [string]\n", str);
   }
 
   //////////////////////////////////
@@ -2167,7 +2167,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   //////////////////////////////////
   {
     int64_t n = get_integer ();
-    fprintf (stderr, "value = %lld -> [int]\n", n);
+    std::fprintf (stderr, "value = %lld -> [int]\n", n);
   }
 
   //////////////////////////////////
@@ -2175,7 +2175,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   //////////////////////////////////
   {
     double n = get_float ();
-    fprintf (stderr, "value = %g -> [float]\n", n);
+    std::fprintf (stderr, "value = %g -> [float]\n", n);
   }
 
   //////////////////////////////////
@@ -2183,14 +2183,14 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   //////////////////////////////////
   {
     bool b = get_boolean ();
-    fprintf (stderr, "value = %s -> [bool]\n", b ? kvr_const_str_true : kvr_const_str_false);
+    std::fprintf (stderr, "value = %s -> [bool]\n", b ? kvr_const_str_true : kvr_const_str_false);
   }
 
   //////////////////////////////////
   else if (this->is_null ())
   //////////////////////////////////
   {
-    fprintf (stderr, "value = %s -> [null]\n", kvr_const_str_null);
+    std::fprintf (stderr, "value = %s -> [null]\n", kvr_const_str_null);
   }
 }
 
