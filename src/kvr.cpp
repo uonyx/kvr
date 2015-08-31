@@ -2968,8 +2968,8 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
     // see if we can shrink current space first
     if ((m_cap % CAP_INCR) != 0)
     {
-      sz_t ir, iw;
-      for (ir = 0, iw = 0; ir < cap; ++ir)
+      sz_t ir = 0, iw = 0;
+      for (; ir < cap; ++ir)
       {
         if (m_ptr [ir].k == NULL)
         {
