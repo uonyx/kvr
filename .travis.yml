@@ -5,22 +5,19 @@ compiler:
 - gcc
 
 env:
-  matrix:
-  - CONF=Debug   ARCH=x86_64
-  - CONF=Release ARCH=x86_64
-  - CONF=Debug   ARCH=x86
-  - CONF=Release ARCH=x86
-  global:
-  - ARCH_FLAGS_x86='-m32'         
-  - ARCH_FLAGS_x86_64='-msse4.2' 
-#  - GITHUB_REPO='uonyx/kvr'
-#  - secure: ""
+matrix:
+- CONF=Debug   ARCH=x86_64
+- CONF=Release ARCH=x86_64
+- CONF=Debug   ARCH=x86
+- CONF=Release ARCH=x86
+global:
+- ARCH_FLAGS_x86='-m32'         
+- ARCH_FLAGS_x86_64='-msse4.2' 
 
 before_install:
 - sudo apt-get update -qq
 - sudo apt-get install -qq cmake valgrind
 - if [ "$ARCH" = "x86" ]; then sudo apt-get install -qq g++-multilib libc6-dbg:i386; fi
-# - if [ "$CC" = "gcc" ] && [ "$CONF" = "debug" ]; then sudo pip install cpp-coveralls; export GCOV_FLAGS='--coverage'; fi
 
 install: true
 
@@ -37,8 +34,3 @@ eval "ARCH_FLAGS=\${ARCH_FLAGS_${ARCH}}" ;
 script:
 - cd build
 - make tests
-# - ctest -V `[ "$CONF" = "Release" ] || echo "-E perftest"`
-
-after_success: true
-
-
