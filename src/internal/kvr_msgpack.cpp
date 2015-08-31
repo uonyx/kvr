@@ -440,7 +440,6 @@ public:
           uint16_t len = 0;
           success = this->get ((uint8_t *) &len, 2);
           uint16_t slen = bigendian16 (len);
-          KVR_ASSERT (((uint64_t) slen) <= kvr::SZ_T_MAX);
           const char *str = success ? (const char *) this->push (slen) : NULL;
           success = str ? ctx.read_string (str, slen) : false;
           break;
@@ -451,7 +450,6 @@ public:
           uint32_t len = 0;
           success = this->get ((uint8_t *) &len, 4);
           uint32_t slen = bigendian32 (len);
-          //KVR_ASSERT ((uint64_t) slen <= kvr::SZ_T_MAX);
           const char *str = success ? (const char *) this->push (slen) : NULL;
           success = str ? ctx.read_string (str, slen) : false;
           break;
@@ -462,7 +460,6 @@ public:
           uint16_t len = 0;
           success = this->get ((uint8_t *) &len, 2);
           uint16_t alen = bigendian16 (len);
-          KVR_ASSERT ((uint64_t) alen <= kvr::SZ_T_MAX);
           bool ok = success && ctx.read_array_start (alen);
           for (uint16_t i = 0; ok && (i < alen); ++i)
           {
@@ -480,7 +477,6 @@ public:
           uint32_t len = 0;
           success = this->get ((uint8_t *) &len, 4);
           uint32_t alen = bigendian32 (len);
-          KVR_ASSERT ((uint64_t) alen <= kvr::SZ_T_MAX);
           bool ok = success && ctx.read_array_start (alen);
           for (uint32_t i = 0; ok && (i < alen); ++i)
           {
@@ -499,7 +495,6 @@ public:
           uint16_t len = 0;
           success = this->get ((uint8_t *) &len, 2);
           uint16_t msz = bigendian16 (len);
-          KVR_ASSERT ((uint64_t) msz <= kvr::SZ_T_MAX);
           bool ok = success && ctx.read_map_start (msz);
           for (uint16_t i = 0; ok && (i < msz); ++i)
           {
@@ -518,7 +513,6 @@ public:
           uint32_t len = 0;
           success = this->get ((uint8_t *) &len, 4);
           uint32_t msz = bigendian32 (len);
-          KVR_ASSERT ((uint64_t) msz <= kvr::SZ_T_MAX);
           bool ok = success && ctx.read_map_start (msz);
           for (uint32_t i = 0; ok && (i < msz); ++i)
           {
@@ -701,7 +695,6 @@ private:
           uint16_t len = 0;
           success = this->get ((uint8_t *) &len, 2);
           uint16_t slen = bigendian16 (len);
-          KVR_ASSERT ((uint64_t) slen <= kvr::SZ_T_MAX);
           const char *str = success ? (const char *) this->push (slen) : NULL;
           success = str ? ctx.read_key (str, slen) : false;
           break;
@@ -712,7 +705,6 @@ private:
           uint32_t len = 0;
           success = this->get ((uint8_t *) &len, 4);
           uint32_t slen = bigendian32 (len);
-          KVR_ASSERT ((uint64_t) slen <= kvr::SZ_T_MAX);
           const char *str = success ? (const char *) this->push (slen) : NULL;
           success = str ? ctx.read_key (str, slen) : false;
           break;

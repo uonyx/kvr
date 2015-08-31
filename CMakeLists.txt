@@ -11,7 +11,7 @@ project(kvr)
 option (KVR_BUILD_TESTS "build tests" ON)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  set (KVR_CXX_FLAGS "-std=c++03 -march=native -Wall -Wextra -Werror")
+  set (KVR_CXX_FLAGS "-std=c++98 -Wall -Wextra -Werror")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set (KVR_CXX_FLAGS "-std=c++03 -march=native -Wall -Wextra -Werror")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
