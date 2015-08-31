@@ -2167,7 +2167,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   //////////////////////////////////
   {
     int64_t n = get_integer ();
-    std::fprintf (stderr, "value = %lld -> [int]\n", n);
+    std::fprintf (stderr, "value = %" PRId64 " -> [int]\n", n);
   }
 
   //////////////////////////////////
