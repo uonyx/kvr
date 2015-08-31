@@ -22,6 +22,7 @@
 
 #include <cstdio>
 #include <cmath>
+#include <limits>
 #include "../kvr.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/writer.h"

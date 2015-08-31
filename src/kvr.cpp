@@ -357,7 +357,7 @@ char * kvr::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) con
       KVR_ASSERT (p);
 
       size_t plen = strlen (p);
-      KVR_ASSERT (plen <= kvr::SZ_T_MAX);
+      KVR_ASSERT ((uint64_t) plen <= kvr::SZ_T_MAX);
 
       expsz += (sz_t) plen;
       expsz += 1; // for delimiter/null character
@@ -602,7 +602,7 @@ void kvr::value::set_string (const char *str)
 #endif
 
   size_t len = strlen (str);  
-  KVR_ASSERT (len <= kvr::SZ_T_MAX);
+  KVR_ASSERT ((uint64_t) len <= kvr::SZ_T_MAX);
   this->_set_string (str, (sz_t) len);
 }
 
@@ -2034,7 +2034,8 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
         char *end = NULL;
         int64_t ki64 = strtoll (keystr, &end, 10);
         KVR_ASSERT_SAFE ((end && (!*end) && "non-integral array index"), NULL);
-        KVR_ASSERT (ki64 <= (int64_t) kvr::SZ_T_MAX);
+        KVR_ASSERT (ki64 >= 0);
+        KVR_ASSERT ((uint64_t) ki64 <= kvr::SZ_T_MAX);
         sz_t ki = (sz_t) ki64;
         v = this->element (ki);
         break;
@@ -2665,7 +2666,8 @@ void kvr::value::_patch_add (const value *add)
 #if KVR_DEBUG
         char *end;
         int64_t ki64 = strtoll (tgk, &end, 10); KVR_ASSERT (!*end);
-        KVR_ASSERT (ki64 <= (int64_t) kvr::SZ_T_MAX);
+        KVR_ASSERT (ki64 >= 0);
+        KVR_ASSERT ((uint64_t) ki64 <= kvr::SZ_T_MAX);
         sz_t ki = (sz_t) ki64;
         sz_t sz = tgp->length ();
         KVR_ASSERT (ki == sz);
@@ -2715,7 +2717,8 @@ void kvr::value::_patch_rem (const value *rem)
 #if KVR_DEBUG
         char *end;
         int64_t ki64 = strtoll (tgk, &end, 10); KVR_ASSERT (!*end);
-        KVR_ASSERT (ki64 <= (int64_t) kvr::SZ_T_MAX);
+        KVR_ASSERT (ki64 >= 0);
+        KVR_ASSERT ((uint64_t) ki64 <= kvr::SZ_T_MAX);
         sz_t ki = (sz_t) ki64;
         sz_t sz = tgp->length ();
         KVR_ASSERT ((ki + 1) == sz);
