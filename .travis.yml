@@ -6,6 +6,9 @@ compiler:
 - clang
 - gcc
 
+python:
+- "2.7"
+
 env:
 matrix:
 - CONF=Debug   ARCH=x86_64
