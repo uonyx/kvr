@@ -2167,7 +2167,15 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   //////////////////////////////////
   {
     int64_t n = get_integer ();
+#if 0
     std::fprintf (stderr, "value = %" PRId64 " -> [int]\n", n);
+#else
+    // PRId64 not supported by travis-ci
+    char ns [22];
+    size_t c = kvr_internal::i64toa (n, ns);
+    ns [c] = 0;
+    fprintf (stderr, "value = %s -> [int]\n", ns);
+#endif
   }
 
   //////////////////////////////////
