@@ -37,7 +37,7 @@
 #define KVR_ASSERT_SAFE(X, R) KVR_ASSERT(X)
 #else
 #define KVR_ASSERT(X) 
-#define KVR_ASSERT_SAFE(X, R) do { if (!X) { return (R); } } while (0)
+#define KVR_ASSERT_SAFE(X, R) do { if (!(X)) { return (R); } } while (0,0)
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

@@ -376,7 +376,7 @@ char * kvr::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) con
         const char *p = path [i];
         KVR_ASSERT (p);
 
-        while ((*dst++ = *p++)) {}
+        while ((*dst++ = *p++) != 0) {}
         *(dst - 1) = delim;
       }
 
@@ -660,7 +660,9 @@ void kvr::value::set_float (double n)
 const char * kvr::value::get_string () const
 {
   KVR_ASSERT_SAFE (is_string (), NULL);
-  return this->_is_string_dynamic () ? m_data.s.m_dyn.data : m_data.s.m_stt.data;
+
+  const char *str = this->_is_string_dynamic () ? m_data.s.m_dyn.get () : m_data.s.m_stt.get ();
+  return str;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -669,19 +671,19 @@ const char * kvr::value::get_string () const
 
 const char * kvr::value::get_string (sz_t *len) const
 {
-  KVR_ASSERT (len);
+  KVR_ASSERT_SAFE (len, get_string ());
   
   const char *str = NULL;
 
   if (this->_is_string_dynamic ())
   {
-    *len = m_data.s.m_dyn.len;
-    str = m_data.s.m_dyn.data;
+    *len = m_data.s.m_dyn.length ();
+    str = m_data.s.m_dyn.get ();
   }
   else
   {
-    *len = (sz_t) strlen (m_data.s.m_stt.data);
-    str = m_data.s.m_stt.data;
+    *len = m_data.s.m_stt.length ();
+    str = m_data.s.m_stt.get ();
   }
 
   return str;
@@ -1717,122 +1719,25 @@ void kvr::value::dump () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::sz_t kvr::value::_get_string_length () const
-{
-  KVR_ASSERT (is_string ());
-
-  sz_t slen = 0;
-
-  if (this->_is_string_dynamic ())
-  {
-    slen = m_data.s.m_dyn.len;
-  }
-  else
-  {
-    slen = (sz_t) strlen (m_data.s.m_stt.data);
-  }
-
-  return slen;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::sz_t kvr::value::_get_string_size () const
-{
-  KVR_ASSERT (is_string ());
-
-  sz_t ssize = 0;
-
-  if (this->_is_string_dynamic ())
-  {
-    ssize = m_data.s.m_dyn.size;
-  }
-  else
-  {
-    ssize = string::stt_str::CAP;
-  }
-
-  return ssize;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 void kvr::value::_set_string (const char *str, sz_t len)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (is_string ());
-  
-  // check string type
+
   if (this->_is_string_static () && (len >= string::stt_str::CAP))
   {
-    // init dynamic with size
-    char *&sdata = m_data.s.m_dyn.data;
-    sz_t &ssize = m_data.s.m_dyn.size;
-    sz_t &slen = m_data.s.m_dyn.len;
-
-    sz_t allocsz = (len + (string::dyn_str::PAD - 1)) & ~(string::dyn_str::PAD - 1);
-    sdata = new char [allocsz];
-    ssize = allocsz;
-    slen = len;
-
-    // toggle string types
-    m_flags &= ~VALUE_FLAG_TYPE_STT_STRING;
+    this->_clear ();
     m_flags |= VALUE_FLAG_TYPE_DYN_STRING;
   }
-
-  // set string
+  
   if (this->_is_string_dynamic ())
   {
-    this->_set_string_dyn (str, len);
+    this->m_data.s.m_dyn.set (str, len);
   }
   else
   {
-    this->_set_string_stt (str, len);
+    this->m_data.s.m_stt.set (str, len);
   }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::value::_set_string_stt (const char *str, sz_t len)
-{
-  KVR_ASSERT (str);
-  KVR_ASSERT (is_string ());
-  KVR_ASSERT (len < string::stt_str::CAP);
-
-  kvr_strncpy (m_data.s.m_stt.data, string::stt_str::CAP, str, len);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::value::_set_string_dyn (const char *str, sz_t len)
-{
-  KVR_ASSERT (str);
-  KVR_ASSERT (len > 0);
-  KVR_ASSERT (is_string ());
-
-  char *&sdata = m_data.s.m_dyn.data;
-  sz_t &ssize = m_data.s.m_dyn.size;
-  sz_t &slen = m_data.s.m_dyn.len;
-
-  sz_t allocsz = ((len + 1) + (string::dyn_str::PAD - 1)) & ~(string::dyn_str::PAD - 1);
-  if (allocsz > ssize)
-  {
-    KVR_ASSERT (sdata);
-    delete [] sdata;
-    sdata = new char [allocsz];
-    ssize = allocsz;
-  }
-
-  kvr_strncpy (sdata, ssize, str, len);
-  slen = len;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1844,24 +1749,13 @@ void kvr::value::_move_string (char *str, sz_t size)
   KVR_ASSERT (str);
   KVR_ASSERT (size > 0);
   KVR_ASSERT (is_string ());
+  
+  this->_clear ();
+  m_flags |= VALUE_FLAG_TYPE_DYN_STRING;
 
-  char *&sdata = m_data.s.m_dyn.data;
-  sz_t &ssize = m_data.s.m_dyn.size;
-  sz_t &slen = m_data.s.m_dyn.len;
-
-  if (this->_is_string_dynamic ())
-  {
-    delete [] sdata;
-  }
-  else
-  {
-    m_flags &= ~VALUE_FLAG_TYPE_STT_STRING;
-    m_flags |= VALUE_FLAG_TYPE_DYN_STRING;
-  }
-
-  sdata = str;
-  ssize = size;
-  slen = size - 1;
+  m_data.s.m_dyn.m_data = str;
+  m_data.s.m_dyn.m_size = size;
+  m_data.s.m_dyn.m_len = size - 1;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2086,8 +1980,7 @@ void kvr::value::_destruct ()
   }
   else if (this->_is_string_dynamic ())
   {
-    KVR_ASSERT (m_data.s.m_dyn.data);
-    delete [] m_data.s.m_dyn.data;
+    m_data.s.m_dyn.cleanup ();
   }
 }
 
@@ -2326,8 +2219,9 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       KVR_ASSERT (pathcnt > 0);
       KVR_ASSERT (md->is_string ());
 
+      sz_t mdstrlen = 0;
       const char *ogstr = og->get_string ();
-      const char *mdstr = md->get_string ();
+      const char *mdstr = md->get_string (&mdstrlen);
 
       if (strcmp (ogstr, mdstr) != 0)
       {
@@ -2348,7 +2242,6 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
           if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
         }
 
-        sz_t mdstrlen = md->_get_string_length ();
         value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdstr, mdstrlen);
         set->_insert_kv (k, v);
       }
@@ -2819,6 +2712,85 @@ kvr::sz_t kvr::value::_size2 () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
+// kvr::value::string
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+const char *kvr::value::string::stt_str::get () const
+{
+  return m_data;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::sz_t kvr::value::string::stt_str::length () const
+{
+  size_t length = strlen (m_data);
+  return (sz_t) length;
+}
+
+void kvr::value::string::stt_str::set (const char *str, sz_t len)
+{
+  KVR_ASSERT (str);
+  KVR_ASSERT (len < stt_str::CAP);
+  kvr_strncpy (m_data, string::stt_str::CAP, str, len);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+const char *kvr::value::string::dyn_str::get () const
+{
+  return m_data;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::sz_t kvr::value::string::dyn_str::length () const
+{
+  return m_len;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::string::dyn_str::set (const char *str, sz_t len)
+{
+  KVR_ASSERT (str);
+  KVR_ASSERT (len > 0);
+
+  sz_t allocsz = ((len + 1) + (string::dyn_str::PAD - 1)) & ~(string::dyn_str::PAD - 1);
+  if (allocsz > m_size)
+  {
+    if (m_data) { delete [] m_data; }
+    m_data = new char [allocsz];
+    m_size = allocsz;
+  }
+
+  kvr_strncpy (m_data, m_size, str, len);
+  m_len = len;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::string::dyn_str::cleanup ()
+{
+  KVR_ASSERT (m_data);
+  delete [] m_data;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 // kvr::value::array
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2968,36 +2940,31 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
 {
   KVR_ASSERT (k);
   KVR_ASSERT (v);
-
   KVR_ASSERT (m_ptr);
 
 #if EXPERIMENTAL_FAST_MAP_SIZE
   sz_t cap = _cap ();
-  if (m_len >= cap)
-  {
 #if 1
-    // see if we can shrink current space first
-    if ((m_cap % CAP_INCR) != 0)
+  // see if we can shrink current space first
+  if ((m_len >= cap) && ((m_cap % CAP_INCR) != 0))
+  {
+    sz_t ir = 0, iw = 0;
+    while (ir < cap)
     {
-      sz_t ir = 0, iw = 0;
-      for (; ir < cap; ++ir)
+      if (m_ptr [ir].k)
       {
-        if (m_ptr [ir].k == NULL)
-        {
-          continue;
-        }
-        else
-        {
-          m_ptr [iw].k = m_ptr [ir].k;
-          m_ptr [iw++].v = m_ptr [ir].v;
-        }
+        m_ptr [iw++] = m_ptr [ir++];
       }
-      m_len -= (ir - iw);
-      m_cap += (ir - iw);
-      KVR_ASSERT (m_len < cap);
+      else
+      {
+        ir++;
+      }
     }
-#endif
+    m_len -= (ir - iw);
+    m_cap += (ir - iw);
+    KVR_ASSERT (m_len < cap);
   }
+#endif
 
   // check again
   if (m_len >= cap)
@@ -3010,7 +2977,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
 
     m_ptr = newPtr;
     m_cap += CAP_INCR;
-    //KVR_ASSERT (newcap >= m_cap);
+    KVR_ASSERT (newcap >= m_cap);
   }
 #else
   if (m_len >= m_cap)

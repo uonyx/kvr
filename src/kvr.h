@@ -108,7 +108,7 @@
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (64u)
 #define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 #define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
-#define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8u)
+#define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8u)    // must be power of 2
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -282,17 +282,24 @@ public:
       struct dyn_str
       {
         static const sz_t PAD = (KVR_CONSTANT_COMMON_BLOCK_SZ - 1);
+        char *  m_data;
+        sz_t    m_size;
+        sz_t    m_len;
 
-        char *  data;
-        sz_t    size;
-        sz_t    len;
+        const char *get () const;
+        sz_t length () const;
+        void set (const char *str, sz_t len);
+        void cleanup ();
       } m_dyn;
 
       struct stt_str
       {
         static const sz_t CAP = ((sizeof (sz_t) * 2) + sizeof (char *)); // sizeof dyn_str
+        char m_data [CAP];
 
-        char data [CAP];
+        const char *get () const;
+        sz_t length () const;
+        void set (const char *str, sz_t len);
       } m_stt;
     };
 
@@ -402,11 +409,7 @@ public:
     bool    _is_string_dynamic () const;
     bool    _is_string_static () const;
     
-    sz_t    _get_string_length () const;
-    sz_t    _get_string_size () const;
     void    _set_string (const char *str, sz_t len);
-    void    _set_string_stt (const char *str, sz_t len);
-    void    _set_string_dyn (const char *str, sz_t len);
     void    _move_string (char *str, sz_t size);
 
     value * _search_path_expr (const char *expr, const char **lastkey = NULL, 
@@ -623,7 +626,7 @@ private:
       uint32_t hash = 5381;
       char c;
 
-      while ((c = *s++))
+      while ((c = *s++) != 0)
       {
         hash = ((hash << 5) + hash) + c;
       }
