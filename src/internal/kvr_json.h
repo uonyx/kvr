@@ -5,8 +5,8 @@
 /*
  * Copyright (c) 2015 Ubaka Onyechi
  * 
- * kvr is free software.
- * See LICENSE file for details
+ * kvr is free software distributed under the MIT license.
+ * See LICENSE file for details.
  */
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

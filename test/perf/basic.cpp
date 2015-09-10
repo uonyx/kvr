@@ -10,7 +10,7 @@
 
 int main () //int argc, char* argv [])
 {
-  kvr *ctx = kvr::create_context ();
+  kvr::context *ctx = kvr::create_context ();
 
   kvr::value *map = ctx->create_value ()->conv_map ();
 
@@ -22,7 +22,7 @@ int main () //int argc, char* argv [])
   int64_t i = map->find ("int")->get_integer ();
   (void) i;
   // printf ("int: %lld\n", i);
-  
+
   ctx->destroy_value (map);
 
   kvr::destroy_context (ctx);

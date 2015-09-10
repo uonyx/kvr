@@ -1,8 +1,8 @@
 #
 # Copyright (c) 2015 Ubaka Onyechi
-# 
-# kvr is free software.
-# See LICENSE file for details
+#
+# kvr is free software distributed under the MIT license.
+# See LICENSE file for details.
 #
 
 cmake_minimum_required (VERSION 2.8.3)
@@ -20,13 +20,13 @@ endif()
 
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ${KVR_CXX_FLAGS}")
 set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${KVR_CXX_FLAGS}")
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${KVR_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${KVR_CXX_FLAGS} -march=native")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
 
 if (OFF)
-  message ("debug flags ${CMAKE_CXX_FLAGS_DEBUG}")
-  message ("optim flags ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-  message ("relea flags ${CMAKE_CXX_FLAGS_RELEASE}")
+  message ("debug   flags ${CMAKE_CXX_FLAGS_DEBUG}")
+  message ("rel_dbg flags ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+  message ("release flags ${CMAKE_CXX_FLAGS_RELEASE}")
   message ("none  flags ${CMAKE_CXX_FLAGS}")
 endif ()
 

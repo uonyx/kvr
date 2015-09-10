@@ -5,8 +5,8 @@
 /*
  * Copyright (c) 2015 Ubaka Onyechi
  * 
- * kvr is free software.
- * See LICENSE file for details
+ * kvr is free software distributed under the MIT license.
+ * See LICENSE file for details.
  */
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -31,6 +31,7 @@ class kvr_msgpack
 public:
 
   static bool read (kvr::value *dest, const uint8_t *data, size_t size);
+  static bool read (kvr::value *dest, const kvr::istream &istr);
   static bool write (const kvr::value *src, kvr::ostream *ostr);
   static size_t write_approx_size (const kvr::value *val);
 };

@@ -5,8 +5,8 @@
 /*
  * Copyright (c) 2015 Ubaka Onyechi
  * 
- * kvr is free software.
- * See LICENSE file for details
+ * kvr is free software distributed under the MIT license.
+ * See LICENSE file for details.
  */
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -334,6 +334,69 @@ struct json_read_context
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+template<typename ostreambuf>
+struct json_write_context_t
+{
+  json_write_context_t (ostreambuf *ostream) : m_stream (ostream)
+  {
+    KVR_ASSERT (ostream);
+
+    m_stream->seek (0);
+    m_stream->set_eos (0);
+  }
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
+  void Put (char ch)
+  {
+    bool ok = m_stream->put (ch);
+    if (!ok)
+    {
+      size_t newcap = m_stream->capacity () * 2;
+      m_stream->resize (newcap);
+      ok = m_stream->put (ch);
+    }
+    KVR_ASSERT (ok);
+  }
+
+  char *Push (size_t count)
+  {
+    uint8_t *bytes = m_stream->push (count);
+    if (!bytes)
+    {
+      size_t newcap = m_stream->capacity () * 2;
+      m_stream->resize (newcap);
+      bytes = m_stream->push (count);
+    }
+    KVR_ASSERT (bytes);
+    return (char *) bytes;
+  }
+
+  char *Pop (size_t count)
+  {
+    uint8_t *bytes = m_stream->pop (count);
+    KVR_ASSERT (bytes);
+    return (char *) bytes;
+  }
+
+  void Flush () {}
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
+  ostreambuf      *m_stream;
+
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+
+  //static bool write_stream (const kvr::value *val, kvr_rapidjson::Writer<json_write_context> &writer);
+  static size_t write_approx_size (const kvr::value *val);
+};
+
 struct json_write_context
 {
   json_write_context (kvr::ostream *ostream) : m_stream (ostream)
@@ -414,10 +477,10 @@ bool json_write_context::write_stream (const kvr::value *val, kvr_rapidjson::Wri
     while (ok && c.get (&p))
     {
       kvr::key *k = p.get_key ();
-      writer.Key (k->get_string (), k->get_length ());
+      ok = writer.Key (k->get_string (), k->get_length ());
 
       kvr::value *v = p.get_value ();
-      ok = write_stream (v, writer);
+      ok = ok && write_stream (v, writer);
     }
     success = ok && writer.EndObject ();
   }
