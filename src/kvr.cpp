@@ -120,7 +120,7 @@ kvr::context::~context ()
 
 kvr::value * kvr::context::create_value ()
 {
-  kvr::value *v = this->_create_value_null (VALUE_FLAG_PARENT_CTX);
+  kvr::value *v = this->_create_value_null (kvr::value::FLAG_PARENT_CTX);
 
   return v;
 }
@@ -131,7 +131,7 @@ kvr::value * kvr::context::create_value ()
 
 void kvr::context::destroy_value (value *v)
 {
-  this->_destroy_value (VALUE_FLAG_PARENT_CTX, v);
+  this->_destroy_value (kvr::value::FLAG_PARENT_CTX, v);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -502,7 +502,7 @@ kvr::value * kvr::value::conv_string ()
   if (!is_string ())
   {
     this->_clear ();
-    m_flags |= VALUE_FLAG_TYPE_STT_STRING;
+    m_flags |= FLAG_TYPE_STRING_STATIC;
   }
 
   return this;
@@ -517,7 +517,7 @@ kvr::value * kvr::value::conv_boolean ()
   if (!is_boolean ())
   {
     this->_clear ();
-    m_flags |= VALUE_FLAG_TYPE_BOOLEAN;
+    m_flags |= FLAG_TYPE_BOOLEAN;
   }
 
   return this;
@@ -541,7 +541,7 @@ kvr::value * kvr::value::conv_integer ()
       this->_clear ();
     }
 
-    m_flags |= VALUE_FLAG_TYPE_NUMBER_INTEGER;
+    m_flags |= FLAG_TYPE_NUMBER_INTEGER;
   }
 
   return this;
@@ -565,7 +565,7 @@ kvr::value * kvr::value::conv_float ()
       this->_clear ();
     }
 
-    m_flags |= VALUE_FLAG_TYPE_NUMBER_FLOAT;
+    m_flags |= FLAG_TYPE_NUMBER_FLOAT;
   }
 
   return this;
@@ -580,7 +580,7 @@ kvr::value * kvr::value::conv_null ()
   if (!is_null ())
   {
     this->_clear ();
-    m_flags |= VALUE_FLAG_TYPE_NULL;
+    m_flags |= FLAG_TYPE_NULL;
   }
 
   return this;
@@ -747,7 +747,7 @@ kvr::value * kvr::value::push (int64_t num)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, num);
+  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, num);
   this->m_data.a.push (v);
 
   return v;
@@ -765,7 +765,7 @@ kvr::value * kvr::value::push (double num)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, num);
+  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, num);
   this->m_data.a.push (v);
 
   return v;
@@ -783,7 +783,7 @@ kvr::value * kvr::value::push (bool b)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, b);
+  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, b);
   this->m_data.a.push (v);
 
   return v;
@@ -803,7 +803,7 @@ kvr::value * kvr::value::push (const char *str)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (VALUE_FLAG_PARENT_ARRAY, str, (sz_t) strlen (str));
+  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, str, (sz_t) strlen (str));
   this->m_data.a.push (v);
 
   return v;
@@ -821,7 +821,7 @@ kvr::value * kvr::value::push_map ()
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value_map (VALUE_FLAG_PARENT_ARRAY);
+  kvr::value *v = m_ctx->_create_value_map (FLAG_PARENT_ARRAY);
   this->m_data.a.push (v);
 
   return v;
@@ -839,7 +839,7 @@ kvr::value * kvr::value::push_array ()
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value_array (VALUE_FLAG_PARENT_ARRAY);
+  kvr::value *v = m_ctx->_create_value_array (FLAG_PARENT_ARRAY);
   this->m_data.a.push (v);
 
   return v;
@@ -857,7 +857,7 @@ kvr::value * kvr::value::push_null ()
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value_null (VALUE_FLAG_PARENT_ARRAY);
+  kvr::value *v = m_ctx->_create_value_null (FLAG_PARENT_ARRAY);
   this->m_data.a.push (v);
 
   return v;
@@ -876,7 +876,7 @@ bool kvr::value::pop ()
   kvr::value *v = this->m_data.a.pop ();
   if (v)
   {
-    m_ctx->_destroy_value (VALUE_FLAG_PARENT_ARRAY, v);
+    m_ctx->_destroy_value (FLAG_PARENT_ARRAY, v);
     ret = true;
   }
 
@@ -938,7 +938,7 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, num));
+    n = m_data.m.insert (k, m_ctx->_create_value (FLAG_PARENT_MAP, num));
     KVR_ASSERT (n);
   }
 
@@ -975,7 +975,7 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, num));
+    n = m_data.m.insert (k, m_ctx->_create_value (FLAG_PARENT_MAP, num));
     KVR_ASSERT (n);
   }
 
@@ -1011,7 +1011,7 @@ kvr::value * kvr::value::insert (const char *keystr, bool b)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, b));
+    n = m_data.m.insert (k, m_ctx->_create_value (FLAG_PARENT_MAP, b));
     KVR_ASSERT (n);
   }
 
@@ -1048,7 +1048,7 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (VALUE_FLAG_PARENT_MAP, str, (sz_t) strlen (str)));
+    n = m_data.m.insert (k, m_ctx->_create_value (FLAG_PARENT_MAP, str, (sz_t) strlen (str)));
     KVR_ASSERT (n);
   }
 
@@ -1084,7 +1084,7 @@ kvr::value * kvr::value::insert_map (const char *keystr)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_map (VALUE_FLAG_PARENT_MAP));
+    n = m_data.m.insert (k, m_ctx->_create_value_map (FLAG_PARENT_MAP));
     KVR_ASSERT (n);
   }
 
@@ -1120,7 +1120,7 @@ kvr::value * kvr::value::insert_array (const char *keystr)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_array (VALUE_FLAG_PARENT_MAP));
+    n = m_data.m.insert (k, m_ctx->_create_value_array (FLAG_PARENT_MAP));
     KVR_ASSERT (n);
   }
 
@@ -1156,7 +1156,7 @@ kvr::value * kvr::value::insert_null (const char *keystr)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_null (VALUE_FLAG_PARENT_MAP));
+    n = m_data.m.insert (k, m_ctx->_create_value_null (FLAG_PARENT_MAP));
     KVR_ASSERT (n);
   }
   
@@ -1201,7 +1201,7 @@ void kvr::value::remove (const char *keystr)
     if (n)
     {
       m_ctx->_destroy_key (n->k);
-      m_ctx->_destroy_value (VALUE_FLAG_PARENT_MAP, n->v);
+      m_ctx->_destroy_value (FLAG_PARENT_MAP, n->v);
       m_data.m.remove (n);
     }
   }
@@ -1640,7 +1640,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   if (this->is_map ())
   //////////////////////////////////
   {
-    hc += (VALUE_FLAG_TYPE_MAP);
+    hc += (FLAG_TYPE_MAP);
     uint32_t mhc = 0;
     cursor c = fcursor ();
 
@@ -1660,7 +1660,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   else if (this->is_array ())
   //////////////////////////////////
   {
-    hc += (VALUE_FLAG_TYPE_ARRAY);
+    hc += (FLAG_TYPE_ARRAY);
     uint32_t ahc = 0;
     for (sz_t i = 0, c = this->length (); i < c; ++i)
     {
@@ -1676,7 +1676,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   else if (this->is_string ())
   //////////////////////////////////
   {
-    hc += (VALUE_FLAG_TYPE_STT_STRING + VALUE_FLAG_TYPE_DYN_STRING);
+    hc += (FLAG_TYPE_STRING_STATIC + FLAG_TYPE_STRING_DYNAMIC);
     const char *str = get_string ();
     hc += kvr_internal::strhash (str);
   }
@@ -1685,7 +1685,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   else if (this->is_integer ())
   //////////////////////////////////
   {
-    hc += (VALUE_FLAG_TYPE_NUMBER_INTEGER);
+    hc += (FLAG_TYPE_NUMBER_INTEGER);
     int64_t n = get_integer ();
     uint32_t hv = (uint32_t) (n % (1ULL << 32));
     hc += hv;
@@ -1695,7 +1695,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   else if (this->is_float ())
   //////////////////////////////////
   {
-    hc += (VALUE_FLAG_TYPE_NUMBER_FLOAT);
+    hc += (FLAG_TYPE_NUMBER_FLOAT);
     double n = get_float ();
     uint32_t hv = (uint32_t) std::floor (n);
     hc += hv;
@@ -1705,7 +1705,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   else if (this->is_boolean ())
   //////////////////////////////////
   {
-    hc += (VALUE_FLAG_TYPE_BOOLEAN);
+    hc += (FLAG_TYPE_BOOLEAN);
     bool b = get_boolean ();
     uint32_t hv = b ? 4u : 5u;
     hc += hv;
@@ -1715,7 +1715,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   else if (this->is_null ())
   //////////////////////////////////
   {
-    hc += (VALUE_FLAG_TYPE_NULL);    
+    hc += (FLAG_TYPE_NULL);    
   }
 
   return hc;
@@ -1743,7 +1743,7 @@ void kvr::value::_set_string (const char *str, sz_t len)
   if (this->_is_string_static () && (len >= string::stt_str::CAP))
   {
     this->_clear ();
-    m_flags |= VALUE_FLAG_TYPE_DYN_STRING;
+    m_flags |= FLAG_TYPE_STRING_DYNAMIC;
   }
   
   if (this->_is_string_dynamic ())
@@ -1767,7 +1767,7 @@ void kvr::value::_move_string (char *str, sz_t size)
   KVR_ASSERT (is_string ());
   
   this->_clear ();
-  m_flags |= VALUE_FLAG_TYPE_DYN_STRING;
+  m_flags |= FLAG_TYPE_STRING_DYNAMIC;
 
   m_data.s.m_dyn.m_data = str;
   m_data.s.m_dyn.m_size = size;
@@ -1980,7 +1980,7 @@ void kvr::value::_destruct ()
     while (c.get (&p))
     {
       m_ctx->_destroy_key (p.m_k);
-      m_ctx->_destroy_value (VALUE_FLAG_PARENT_MAP, p.m_v);      
+      m_ctx->_destroy_value (FLAG_PARENT_MAP, p.m_v);      
     }
     m_data.m.deinit ();
   }
@@ -2132,7 +2132,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       KVR_ASSERT (pathcnt > 0);
       // add og to rem list
       kvr::context *ctx = m_ctx;
-      value *v = ctx->_create_value_null (VALUE_FLAG_PARENT_ARRAY);
+      value *v = ctx->_create_value_null (FLAG_PARENT_ARRAY);
       v->conv_string ();
 
       if (pathcnt == 1)
@@ -2174,7 +2174,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
       }
 
-      value *v = ctx->_create_value_null (VALUE_FLAG_PARENT_MAP);
+      value *v = ctx->_create_value_null (FLAG_PARENT_MAP);
       v->copy (md);
       set->_insert_kv (k, v);
     }
@@ -2258,7 +2258,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
           if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
         }
 
-        value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdstr, mdstrlen);
+        value *v = ctx->_create_value (FLAG_PARENT_MAP, mdstr, mdstrlen);
         set->_insert_kv (k, v);
       }
     }
@@ -2294,7 +2294,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
             if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
           }
 
-          value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
+          value *v = ctx->_create_value (FLAG_PARENT_MAP, mdn);
           set->_insert_kv (k, v);
         }
       }
@@ -2322,7 +2322,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
             if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
           }
 
-          value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
+          value *v = ctx->_create_value (FLAG_PARENT_MAP, mdn);
           set->_insert_kv (k, v);
         }
       }
@@ -2357,7 +2357,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
           if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
         }
 
-        value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdn);
+        value *v = ctx->_create_value (FLAG_PARENT_MAP, mdn);
         set->_insert_kv (k, v);
       }
     }
@@ -2391,7 +2391,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
           if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
         }
 
-        value *v = ctx->_create_value (VALUE_FLAG_PARENT_MAP, mdb);
+        value *v = ctx->_create_value (FLAG_PARENT_MAP, mdb);
         set->_insert_kv (k, v);
       }
     }
@@ -2445,7 +2445,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
         if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
       }
 
-      value *v = ctx->_create_value_null (VALUE_FLAG_PARENT_MAP);
+      value *v = ctx->_create_value_null (FLAG_PARENT_MAP);
       v->copy (md);
       add->_insert_kv (k, v);
     }
@@ -2680,7 +2680,7 @@ kvr::value * kvr::value::_conv_map (sz_t cap)
   if (!is_map ())
   {
     this->_clear ();
-    m_flags |= VALUE_FLAG_TYPE_MAP;
+    m_flags |= FLAG_TYPE_MAP;
     m_data.m.init (cap);
   }
 
@@ -2696,7 +2696,7 @@ kvr::value * kvr::value::_conv_array (sz_t cap)
   if (!is_array ())
   {
     this->_clear ();
-    m_flags |= VALUE_FLAG_TYPE_ARRAY;
+    m_flags |= FLAG_TYPE_ARRAY;
     m_data.a.init (cap);
   }
 

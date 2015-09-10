@@ -406,6 +406,26 @@ namespace kvr
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
+    enum _flags
+    {
+      FLAG_NONE                 = 0,
+      FLAG_PARENT_CTX           = (1 << 0),
+      FLAG_PARENT_MAP           = (1 << 1),
+      FLAG_PARENT_ARRAY         = (1 << 2),
+      FLAG_TYPE_NULL            = (1 << 3),
+      FLAG_TYPE_MAP             = (1 << 4),
+      FLAG_TYPE_ARRAY           = (1 << 5),
+      FLAG_TYPE_STRING_DYNAMIC  = (1 << 6),
+      FLAG_TYPE_STRING_STATIC   = (1 << 7),
+      FLAG_TYPE_NUMBER_INTEGER  = (1 << 8),
+      FLAG_TYPE_NUMBER_FLOAT    = (1 << 9),
+      FLAG_TYPE_BOOLEAN         = (1 << 10),
+    };
+
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+
     bool    _is_number () const;
     bool    _is_string_dynamic () const;
     bool    _is_string_static () const;
@@ -571,32 +591,12 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-
-  enum value_flags
-  {
-    VALUE_FLAG_NONE = 0,
-    VALUE_FLAG_TYPE_NULL = (1 << 0),
-    VALUE_FLAG_TYPE_MAP = (1 << 1),
-    VALUE_FLAG_TYPE_ARRAY = (1 << 2),
-    VALUE_FLAG_TYPE_DYN_STRING = (1 << 3),
-    VALUE_FLAG_TYPE_STT_STRING = (1 << 4),
-    VALUE_FLAG_TYPE_NUMBER_INTEGER = (1 << 5),
-    VALUE_FLAG_TYPE_NUMBER_FLOAT = (1 << 6),
-    VALUE_FLAG_TYPE_BOOLEAN = (1 << 7),
-    VALUE_FLAG_PARENT_CTX = (1 << 8),
-    VALUE_FLAG_PARENT_MAP = (1 << 9),
-    VALUE_FLAG_PARENT_ARRAY = (1 << 10),
-  };
-
   context * create_context (uint32_t flags = 0);
   void   destroy_context (context *ctx);
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////\
 
   class context
   {
@@ -712,7 +712,7 @@ namespace kvr
 
   KVR_INLINE bool value::is_null () const
   {
-    return (m_flags & VALUE_FLAG_TYPE_NULL) != 0;
+    return (m_flags & FLAG_TYPE_NULL) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -721,7 +721,7 @@ namespace kvr
 
   KVR_INLINE bool value::is_map () const
   {
-    return (m_flags & VALUE_FLAG_TYPE_MAP) != 0;
+    return (m_flags & FLAG_TYPE_MAP) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -730,7 +730,7 @@ namespace kvr
 
   KVR_INLINE bool value::is_array () const
   {
-    return (m_flags & VALUE_FLAG_TYPE_ARRAY) != 0;
+    return (m_flags & FLAG_TYPE_ARRAY) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -739,7 +739,7 @@ namespace kvr
 
   KVR_INLINE bool value::is_string () const
   {
-    return (m_flags & (VALUE_FLAG_TYPE_DYN_STRING | VALUE_FLAG_TYPE_STT_STRING)) != 0;
+    return (m_flags & (FLAG_TYPE_STRING_DYNAMIC | FLAG_TYPE_STRING_STATIC)) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -748,7 +748,7 @@ namespace kvr
 
   KVR_INLINE bool value::is_boolean () const
   {
-    return (m_flags & VALUE_FLAG_TYPE_BOOLEAN) != 0;
+    return (m_flags & FLAG_TYPE_BOOLEAN) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -757,7 +757,7 @@ namespace kvr
 
   KVR_INLINE bool value::is_integer () const
   {
-    return (m_flags & VALUE_FLAG_TYPE_NUMBER_INTEGER) != 0;
+    return (m_flags & FLAG_TYPE_NUMBER_INTEGER) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -766,7 +766,7 @@ namespace kvr
 
   KVR_INLINE bool value::is_float () const
   {
-    return (m_flags & VALUE_FLAG_TYPE_NUMBER_FLOAT) != 0;
+    return (m_flags & FLAG_TYPE_NUMBER_FLOAT) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -775,7 +775,7 @@ namespace kvr
 
   KVR_INLINE bool value::_is_string_dynamic () const
   {
-    return (m_flags & VALUE_FLAG_TYPE_DYN_STRING) != 0;
+    return (m_flags & FLAG_TYPE_STRING_DYNAMIC) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -784,7 +784,7 @@ namespace kvr
 
   KVR_INLINE bool value::_is_string_static () const
   {
-    return (m_flags & VALUE_FLAG_TYPE_STT_STRING) != 0;
+    return (m_flags & FLAG_TYPE_STRING_STATIC) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -793,7 +793,7 @@ namespace kvr
 
   KVR_INLINE bool value::_is_number () const
   {
-    return (m_flags & (VALUE_FLAG_TYPE_NUMBER_INTEGER | VALUE_FLAG_TYPE_NUMBER_FLOAT)) != 0;
+    return (m_flags & (FLAG_TYPE_NUMBER_INTEGER | FLAG_TYPE_NUMBER_FLOAT)) != 0;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
