@@ -15,15 +15,14 @@
 #ifndef RAPIDJSON_WRITER_H_
 #define RAPIDJSON_WRITER_H_
 
-#define KVR_ENABLE_STRING_BUFFER 0
-#define KVR_USE_STRING_BUFFER_SPECIALIZATION (!KVR_ENABLE_STRING_BUFFER && 1)
+#define KVR_MEMSTREAM_SPECIALIZATION
 
 #include "rapidjson.h"
 #include "internal/stack.h"
 #include "internal/strfunc.h"
 #include "internal/dtoa.h"
 #include "internal/itoa.h"
-#if KVR_ENABLE_STRING_BUFFER
+#ifndef KVR_MEMSTREAM_SPECIALIZATION
 #include "stringbuffer.h"
 #endif
 #include <new>      // placement new
@@ -207,78 +206,43 @@ protected:
     }
 
     bool WriteInt(int i) {
-#if KVR_USE_STRING_BUFFER_SPECIALIZATION
-      char *buffer = os_->Push (11);
-      const char* end = internal::i32toa (i, buffer);
-      os_->Pop (11 - (end - buffer));
-      return true;
-#else
         char buffer [11];
         const char* end = internal::i32toa (i, buffer);
         for (const char* p = buffer; p != end; ++p)
           os_->Put (*p);
         return true;
-#endif
     }
 
     bool WriteUint(unsigned u) {
-#if KVR_USE_STRING_BUFFER_SPECIALIZATION
-      char *buffer = os_->Push (10);
-      const char* end = internal::u32toa (u, buffer);
-      os_->Pop (10 - (end - buffer));
-      return true;
-#else
         char buffer[10];
         const char* end = internal::u32toa(u, buffer);
         for (const char* p = buffer; p != end; ++p)
             os_->Put(*p);
         return true;
-#endif
     }
 
     bool WriteInt64(int64_t i64) {
-#if KVR_USE_STRING_BUFFER_SPECIALIZATION
-      char *buffer = os_->Push (21);
-      const char* end = internal::i64toa (i64, buffer);
-      os_->Pop (21 - (end - buffer));
-      return true;
-#else
         char buffer[21];
         const char* end = internal::i64toa(i64, buffer);
         for (const char* p = buffer; p != end; ++p)
             os_->Put(*p);
         return true;
-#endif
     }
 
     bool WriteUint64(uint64_t u64) {
-#if KVR_USE_STRING_BUFFER_SPECIALIZATION
-      char *buffer = os_->Push (20);
-      const char* end = internal::u64toa (u64, buffer);
-      os_->Pop (20 - (end - buffer));
-      return true;
-#else
         char buffer[20];
         char* end = internal::u64toa(u64, buffer);
         for (char* p = buffer; p != end; ++p)
             os_->Put(*p);
         return true;
-#endif
     }
 
     bool WriteDouble(double d) {
-#if KVR_USE_STRING_BUFFER_SPECIALIZATION
-      char *buffer = os_->Push (25);
-      char* end = internal::dtoa (d, buffer);
-      os_->Pop (25 - (end - buffer));
-      return true;
-#else
         char buffer[25];
         char* end = internal::dtoa(d, buffer);
         for (char* p = buffer; p != end; ++p)
             os_->Put(*p);
         return true;
-#endif
     }
 
     bool WriteString(const Ch* str, SizeType length)  {
@@ -385,9 +349,9 @@ private:
 };
 
 // Full specialization for StringStream to prevent memory copying
-#if KVR_ENABLE_STRING_BUFFER
+#ifdef KVR_MEMSTREAM_SPECIALIZATION
 template<>
-inline bool Writer<StringBuffer>::WriteInt(int i) {
+inline bool Writer<kvr::internal::json::omemstream_impl>::WriteInt(int i) {
     char *buffer = os_->Push(11);
     const char* end = internal::i32toa(i, buffer);
     os_->Pop(11 - (end - buffer));
@@ -395,7 +359,7 @@ inline bool Writer<StringBuffer>::WriteInt(int i) {
 }
 
 template<>
-inline bool Writer<StringBuffer>::WriteUint(unsigned u) {
+inline bool Writer<kvr::internal::json::omemstream_impl>::WriteUint(unsigned u) {
     char *buffer = os_->Push(10);
     const char* end = internal::u32toa(u, buffer);
     os_->Pop(10 - (end - buffer));
@@ -403,7 +367,7 @@ inline bool Writer<StringBuffer>::WriteUint(unsigned u) {
 }
 
 template<>
-inline bool Writer<StringBuffer>::WriteInt64(int64_t i64) {
+inline bool Writer<kvr::internal::json::omemstream_impl>::WriteInt64(int64_t i64) {
     char *buffer = os_->Push(21);
     const char* end = internal::i64toa(i64, buffer);
     os_->Pop(21 - (end - buffer));
@@ -411,7 +375,7 @@ inline bool Writer<StringBuffer>::WriteInt64(int64_t i64) {
 }
 
 template<>
-inline bool Writer<StringBuffer>::WriteUint64(uint64_t u) {
+inline bool Writer<kvr::internal::json::omemstream_impl>::WriteUint64(uint64_t u) {
     char *buffer = os_->Push(20);
     const char* end = internal::u64toa(u, buffer);
     os_->Pop(20 - (end - buffer));
@@ -419,7 +383,7 @@ inline bool Writer<StringBuffer>::WriteUint64(uint64_t u) {
 }
 
 template<>
-inline bool Writer<StringBuffer>::WriteDouble(double d) {
+inline bool Writer<kvr::internal::json::omemstream_impl>::WriteDouble(double d) {
     char *buffer = os_->Push(25);
     char* end = internal::dtoa(d, buffer);
     os_->Pop(25 - (end - buffer));

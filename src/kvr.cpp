@@ -15,8 +15,6 @@
 
 #include "kvr.h"
 #include "internal/kvr_internal.h"
-#include "internal/kvr_json.h"
-#include "internal/kvr_msgpack.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -39,7 +37,7 @@ static const char * const kvr_const_str_rem   = "rem";
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-static const uint32_t KVR_VALUE_TYPE_MASK     = 0xffffff00;
+static const uint32_t KVR_VALUE_TYPE_MASK = 0xffffff00;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -658,7 +656,7 @@ void kvr::value::set_integer (int64_t n)
 
 void kvr::value::set_float (double n)
 {
-  KVR_ASSERT_SAFE ((!kvr_internal::isnan (n) && "n is nan"), (void) 0);
+  KVR_ASSERT_SAFE ((!kvr::internal::isnan (n) && "n is nan"), (void) 0);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF  
   KVR_ASSERT (is_float ());
@@ -953,7 +951,7 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
 {
   KVR_ASSERT (keystr && "invalid input");
   KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
-  KVR_ASSERT_SAFE ((!kvr_internal::isnan (num) && "n is nan"), NULL);
+  KVR_ASSERT_SAFE ((!kvr::internal::isnan (num) && "n is nan"), NULL);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());  
@@ -1228,7 +1226,7 @@ kvr::sz_t kvr::value::size () const
 
 #if EXPERIMENTAL_FAST_MAP_SIZE
   sz_t sz2 = this->_size2 ();
-#if KVR_DEBUG
+#ifdef KVR_DEBUG
   sz_t sz1 = this->_size1 ();
   KVR_ASSERT (sz1 == sz2);
 #endif
@@ -1374,6 +1372,35 @@ kvr::value * kvr::value::search (const char **path, sz_t pathsz) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+bool kvr::value::encode (codec_t codec, ostream *ostr)
+{
+  KVR_ASSERT_SAFE (ostr, false);
+
+  bool success = false;
+
+  switch (codec)
+  {
+    case kvr::CODEC_JSON:
+    {
+      success = kvr::internal::json::write (this, ostr);
+      break;
+    }
+
+    case kvr::CODEC_MSGPACK:
+    {
+      success = kvr::internal::msgpack::write (this, ostr);
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+
+  return success;
+}
+
 bool kvr::value::serialize (data_format format, buffer *buf) const
 {
   KVR_ASSERT_SAFE (buf, false);
@@ -1384,13 +1411,13 @@ bool kvr::value::serialize (data_format format, buffer *buf) const
   {
     case kvr::DATA_FORMAT_JSON:
     {
-      success = kvr_json::write (this, &buf->m_stream);
+      success = kvr::internal::json::write (this, &buf->m_stream);
       break;
     }
 
     case kvr::DATA_FORMAT_MSGPACK:
     {
-      success = kvr_msgpack::write (this, &buf->m_stream);
+      success = kvr::internal::msgpack::write (this, &buf->m_stream);
       break;
     }
 
@@ -1407,6 +1434,36 @@ bool kvr::value::serialize (data_format format, buffer *buf) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+bool kvr::value::decode (codec_t codec, istream &istr)
+{
+  bool success = false;
+
+  this->conv_null ();
+
+  switch (codec)
+  {
+    case kvr::CODEC_JSON:
+    {
+      KVR_REF_UNUSED (istr);
+      success = false; //kvr_rapidjson::read (this, istr);
+      break;
+    }
+
+    case kvr::CODEC_MSGPACK:
+    {
+      success = false; //kvr_msgpack::read (this, data, sz);
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+
+  return success;
+}
+
 bool kvr::value::deserialize (data_format format, const uint8_t *data, size_t sz)
 {
   KVR_ASSERT_SAFE (data, false);
@@ -1419,13 +1476,17 @@ bool kvr::value::deserialize (data_format format, const uint8_t *data, size_t sz
   {
     case kvr::DATA_FORMAT_JSON:
     {
-      success = kvr_json::read (this, (const char *) data, sz);
+      mem_istream istr ((const uint8_t *) data, sz);
+      success = kvr::internal::json::read (this, istr);
+      //success = kvr_rapidjson::read (this, (const char *) data, sz);
       break;
     }
 
     case kvr::DATA_FORMAT_MSGPACK:
     {
-      success = kvr_msgpack::read (this, data, sz);
+      KVR_ASSERT (sz > 0);
+      kvr::mem_istream stream (data, sz);
+      success = kvr::internal::msgpack::read (this, stream);
       break;
     }
 
@@ -1450,13 +1511,13 @@ size_t kvr::value::approx_serialize_size (data_format format) const
   {
     case kvr::DATA_FORMAT_JSON:
     {
-      size = kvr_json::write_approx_size (this);
+      size = kvr::internal::json::write_approx_size (this);
       break;
     }
 
     case kvr::DATA_FORMAT_MSGPACK:
     {
-      size = kvr_msgpack::write_approx_size (this);
+      size = kvr::internal::msgpack::write_approx_size (this);
       break;
     }
 
@@ -1504,11 +1565,11 @@ bool kvr::value::diff (const value *original, const value *modified)
       KVR_ASSERT (rem);
 
       const char * path [KVR_CONSTANT_MAX_TREE_DEPTH];
-#if KVR_DEBUG
+#ifdef KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
       diff->_diff_set (set, rem, og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
-#if KVR_DEBUG
+#ifdef KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
       diff->_diff_add (add, og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
@@ -1649,7 +1710,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
     {
       const char *k = p.get_key ()->get_string ();
       value *v = p.get_value ();
-      uint32_t kh = kvr_internal::strhash (k);
+      uint32_t kh = kvr::internal::strhash (k);
       uint32_t vh = v->hashcode ();
       mhc ^= (kh * vh);
     }
@@ -1678,7 +1739,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   {
     hc += (FLAG_TYPE_STRING_STATIC + FLAG_TYPE_STRING_DYNAMIC);
     const char *str = get_string ();
-    hc += kvr_internal::strhash (str);
+    hc += kvr::internal::strhash (str);
   }
 
   //////////////////////////////////
@@ -2057,7 +2118,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
     char k [21];
     for (sz_t i = 0, c = this->length (); i < c; ++i)
     {
-      size_t kl = kvr_internal::u64toa (i, k);
+      size_t kl = kvr::internal::u64toa (i, k);
       k [kl] = 0;
       value *v = this->element (i);
       v->_dump (lpad + 1, k);
@@ -2082,7 +2143,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
 #else
     // PRId64 not supported by travis-ci
     char ns [22];
-    size_t c = kvr_internal::i64toa (n, ns);
+    size_t c = kvr::internal::i64toa (n, ns);
     ns [c] = 0;
     fprintf (stderr, "value = %s -> [int]\n", ns);
 #endif
@@ -2213,7 +2274,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       char k [21];
       for (sz_t i = 0, c = og->length (); i < c; ++i)
       {
-        size_t kl = kvr_internal::u64toa (i, k);
+        size_t kl = kvr::internal::u64toa (i, k);
         k [kl] = 0;
 
         KVR_ASSERT (pathcnt < pathsz);
@@ -2493,7 +2554,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
       char k [21];
       for (sz_t i = 0, c = md->length (); i < c; ++i)
       {
-        size_t kl = kvr_internal::u64toa (i, k);
+        size_t kl = kvr::internal::u64toa (i, k);
         k [kl] = 0;
 
         KVR_ASSERT (pathcnt < pathsz);
@@ -2572,7 +2633,7 @@ void kvr::value::_patch_add (const value *add)
       }
       else if (tgp->is_array ())
       {
-#if KVR_DEBUG
+#ifdef KVR_DEBUG
         char *end;
         int64_t ki64 = strtoll (tgk, &end, 10); KVR_ASSERT (!*end);
         KVR_ASSERT (ki64 >= 0);
@@ -2623,7 +2684,7 @@ void kvr::value::_patch_rem (const value *rem)
       }
       else if (tgp->is_array ())
       {
-#if KVR_DEBUG
+#ifdef KVR_DEBUG
         char *end;
         int64_t ki64 = strtoll (tgk, &end, 10); KVR_ASSERT (!*end);
         KVR_ASSERT (ki64 >= 0);
@@ -2650,7 +2711,7 @@ bool kvr::value::_insert_kv (key *k, value *v)
 
   map::node *n = NULL;
 
-#if KVR_DEBUG
+#ifdef KVR_DEBUG
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   KVR_ASSERT (n == NULL);
 #endif
@@ -2818,7 +2879,7 @@ void kvr::value::array::init (sz_t size)
 
   sz_t allocsz = (size + (CAP_INCR - 1)) & ~(CAP_INCR - 1);
   m_ptr = new kvr::value * [allocsz];
-#if KVR_DEBUG
+#ifdef KVR_DEBUG
   memset (m_ptr, 0, sizeof (kvr::value *) * allocsz); // debug-only
 #endif
   m_cap = allocsz;
@@ -2849,16 +2910,16 @@ void kvr::value::array::push (value *v)
     KVR_ASSERT (m_ptr);
 
     // resize
-    sz_t newcap = m_cap + CAP_INCR;
-    value ** newPtr = new value * [newcap];
-#if KVR_DEBUG
-    memset (newPtr, 0, sizeof (kvr::value *) * newcap);
+    sz_t new_cap = m_cap + CAP_INCR;
+    value ** new_ptr = new value * [new_cap];
+#ifdef KVR_DEBUG
+    memset (new_ptr, 0, sizeof (kvr::value *) * new_cap);
 #endif
-    memcpy (newPtr, m_ptr, sizeof (kvr::value *) * m_len);
+    memcpy (new_ptr, m_ptr, sizeof (kvr::value *) * m_len);
     delete [] m_ptr;
 
-    m_ptr = newPtr;
-    m_cap = newcap;
+    m_ptr = new_ptr;
+    m_cap = new_cap;
   }
 
   m_ptr [m_len++] = v;
@@ -2870,7 +2931,7 @@ void kvr::value::array::push (value *v)
 
 kvr::value *kvr::value::array::pop ()
 {
-#if KVR_DEBUG
+#ifdef KVR_DEBUG
   value *v = NULL;
 
   if (m_len > 0)
@@ -2986,14 +3047,14 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
   if (m_len >= cap)
   {
     // resize
-    sz_t newcap = cap + CAP_INCR;
-    node *newPtr = new node [newcap];
-    memcpy (newPtr, m_ptr, sizeof (node) * cap);
+    sz_t new_cap = cap + CAP_INCR;
+    node *new_ptr = new node [new_cap];
+    memcpy (new_ptr, m_ptr, sizeof (node) * cap);
     delete [] m_ptr;
 
-    m_ptr = newPtr;
+    m_ptr = new_ptr;
     m_cap += CAP_INCR;
-    KVR_ASSERT (newcap >= m_cap);
+    KVR_ASSERT (new_cap >= m_cap);
   }
 #else
   if (m_len >= m_cap)
@@ -3001,13 +3062,13 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
     KVR_ASSERT (m_ptr);
 
     // resize
-    sz_t newcap = m_cap + CAP_INCR;
-    node *newPtr = new node [newcap];
-    memcpy (newPtr, m_ptr, sizeof (node) * m_cap);
+    sz_t new_cap = m_cap + CAP_INCR;
+    node *newPtr = new node [new_cap];
+    memcpy (new_ptr, m_ptr, sizeof (node) * m_cap);
     delete [] m_ptr;
 
-    m_ptr = newPtr;
-    m_cap = newcap;
+    m_ptr = new_ptr;
+    m_cap = new_cap;
   }
 #endif
 
@@ -3172,40 +3233,92 @@ const kvr::value::map::node * kvr::value::cursor::_get ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-// kvr::value::ostream
+// kvr::value::mem_ostream
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::ostream::ostream (size_t cap) : m_bytes (NULL), m_cap (cap), m_pos (0), m_heap (false)
+kvr::mem_ostream::mem_ostream () : m_buf (NULL), m_cap (0), m_pos (0), m_btype (BUF_NONE)
 {
-  KVR_ASSERT (m_cap > 0);
-  m_bytes = this->alloc (m_cap);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::ostream::~ostream ()
+kvr::mem_ostream::mem_ostream (uint8_t *buf, sz_t sz) : m_buf (buf), m_cap (sz), m_pos (0), m_btype (BUF_EXTERNAL)
 {
-  this->free (m_bytes);
+  KVR_ASSERT (buf);
+  KVR_ASSERT (sz > 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-const uint8_t * kvr::ostream::bytes () const
+kvr::mem_ostream::mem_ostream (size_t cap) : m_buf (NULL), m_cap (cap), m_pos (0), m_btype (BUF_INTERNAL)
 {
-  return m_bytes;
+  KVR_ASSERT (cap > 0);
+  m_buf = this->alloc (cap);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-size_t kvr::ostream::capacity () const
+kvr::mem_ostream::~mem_ostream ()
+{
+  if (m_btype == BUF_INTERNAL) { this->free (m_buf); }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::mem_ostream::put (uint8_t byte)
+{
+  KVR_ASSERT (m_buf);  
+  if (m_pos >= m_cap)
+  {
+    size_t new_cap = kvr::internal::max (256u, m_cap + m_cap);
+    this->reserve (new_cap);
+  }
+  m_buf [m_pos++] = byte;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::mem_ostream::write (uint8_t *bytes, size_t count)
+{
+  KVR_ASSERT (m_buf);
+  
+  size_t desired_cap = m_pos + count;
+  if (desired_cap > m_cap)
+  {
+    size_t new_cap = kvr::internal::max (256u, m_cap);
+    do { new_cap += m_cap; } while (new_cap < desired_cap);
+    this->reserve (new_cap);
+  }
+  memcpy (&m_buf [m_pos], bytes, count);
+  m_pos += count;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+const uint8_t * kvr::mem_ostream::bytes () const
+{
+  return m_buf;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+size_t kvr::mem_ostream::capacity () const
 {
   return m_cap;
 }
@@ -3214,7 +3327,7 @@ size_t kvr::ostream::capacity () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-size_t kvr::ostream::tell () const
+size_t kvr::mem_ostream::tell () const
 {
   return m_pos;
 }
@@ -3223,16 +3336,7 @@ size_t kvr::ostream::tell () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::ostream::full () const
-{
-  return (m_pos >= m_cap);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::ostream::seek (size_t pos)
+void kvr::mem_ostream::seek (size_t pos)
 {
   m_pos = pos;
 }
@@ -3241,60 +3345,45 @@ void kvr::ostream::seek (size_t pos)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::ostream::put (uint8_t byte)
+void kvr::mem_ostream::flush ()
 {
-  KVR_ASSERT (m_bytes);
-  if (m_pos < m_cap)
-  {
-    m_bytes [m_pos++] = byte;
-    return true;
-  }
-  return false;
+  // EOS == 0
+  KVR_ASSERT_SAFE ((m_pos < m_cap), (void) 0);
+  m_buf [m_pos] = 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::ostream::put (uint8_t *bytes, size_t count)
+uint8_t * kvr::mem_ostream::push (size_t count)
 {
-  KVR_ASSERT (m_bytes);
-  if ((m_pos + count) <= m_cap)
+  KVR_ASSERT (m_buf);
+
+  size_t desired_cap = m_pos + count;
+  if (desired_cap > m_cap)
   {
-    memcpy (&m_bytes [m_pos], bytes, count);
-    m_pos += count;
-    return true;
+    size_t new_cap = kvr::internal::max (256u, m_cap);
+    do { new_cap += m_cap; } while (new_cap < desired_cap);
+    this->reserve (new_cap);
   }
-  return false;
+
+  uint8_t *ret = &m_buf [m_pos];
+  m_pos += count;
+  return ret;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-uint8_t * kvr::ostream::push (size_t count)
+uint8_t * kvr::mem_ostream::pop (size_t count)
 {
-  KVR_ASSERT (m_bytes);
-  if ((m_pos + count) <= m_cap)
-  {
-    uint8_t *ret = &m_bytes [m_pos];
-    m_pos += count;
-    return ret;
-  }
-  return NULL;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-uint8_t * kvr::ostream::pop (size_t count)
-{
-  KVR_ASSERT (m_bytes);
+  KVR_ASSERT (m_buf);
   if (m_pos >= count)
   {
     m_pos -= count;
-    uint8_t *ret = &m_bytes [m_pos];
+    uint8_t *ret = &m_buf [m_pos];
     return ret;
   }
   return NULL;
@@ -3304,25 +3393,16 @@ uint8_t * kvr::ostream::pop (size_t count)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::ostream::set_eos (uint8_t eos)
+void kvr::mem_ostream::reserve (size_t new_cap)
 {
-  KVR_ASSERT_SAFE ((m_pos < m_cap), (void) 0);
-  m_bytes [m_pos] = eos;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::ostream::resize (size_t newcap)
-{
-  if (newcap > m_cap)
+  if (new_cap > m_cap)
   {
-    uint8_t * bytes = this->alloc (newcap);
-    memcpy (bytes, m_bytes, m_cap);
-    this->free (m_bytes);
-    m_bytes = bytes;
-    m_cap = newcap;
+    uint8_t *new_buf = this->alloc (new_cap);
+    memcpy (new_buf, m_buf, m_cap);
+    if (m_btype == BUF_INTERNAL) { this->free (m_buf); }
+    m_buf = new_buf;
+    m_cap = new_cap;
+    m_btype = BUF_INTERNAL;
   }
 }
 
@@ -3330,10 +3410,10 @@ void kvr::ostream::resize (size_t newcap)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-uint8_t * kvr::ostream::alloc (size_t size)
+uint8_t * kvr::mem_ostream::alloc (size_t size)
 {
   KVR_ASSERT (size > 0);
-  uint8_t *bytes = new uint8_t [size];  
+  uint8_t *bytes = new uint8_t [size];
   return bytes;
 }
 
@@ -3341,23 +3421,21 @@ uint8_t * kvr::ostream::alloc (size_t size)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::ostream::free (uint8_t *bytes)
+void kvr::mem_ostream::free (uint8_t *bytes)
 {
-  if (bytes)
-  {
-    delete [] bytes;
-  }
+  KVR_ASSERT (bytes);
+  delete [] bytes;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-// kvr::istream
+// kvr::mem_istream
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::istream::istream (const uint8_t *bytes, size_t size) : m_bytes (bytes), m_size (size), m_pos (0)
+kvr::mem_istream::mem_istream (const uint8_t *bytes, size_t size) : m_bytes (bytes), m_size (size), m_pos (0)
 {
   KVR_ASSERT (bytes);
   KVR_ASSERT (size > 0);
@@ -3367,7 +3445,7 @@ kvr::istream::istream (const uint8_t *bytes, size_t size) : m_bytes (bytes), m_s
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-const uint8_t * kvr::istream::bytes () const
+const uint8_t * kvr::mem_istream::bytes () const
 {
   return m_bytes;
 }
@@ -3376,7 +3454,7 @@ const uint8_t * kvr::istream::bytes () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-size_t kvr::istream::size () const
+size_t kvr::mem_istream::size () const
 {
   return m_size;
 }
@@ -3385,7 +3463,7 @@ size_t kvr::istream::size () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-size_t kvr::istream::tell () const
+size_t kvr::mem_istream::tell () const
 {
   return m_pos;
 }
@@ -3394,16 +3472,16 @@ size_t kvr::istream::tell () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::istream::end () const
+uint8_t kvr::mem_istream::peek () const
 {
-  return (m_pos >= m_size);
+  return m_bytes [m_pos];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::istream::seek (size_t pos)
+void kvr::mem_istream::seek (size_t pos)
 {
   m_pos = pos;
 }
@@ -3412,7 +3490,7 @@ void kvr::istream::seek (size_t pos)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::istream::get (uint8_t *byte)
+bool kvr::mem_istream::get (uint8_t *byte)
 {
   if (m_pos < m_size)
   {
@@ -3426,7 +3504,7 @@ bool kvr::istream::get (uint8_t *byte)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::istream::get (uint8_t *bytes, size_t count)
+bool kvr::mem_istream::read (uint8_t *bytes, size_t count)
 {
   if ((m_pos + count) <= m_size)
   {
@@ -3441,7 +3519,7 @@ bool kvr::istream::get (uint8_t *bytes, size_t count)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-const uint8_t * kvr::istream::push (size_t count)
+const uint8_t * kvr::mem_istream::push (size_t count)
 {
   KVR_ASSERT (m_bytes);
   if ((m_pos + count) <= m_size)
@@ -3449,22 +3527,6 @@ const uint8_t * kvr::istream::push (size_t count)
     const uint8_t *start = &m_bytes [m_pos];
     m_pos += count;
     return start;
-  }
-  return NULL;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-const uint8_t * kvr::istream::pop (size_t count)
-{
-  KVR_ASSERT (m_bytes);
-  if (m_pos >= count)
-  {
-    m_pos -= count;
-    const uint8_t *ret = &m_bytes [m_pos];
-    return ret;
   }
   return NULL;
 }

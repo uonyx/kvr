@@ -144,10 +144,24 @@ namespace kvr
     DATA_FORMAT_MSGPACK,
   };
 
+  enum codec_t
+  {
+    CODEC_JSON,
+    CODEC_MSGPACK
+  };
+
+  enum format_t
+  {
+    FORMAT_MACHINE,
+    FORMAT_HUMAN,
+  };
+
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
+  class ostream;
+  class istream;
   class buffer;
   class pair;
 
@@ -262,6 +276,10 @@ namespace kvr
     bool          deserialize (data_format format, const uint8_t *data, size_t sz);
     size_t        approx_serialize_size (data_format format) const;
 
+    bool          encode (codec_t codec, ostream *ostr);
+    bool          decode (codec_t codec, istream &istr);
+    size_t        calcuate_encode_size (codec_t codec) const;
+
     // diff/patch
     bool          diff (const value *original, const value *modified);
     bool          patch (const value *diff);
@@ -354,7 +372,7 @@ namespace kvr
       node *  find (const key *k) const;
       sz_t    size_l () const;
       sz_t    size_c () const;
-      sz_t    _cap () const; // true cap
+      sz_t    _cap () const; // experimental cap
 
       node *  m_ptr;
       sz_t    m_len;
@@ -409,17 +427,17 @@ namespace kvr
     enum _flags
     {
       FLAG_NONE                 = 0,
-      FLAG_PARENT_CTX           = (1 << 0),
-      FLAG_PARENT_MAP           = (1 << 1),
-      FLAG_PARENT_ARRAY         = (1 << 2),
-      FLAG_TYPE_NULL            = (1 << 3),
-      FLAG_TYPE_MAP             = (1 << 4),
-      FLAG_TYPE_ARRAY           = (1 << 5),
-      FLAG_TYPE_STRING_DYNAMIC  = (1 << 6),
-      FLAG_TYPE_STRING_STATIC   = (1 << 7),
-      FLAG_TYPE_NUMBER_INTEGER  = (1 << 8),
-      FLAG_TYPE_NUMBER_FLOAT    = (1 << 9),
-      FLAG_TYPE_BOOLEAN         = (1 << 10),
+      FLAG_TYPE_NULL            = (1 << 0),
+      FLAG_TYPE_MAP             = (1 << 1),
+      FLAG_TYPE_ARRAY           = (1 << 2),
+      FLAG_TYPE_STRING_DYNAMIC  = (1 << 3),
+      FLAG_TYPE_STRING_STATIC   = (1 << 4),
+      FLAG_TYPE_NUMBER_INTEGER  = (1 << 5),
+      FLAG_TYPE_NUMBER_FLOAT    = (1 << 6),
+      FLAG_TYPE_BOOLEAN         = (1 << 7),
+      FLAG_PARENT_CTX           = (1 << 8),
+      FLAG_PARENT_MAP           = (1 << 9),
+      FLAG_PARENT_ARRAY         = (1 << 10),
     };
 
     ///////////////////////////////////////////
@@ -504,93 +522,6 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  // streambuf
-  // omemstream / imemstream
-  class ostream
-  {
-  public:
-
-    ostream (size_t cap);
-    ~ostream ();
-
-    const uint8_t * bytes () const;
-    size_t          capacity () const;
-    size_t          tell () const;
-    bool            full () const;
-    void            seek (size_t pos);
-    bool            put (uint8_t byte);
-    bool            put (uint8_t *bytes, size_t count);
-    uint8_t *       push (size_t count);
-    uint8_t *       pop (size_t count);
-    void            set_eos (uint8_t eos);
-    void            resize (size_t newcap);
-
-  private:
-
-    uint8_t *       alloc (size_t size);
-    void            free (uint8_t *bytes);
-
-    ostream (const ostream &);
-    ostream &operator=(const ostream &);
-
-    uint8_t * m_bytes;
-    size_t    m_cap;
-    size_t    m_pos;
-    bool      m_heap;
-  };
-
-  class istream
-  {
-  public:
-
-    istream (const uint8_t *bytes, size_t size);
-
-    const uint8_t * bytes () const;
-    size_t          size () const;
-    size_t          tell () const;
-    bool            end () const;
-    void            seek (size_t pos);
-    bool            get (uint8_t *byte);
-    bool            get (uint8_t *bytes, size_t count);
-    const uint8_t * push (size_t count);
-    const uint8_t * pop (size_t count);
-
-  private:
-
-    istream (const istream &);
-    istream &operator=(const istream &);
-
-    const uint8_t * m_bytes;
-    size_t    m_size;
-    size_t    m_pos;
-  };
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-
-  class buffer
-  {
-  public:
-
-    buffer (size_t capacity = DEFAULT_CAPACITY) : m_stream (capacity) {}
-
-    const uint8_t * get_data () const;
-    size_t          get_size () const;
-
-  private:
-
-    static const int DEFAULT_CAPACITY = 256;
-
-    ostream m_stream;
-    friend class context;
-    friend class value;
-  };
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-
   context * create_context (uint32_t flags = 0);
   void   destroy_context (context *ctx);
 
@@ -609,9 +540,9 @@ namespace kvr
     void    destroy_value (value *v);
     void    dump (int id = 0);
 
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
 
   private:
 
@@ -644,9 +575,9 @@ namespace kvr
 
     typedef std_unordered_map<const char *, key *, hash_djb, equal_cstr> keystore;
 
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
 
     value * _create_value_null (uint32_t parentType);
     value * _create_value_map (uint32_t parentType);
@@ -657,25 +588,17 @@ namespace kvr
     value * _create_value (uint32_t parentType, const char *str, sz_t len);
     void    _destroy_value (uint32_t parentType, value *v);
 
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
-
     key *   _find_key (const char *str);
     key *   _create_key_copy (const char *str);
     key *   _create_key_move (char *str, sz_t len);
     void    _destroy_key (key *k);
 
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
-
     char *  _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz = NULL) const;
     void    _destroy_path_expr (char *expr);
 
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
 
   private:
 
@@ -687,6 +610,172 @@ namespace kvr
 
     keystore m_keystore;
   };
+  
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  
+  class ostream
+  {
+  public:
+    virtual void put (uint8_t byte) = 0;
+    virtual void write (uint8_t *bytes, size_t count) = 0;
+    virtual void flush () = 0;
+
+  protected:
+    ~ostream () {}
+  };
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  class istream
+  {
+  public:
+    virtual bool    get (uint8_t *byte) = 0;
+    virtual bool    read (uint8_t *bytes, size_t count) = 0;
+    virtual size_t  tell () const = 0;
+    virtual uint8_t peek () const = 0;
+    
+  protected:
+    ~istream () {}
+  };
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  class mem_ostream : public ostream
+  {
+  public:
+
+    mem_ostream ();
+    mem_ostream (uint8_t *buf, sz_t cap);
+    mem_ostream (size_t cap);    
+    ~mem_ostream ();
+
+    void            put (uint8_t byte);
+    void            write (uint8_t *bytes, size_t count);
+    void            flush ();
+    
+    size_t          tell () const;
+    void            seek (size_t pos);    
+
+    uint8_t *       push (size_t count);
+    uint8_t *       pop (size_t count);
+    
+    const uint8_t * bytes () const;
+    size_t          capacity () const;
+
+    void            reserve (size_t newcap); 
+
+  private:
+
+    uint8_t *       alloc (size_t size);
+    void            free (uint8_t *bytes);    
+
+    mem_ostream (const mem_ostream &);
+    mem_ostream &operator=(const mem_ostream &);
+
+    enum buf_type
+    {
+      BUF_NONE,
+      BUF_EXTERNAL,
+      BUF_INTERNAL,
+    };
+
+    uint8_t * m_buf;
+    size_t    m_cap;
+    size_t    m_pos;
+    buf_type  m_btype;
+  };
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  class mem_istream : public istream
+  {
+  public:
+
+    mem_istream (const uint8_t *bytes, size_t size);
+
+    const uint8_t * bytes () const;
+    size_t          size () const;
+    size_t          tell () const;
+    uint8_t         peek () const;
+    void            seek (size_t pos);
+    bool            get (uint8_t *byte);
+    bool            read (uint8_t *bytes, size_t count);
+    const uint8_t * push (size_t count);
+
+  private:
+
+    mem_istream (const mem_istream &);
+    mem_istream &operator=(const mem_istream &);
+
+    const uint8_t * m_bytes;
+    size_t    m_size;
+    size_t    m_pos;
+  };
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  class buffer
+  {
+  public:
+
+    buffer (uint8_t *bytes, size_t size); // read & write
+    buffer (size_t capacity = DEFAULT_CAPACITY) : m_stream (capacity) {}
+
+    const uint8_t * get_data () const;
+    size_t          get_size () const;
+
+  private:
+
+    static const int DEFAULT_CAPACITY = 256;
+    mem_ostream m_stream;
+
+    friend class value;
+  };
+
+  class obuffer
+  {
+  public:
+
+    obuffer (uint8_t *bytes, size_t size);
+    obuffer (size_t size = 256) : m_stream (size) {}
+
+    const uint8_t * get_data () const;
+    size_t          get_size () const;
+
+  private:
+
+    mem_ostream m_stream;
+    friend class value;
+  };
+
+  class ibuffer
+  {
+  public:
+
+    ibuffer (uint8_t *bytes, size_t size) : m_stream (bytes, size) {}
+
+    const uint8_t * get_data () const;
+    size_t          get_size () const;
+
+  private:
+
+    mem_istream m_stream;
+    friend class value;
+  };
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////
