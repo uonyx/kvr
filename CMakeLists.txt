@@ -35,7 +35,7 @@ endif ()
 #endif ()
 
 set (KVR_SOURCE_DIR "src")
-set (KVR_SOURCES "${KVR_SOURCE_DIR}/kvr.cpp ${KVR_SOURCE_DIR}/internal/kvr_json.cpp ${KVR_SOURCE_DIR}/internal/kvr_msgpack.cpp")
+set (KVR_SOURCES "${KVR_SOURCE_DIR}/kvr.cpp")
 separate_arguments (KVR_SOURCES)
 include_directories (${KVR_SOURCE_DIR})
 add_library (kvr STATIC ${KVR_SOURCES})

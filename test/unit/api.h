@@ -11,7 +11,7 @@
 
 class kvrTestSuiteAPI : public CxxTest::TestSuite
 {
-  kvr * m_ctx;
+  kvr::context * m_ctx;
 
 public:
 
