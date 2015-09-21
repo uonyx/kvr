@@ -165,6 +165,11 @@ namespace kvr
   class buffer;
   class pair;
 
+  class obuffer;
+  class ibuffer;
+  class bytebuffer;
+  class bytestream;
+
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -275,6 +280,10 @@ namespace kvr
     bool          serialize (data_format format, buffer *buf) const;
     bool          deserialize (data_format format, const uint8_t *data, size_t sz);
     size_t        approx_serialize_size (data_format format) const;
+
+    bool          encode (codec_t codec, obuffer *obuf);
+    bool          decode (codec_t codec, ibuffer &ibuf);
+    bool          decode (codec_t codec, const uint8_t *data, size_t size);
 
     bool          encode (codec_t codec, ostream *ostr);
     bool          decode (codec_t codec, istream &istr);
@@ -658,12 +667,12 @@ namespace kvr
     void            put (uint8_t byte);
     void            write (uint8_t *bytes, size_t count);
     void            flush ();
-    
-    size_t          tell () const;
-    void            seek (size_t pos);    
 
     uint8_t *       push (size_t count);
     uint8_t *       pop (size_t count);
+
+    size_t          tell () const;
+    void            seek (size_t pos);    
     
     const uint8_t * bytes () const;
     size_t          capacity () const;
@@ -673,7 +682,7 @@ namespace kvr
   private:
 
     uint8_t *       alloc (size_t size);
-    void            free (uint8_t *bytes);    
+    void            free (uint8_t *buf);    
 
     mem_ostream (const mem_ostream &);
     mem_ostream &operator=(const mem_ostream &);
@@ -684,6 +693,8 @@ namespace kvr
       BUF_EXTERNAL,
       BUF_INTERNAL,
     };
+
+    static const size_t MIN_BUF_SZ = 256u;
 
     uint8_t * m_buf;
     size_t    m_cap;

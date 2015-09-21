@@ -56,7 +56,7 @@ namespace kvr
         char    Take () { uint8_t byte = 0;  m_stream->get (&byte); return (char) byte; }
         size_t  Tell () { return m_stream->tell (); }
         char *  PutBegin () { return NULL; }
-        size_t  PutEnd (char *) { return NULL; }
+        size_t  PutEnd (char *) { return 0u; }
         void    Put (char) { } // ???
 
         kvr::istream *m_stream;

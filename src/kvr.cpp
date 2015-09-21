@@ -3259,6 +3259,7 @@ kvr::mem_ostream::mem_ostream (uint8_t *buf, sz_t sz) : m_buf (buf), m_cap (sz),
 kvr::mem_ostream::mem_ostream (size_t cap) : m_buf (NULL), m_cap (cap), m_pos (0), m_btype (BUF_INTERNAL)
 {
   KVR_ASSERT (cap > 0);
+  //cap = kvr::internal::max (MIN_BUF_SZ, cap);
   m_buf = this->alloc (cap);
 }
 
@@ -3280,7 +3281,7 @@ void kvr::mem_ostream::put (uint8_t byte)
   KVR_ASSERT (m_buf);  
   if (m_pos >= m_cap)
   {
-    size_t new_cap = kvr::internal::max (256u, m_cap + m_cap);
+    size_t new_cap = kvr::internal::max (MIN_BUF_SZ, m_cap + m_cap);
     this->reserve (new_cap);
   }
   m_buf [m_pos++] = byte;
@@ -3297,12 +3298,49 @@ void kvr::mem_ostream::write (uint8_t *bytes, size_t count)
   size_t desired_cap = m_pos + count;
   if (desired_cap > m_cap)
   {
-    size_t new_cap = kvr::internal::max (256u, m_cap);
+    size_t new_cap = kvr::internal::max (MIN_BUF_SZ, m_cap);
     do { new_cap += m_cap; } while (new_cap < desired_cap);
     this->reserve (new_cap);
   }
   memcpy (&m_buf [m_pos], bytes, count);
   m_pos += count;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+uint8_t * kvr::mem_ostream::push (size_t count)
+{
+  KVR_ASSERT (m_buf);
+
+  size_t desired_cap = m_pos + count;
+  if (desired_cap > m_cap)
+  {
+    size_t new_cap = kvr::internal::max (MIN_BUF_SZ, m_cap);
+    do { new_cap += m_cap; } while (new_cap < desired_cap);
+    this->reserve (new_cap);
+  }
+
+  uint8_t *ret = &m_buf [m_pos];
+  m_pos += count;
+  return ret;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+uint8_t * kvr::mem_ostream::pop (size_t count)
+{
+  KVR_ASSERT (m_buf);
+  if (m_pos >= count)
+  {
+    m_pos -= count;
+    uint8_t *ret = &m_buf [m_pos];
+    return ret;
+  }
+  return NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3356,43 +3394,6 @@ void kvr::mem_ostream::flush ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-uint8_t * kvr::mem_ostream::push (size_t count)
-{
-  KVR_ASSERT (m_buf);
-
-  size_t desired_cap = m_pos + count;
-  if (desired_cap > m_cap)
-  {
-    size_t new_cap = kvr::internal::max (256u, m_cap);
-    do { new_cap += m_cap; } while (new_cap < desired_cap);
-    this->reserve (new_cap);
-  }
-
-  uint8_t *ret = &m_buf [m_pos];
-  m_pos += count;
-  return ret;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-uint8_t * kvr::mem_ostream::pop (size_t count)
-{
-  KVR_ASSERT (m_buf);
-  if (m_pos >= count)
-  {
-    m_pos -= count;
-    uint8_t *ret = &m_buf [m_pos];
-    return ret;
-  }
-  return NULL;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 void kvr::mem_ostream::reserve (size_t new_cap)
 {
   if (new_cap > m_cap)
@@ -3421,10 +3422,10 @@ uint8_t * kvr::mem_ostream::alloc (size_t size)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::mem_ostream::free (uint8_t *bytes)
+void kvr::mem_ostream::free (uint8_t *buf)
 {
-  KVR_ASSERT (bytes);
-  delete [] bytes;
+  KVR_ASSERT (buf);
+  delete [] buf;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
