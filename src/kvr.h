@@ -138,22 +138,10 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  enum data_format
-  {
-    DATA_FORMAT_JSON,
-    DATA_FORMAT_MSGPACK,
-  };
-
   enum codec_t
   {
     CODEC_JSON,
     CODEC_MSGPACK
-  };
-
-  enum format_t
-  {
-    FORMAT_MACHINE,
-    FORMAT_HUMAN,
   };
 
   ///////////////////////////////////////////////////////////////
@@ -162,13 +150,8 @@ namespace kvr
 
   class ostream;
   class istream;
-  class buffer;
-  class pair;
-
   class obuffer;
-  class ibuffer;
-  class bytebuffer;
-  class bytestream;
+  class pair;
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
@@ -276,17 +259,15 @@ namespace kvr
     value *       search (const char *pathexpr) const;
     value *       search (const char **path, sz_t pathsz) const;
 
-    // serialize/deserialize
-    bool          serialize (data_format format, buffer *buf) const;
-    bool          deserialize (data_format format, const uint8_t *data, size_t sz);
-    size_t        approx_serialize_size (data_format format) const;
-
+    // serialization (data buffer)
     bool          encode (codec_t codec, obuffer *obuf);
-    bool          decode (codec_t codec, ibuffer &ibuf);
     bool          decode (codec_t codec, const uint8_t *data, size_t size);
 
+    // serialization (stream interface)
     bool          encode (codec_t codec, ostream *ostr);
     bool          decode (codec_t codec, istream &istr);
+
+    // serialization (utility)
     size_t        calcuate_encode_size (codec_t codec) const;
 
     // diff/patch
@@ -660,8 +641,8 @@ namespace kvr
   public:
 
     mem_ostream ();
-    mem_ostream (uint8_t *buf, sz_t cap);
-    mem_ostream (size_t cap);    
+    mem_ostream (uint8_t *buf, size_t sz);
+    mem_ostream (size_t sz);
     ~mem_ostream ();
 
     void            put (uint8_t byte);
@@ -674,14 +655,14 @@ namespace kvr
     size_t          tell () const;
     void            seek (size_t pos);    
     
-    const uint8_t * bytes () const;
-    size_t          capacity () const;
+    const uint8_t * buffer () const;
+    size_t          size () const;
 
-    void            reserve (size_t newcap); 
+    void            reserve (size_t sz);
 
   private:
 
-    uint8_t *       alloc (size_t size);
+    uint8_t *       alloc (size_t sz);
     void            free (uint8_t *buf);    
 
     mem_ostream (const mem_ostream &);
@@ -697,7 +678,7 @@ namespace kvr
     static const size_t MIN_BUF_SZ;
 
     uint8_t * m_buf;
-    size_t    m_cap;
+    size_t    m_sz;
     size_t    m_pos;
     buf_type  m_btype;
   };
@@ -710,9 +691,9 @@ namespace kvr
   {
   public:
 
-    mem_istream (const uint8_t *bytes, size_t size);
+    mem_istream (const uint8_t *buf, size_t sz);
 
-    const uint8_t * bytes () const;
+    const uint8_t * buffer () const;
     size_t          size () const;
     size_t          tell () const;
     uint8_t         peek () const;
@@ -726,39 +707,21 @@ namespace kvr
     mem_istream (const mem_istream &);
     mem_istream &operator=(const mem_istream &);
 
-    const uint8_t * m_bytes;
-    size_t    m_size;
-    size_t    m_pos;
+    const uint8_t * m_buf;
+    size_t          m_sz;
+    size_t          m_pos;
   };
 
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
-
-  class buffer
-  {
-  public:
-
-    buffer (uint8_t *bytes, size_t size); // read & write
-    buffer (size_t capacity = DEFAULT_CAPACITY) : m_stream (capacity) {}
-
-    const uint8_t * get_data () const;
-    size_t          get_size () const;
-
-  private:
-
-    static const int DEFAULT_CAPACITY = 256;
-    mem_ostream m_stream;
-
-    friend class value;
-  };
 
   class obuffer
   {
   public:
 
     obuffer (uint8_t *bytes, size_t size);
-    obuffer (size_t size = 256) : m_stream (size) {}
+    obuffer (size_t size = 256u) : m_stream (size) {}
 
     const uint8_t * get_data () const;
     size_t          get_size () const;
@@ -766,21 +729,6 @@ namespace kvr
   private:
 
     mem_ostream m_stream;
-    friend class value;
-  };
-
-  class ibuffer
-  {
-  public:
-
-    ibuffer (uint8_t *bytes, size_t size) : m_stream (bytes, size) {}
-
-    const uint8_t * get_data () const;
-    size_t          get_size () const;
-
-  private:
-
-    mem_istream m_stream;
     friend class value;
   };
 
@@ -918,16 +866,16 @@ namespace kvr
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
-  KVR_INLINE const uint8_t * buffer::get_data () const
+  KVR_INLINE const uint8_t * obuffer::get_data () const
   {
-    return m_stream.bytes ();
+    return m_stream.buffer ();
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
-  KVR_INLINE size_t buffer::get_size () const
+  KVR_INLINE size_t obuffer::get_size () const
   {
     return m_stream.tell ();
   }

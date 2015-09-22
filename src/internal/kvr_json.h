@@ -496,13 +496,13 @@ namespace kvr
       {
         KVR_ASSERT (dest);
     
-        const char *str = (const char *) istr.bytes ();
+        const char *str = (const char *) istr.buffer ();
         KVR_ASSERT (str);
 
 #ifdef KVR_DEBUG
-        size_t len = istr.tell ();
+        size_t len = istr.size ();
         KVR_REF_UNUSED (len); 
-        //KVR_ASSERT (len > 0); 
+        KVR_ASSERT (len > 0); 
 #endif
         read_ctx rctx (dest);
         kvr_rapidjson::StringStream ss (str);

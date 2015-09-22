@@ -583,20 +583,20 @@ namespace kvr
           }
           return false;
         }
+
         ////////////////////////////////////////////////////////////
 
         bool parse_array4 (istr *is, read_ctx &ctx, uint8_t data)
         {
-          uint8_t msz = (data & 0x0f);
-          bool ok = ctx.read_map_start (msz);
-          for (uint8_t i = 0; ok && (i < msz); ++i)
+          uint8_t alen = (data & 0x0f);
+          bool ok = ctx.read_array_start (alen);
+          for (uint8_t i = 0; ok && (i < alen); ++i)
           {
-            ok &= parse_key (is, ctx);
             ok &= parse (is, ctx);
           }
-    #if KVR_DEBUG
-          ok &= ctx.read_map_end (msz);
-    #endif
+#if KVR_DEBUG
+          ok = ok && ctx.read_array_end (alen);
+#endif
           return ok;
         }
 
@@ -646,15 +646,16 @@ namespace kvr
 
         bool parse_map4 (istr *is, read_ctx &ctx, uint8_t data)
         {
-          uint8_t alen = (data & 0x0f);
-          bool ok = ctx.read_array_start (alen);
-          for (uint8_t i = 0; ok && (i < alen); ++i)
+          uint8_t msz = (data & 0x0f);
+          bool ok = ctx.read_map_start (msz);
+          for (uint8_t i = 0; ok && (i < msz); ++i)
           {
+            ok &= parse_key (is, ctx);
             ok &= parse (is, ctx);
           }
-    #if KVR_DEBUG
-          ok = ok && ctx.read_array_end (alen);
-    #endif
+#if KVR_DEBUG
+          ok &= ctx.read_map_end (msz);
+#endif
           return ok;
         }
 
@@ -1343,7 +1344,7 @@ namespace kvr
       }
 
       ////////////////////////////////////////////////////////////
-    #if 1
+
       bool write (const kvr::value *src, kvr::mem_ostream *ostr)
       {
         KVR_ASSERT (src);
@@ -1351,28 +1352,26 @@ namespace kvr
 
         write_ctx ctx (ostr);
         writer wrt;
+#if 1
         return wrt.print (src, ctx);
-
-        bool success = false;
-    #if defined(_MSC_VER) && KVR_DEBUG && 0
+#else
+        bool ok = wrt.print (src, ctx);
+#if defined(_MSC_VER) && KVR_DEBUG
         kvr::mem_ostream hex (512);
-        if (kvr::internal::hex_encode (ostr->bytes (), ostr->tell (), &hex))
+        if (kvr::internal::hex_encode (ostr->buffer (), ostr->tell (), &hex))
         {
-          hex.set_eos (0);
-          const char *hexstr = (const char *) hex.bytes ();
+          hex.flush ();
+          const char *hexstr = (const char *) hex.buffer ();
           std::fprintf (stderr, "msgpack: %s\n", hexstr);
-
-    #if 1
           FILE *fp = NULL;
           fopen_s (&fp, "msgpack_out.txt", "w");
           fwrite (hexstr, 1, hex.tell (), fp);
           fclose (fp);
-    #endif
         }
-    #endif
-        return success;
+#endif
+        return ok;
+#endif
       }
-    #endif
 
       ////////////////////////////////////////////////////////////
 
