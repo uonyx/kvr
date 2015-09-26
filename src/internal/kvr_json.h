@@ -25,7 +25,7 @@ namespace kvr
   {
     namespace json
     {
-      // optimized memorystream wrapper
+      // optimized memory stream wrapper
       struct omemstream_impl
       {
         omemstream_impl (kvr::mem_ostream *mem_ostream) : m_stream (mem_ostream) {}
@@ -42,7 +42,7 @@ namespace kvr
       {
         ocustream_impl (kvr::ostream *mem_ostream) : m_stream (mem_ostream) {}
         void Put (char ch) { m_stream->put (ch); }
-        void Flush () {}
+        void Flush () { m_stream->flush (); }
 
         kvr::ostream *m_stream;
       };
