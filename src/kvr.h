@@ -268,7 +268,7 @@ namespace kvr
     bool          decode (codec_t codec, istream &istr);
 
     // serialization (utility)
-    size_t        calcuate_encode_size (codec_t codec) const;
+    size_t        calculate_encode_size (codec_t codec) const;
 
     // diff/patch
     bool          diff (const value *original, const value *modified);
