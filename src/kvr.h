@@ -104,7 +104,6 @@
 // ideal to have the first 3 constants constants statically bound by client (aka templates)
 
 #define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
-#define KVR_CONSTANT_MAX_KEY_LENGTH                     (127u)
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (64u)
 #define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 #define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
@@ -206,8 +205,8 @@ namespace kvr
     bool          is_null () const;
 
     // type conversion    
-    value *       conv_map (sz_t sz = KVR_CONSTANT_COMMON_BLOCK_SZ);
-    value *       conv_array (sz_t sz = KVR_CONSTANT_COMMON_BLOCK_SZ);
+    value *       conv_map (sz_t sz = 8);
+    value *       conv_array (sz_t sz = 8);
     value *       conv_string ();
     value *       conv_boolean ();
     value *       conv_integer ();
@@ -217,17 +216,18 @@ namespace kvr
     // native variant ops
     void          set_string (const char *str, sz_t len);
     void          set_string (const char *str);
-    void          set_boolean (bool b);
     void          set_integer (int64_t n);
     void          set_float (double n);
+    void          set_boolean (bool b);
 
     const char *  get_string () const;
-    const char *  get_string (sz_t *len) const;
-    bool          get_boolean () const;
+    const char *  get_string (sz_t *len) const;    
     int64_t       get_integer () const;
     double        get_float () const;
+    bool          get_boolean () const;
 
     // array variant ops
+    value *       push (int32_t n);
     value *       push (int64_t n);
     value *       push (double n);
     value *       push (bool b);
@@ -240,6 +240,7 @@ namespace kvr
     sz_t          length () const;
 
     // map variant ops
+    value *       insert (const char *key, int32_t n);
     value *       insert (const char *key, int64_t n);
     value *       insert (const char *key, double n);
     value *       insert (const char *key, bool b);
@@ -731,10 +732,6 @@ namespace kvr
     mem_ostream m_stream;
     friend class value;
   };
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////

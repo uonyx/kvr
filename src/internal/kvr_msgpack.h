@@ -294,9 +294,9 @@ namespace kvr
 
           KVR_ASSERT (!m_temp);
     #if KVR_READ_KEY_SPECIALIZATION
-          char key [KVR_CONSTANT_MAX_KEY_LENGTH];
-          KVR_ASSERT (length < KVR_CONSTANT_MAX_KEY_LENGTH);
-          kvr_strncpy (key, KVR_CONSTANT_MAX_KEY_LENGTH, str, length);
+          char key [256];
+          KVR_ASSERT (length < 256);
+          kvr_strncpy (key, 256, str, length);
           m_temp = node->insert_null (key);
     #else
           KVR_REF_UNUSED (length);

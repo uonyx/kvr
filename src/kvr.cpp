@@ -622,22 +622,7 @@ void kvr::value::set_string (const char *str)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::value::set_boolean (bool b)
-{
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF  
-  KVR_ASSERT (is_boolean ());
-#else
-  conv_boolean ();
-#endif
-  
-  m_data.b = b;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 void kvr::value::set_integer (int64_t n)
 {
@@ -665,6 +650,21 @@ void kvr::value::set_float (double n)
 #endif
   
   m_data.n.f = n;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::set_boolean (bool b)
+{
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF  
+  KVR_ASSERT (is_boolean ());
+#else
+  conv_boolean ();
+#endif
+
+  m_data.b = b;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -707,16 +707,6 @@ const char * kvr::value::get_string (sz_t *len) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::value::get_boolean () const
-{
-  KVR_ASSERT_SAFE (is_boolean (), false);
-  return m_data.b;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 int64_t kvr::value::get_integer () const
 {
   KVR_ASSERT_SAFE (this->_is_number (), 0);
@@ -731,6 +721,25 @@ double kvr::value::get_float () const
 {
   KVR_ASSERT_SAFE (this->_is_number (), 0.0f);
   return is_float () ? m_data.n.f : (double) m_data.n.i;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::get_boolean () const
+{
+  KVR_ASSERT_SAFE (is_boolean (), false);
+  return m_data.b;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value * kvr::value::push (int32_t num)
+{
+  return this->push ((int64_t) num);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -911,10 +920,18 @@ kvr::sz_t kvr::value::length () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+kvr::value * kvr::value::insert (const char *keystr, int32_t num)
+{
+  return this->insert (keystr, (int64_t) num);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 kvr::value * kvr::value::insert (const char *keystr, int64_t num)
 {
   KVR_ASSERT (keystr && "invalid input");
-  KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -950,7 +967,6 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
 kvr::value * kvr::value::insert (const char *keystr, double num)
 {
   KVR_ASSERT (keystr && "invalid input");
-  KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
   KVR_ASSERT_SAFE ((!kvr::internal::isnan (num) && "n is nan"), NULL);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
@@ -987,7 +1003,6 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
 kvr::value * kvr::value::insert (const char *keystr, bool b)
 {
   KVR_ASSERT (keystr && "invalid input");
-  KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1023,7 +1038,6 @@ kvr::value * kvr::value::insert (const char *keystr, bool b)
 kvr::value * kvr::value::insert (const char *keystr, const char *str)
 {
   KVR_ASSERT (keystr && "invalid input");
-  KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
   KVR_ASSERT (str && "invalid input");
   
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
@@ -1060,7 +1074,6 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
 kvr::value * kvr::value::insert_map (const char *keystr)
 {
   KVR_ASSERT (keystr && "invalid input");
-  KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1096,7 +1109,6 @@ kvr::value * kvr::value::insert_map (const char *keystr)
 kvr::value * kvr::value::insert_array (const char *keystr)
 {
   KVR_ASSERT (keystr && "invalid input");
-  KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1132,7 +1144,6 @@ kvr::value * kvr::value::insert_array (const char *keystr)
 kvr::value * kvr::value::insert_null (const char *keystr)
 {
   KVR_ASSERT (keystr && "invalid input");
-  KVR_ASSERT ((strlen (keystr) <= KVR_CONSTANT_MAX_KEY_LENGTH) && "invalid input");
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());
@@ -1410,9 +1421,7 @@ bool kvr::value::encode (codec_t codec, obuffer *obuf)
 bool kvr::value::decode (codec_t codec, const uint8_t *data, size_t size)
 {
   bool success = false;
-
-  this->conv_null ();
-
+  
   mem_istream istr (data, size);  
 
   switch (codec)
@@ -1478,19 +1487,17 @@ bool kvr::value::encode (codec_t codec, ostream *ostr)
 bool kvr::value::decode (codec_t codec, istream &istr)
 {
   bool success = false;
-
+  
   switch (codec)
   {
     case kvr::CODEC_JSON:
-    {
-      this->conv_null ();
+    {    
       success = kvr::internal::json::read (this, istr);
       break;
     }
 
     case kvr::CODEC_MSGPACK:
     {
-      this->conv_null ();
       success = kvr::internal::msgpack::read (this, istr);
       break;
     }
@@ -1854,17 +1861,22 @@ kvr::value * kvr::value::_search_path_expr (const char *expr, const char **lastk
   const char delim = KVR_CONSTANT_TOKEN_DELIMITER;
   const char *e1 = expr;
   const char *e2 = strchr (e1, delim);
-  char k [KVR_CONSTANT_MAX_KEY_LENGTH + 1];
+
+  uint8_t kbuf [256];
+  kvr::mem_ostream kos (kbuf, 256);
 
   while (v && e2)
   {
     sz_t klen = e2 - e1;
-    KVR_ASSERT_SAFE ((klen <= KVR_CONSTANT_MAX_KEY_LENGTH), NULL);
-    kvr_strncpy (k, KVR_CONSTANT_MAX_KEY_LENGTH, e1, klen);
+    char *k = (char *) kos.push (klen + 1);    
+    kvr_strncpy (k, kos.size (), e1, klen);
+
     v = v->_search_key (k);
 
     e1 = ++e2;
     e2 = strchr (e1, delim);
+
+    kos.seek (0);
   }
 
   if (lastparent)
@@ -3307,7 +3319,7 @@ void kvr::mem_ostream::write (uint8_t *bytes, size_t count)
   if (desired_sz > m_sz)
   {
     size_t sz = kvr::internal::max (MIN_BUF_SZ, m_sz);
-    do { sz += m_sz; } while (sz < desired_sz);
+    while (sz < desired_sz) { sz += m_sz; }
     this->reserve (sz);
   }
   memcpy (&m_buf [m_pos], bytes, count);
@@ -3324,7 +3336,7 @@ uint8_t * kvr::mem_ostream::push (size_t count)
   if (desired_sz > m_sz)
   {
     size_t sz = kvr::internal::max (MIN_BUF_SZ, m_sz);
-    do { sz += m_sz; } while (sz < desired_sz);
+    while (sz < desired_sz) { sz += m_sz; }
     this->reserve (sz);
   }
 
