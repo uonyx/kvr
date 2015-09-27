@@ -720,7 +720,7 @@ namespace kvr
   {
   public:
 
-    obuffer (uint8_t *bytes, size_t size);
+    obuffer (uint8_t *bytes, size_t size) : m_stream (bytes, size) {}
     obuffer (size_t size = 256u) : m_stream (size) {}
 
     const uint8_t * get_data () const;

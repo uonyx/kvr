@@ -1378,21 +1378,19 @@ bool kvr::value::encode (codec_t codec, obuffer *obuf)
 
   bool success = false;
 
+  obuf->m_stream.seek (0);
+
   switch (codec)
   {
     case kvr::CODEC_JSON:
     {
-      obuf->m_stream.seek (0);
       success = kvr::internal::json::write (this, &obuf->m_stream);
-      obuf->m_stream.flush ();
       break;
     }
 
     case kvr::CODEC_MSGPACK:
     {
-      obuf->m_stream.seek (0);
       success = kvr::internal::msgpack::write (this, &obuf->m_stream);
-      obuf->m_stream.flush ();
       break;
     }
 
@@ -1413,20 +1411,20 @@ bool kvr::value::decode (codec_t codec, const uint8_t *data, size_t size)
 {
   bool success = false;
 
-  mem_istream istr (data, size);
+  this->conv_null ();
+
+  mem_istream istr (data, size);  
 
   switch (codec)
   {
     case kvr::CODEC_JSON:
-    {
-      this->conv_null ();
+    {      
       success = kvr::internal::json::read (this, istr);
       break;
     }
 
     case kvr::CODEC_MSGPACK:
     {
-      this->conv_null ();
       success = kvr::internal::msgpack::read (this, istr);
       break;
     }
@@ -3450,8 +3448,8 @@ void kvr::mem_ostream::free (uint8_t *buf)
 
 kvr::mem_istream::mem_istream (const uint8_t *buf, size_t sz) : m_buf (buf), m_sz (sz), m_pos (0)
 {
-  KVR_ASSERT (buf);
-  KVR_ASSERT (sz > 0);
+  KVR_ASSERT (m_buf);
+  KVR_ASSERT (m_sz > 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3534,7 +3532,6 @@ bool kvr::mem_istream::read (uint8_t *bytes, size_t count)
 
 const uint8_t * kvr::mem_istream::push (size_t count)
 {
-  KVR_ASSERT (m_buf);
   if ((m_pos + count) <= m_sz)
   {
     const uint8_t *start = &m_buf [m_pos];

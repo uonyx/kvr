@@ -1011,9 +1011,9 @@ namespace kvr
       {
         ////////////////////////////////////////////////////////////
 
-        write_ctx (kvr::ostream *mem_ostream) : m_os (mem_ostream)
+        write_ctx (kvr::ostream *os) : m_os (os)
         {
-          KVR_ASSERT (mem_ostream);
+          KVR_ASSERT (os);
         }
 
         ////////////////////////////////////////////////////////////
@@ -1329,7 +1329,13 @@ namespace kvr
     
         write_ctx ctx (ostr);
         writer wrt;
-        return wrt.print (src, ctx);
+        
+        if (wrt.print (src, ctx))
+        {
+          ostr->flush ();
+          return true;
+        }
+        return false;
       }
 
       ////////////////////////////////////////////////////////////
@@ -1353,7 +1359,12 @@ namespace kvr
         write_ctx ctx (ostr);
         writer wrt;
 #if 1
-        return wrt.print (src, ctx);
+        if (wrt.print (src, ctx))
+        {
+          ostr->flush ();
+          return true;
+        }
+        return false;
 #else
         bool ok = wrt.print (src, ctx);
 #if defined(_MSC_VER) && KVR_DEBUG
