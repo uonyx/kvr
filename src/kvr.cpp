@@ -3260,14 +3260,6 @@ const size_t kvr::mem_ostream::MIN_BUF_SZ = 256u;
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::mem_ostream::mem_ostream () : m_buf (NULL), m_sz (0), m_pos (0), m_btype (BUF_NONE)
-{
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 kvr::mem_ostream::mem_ostream (uint8_t *buf, size_t sz) : m_buf (buf), m_sz (sz), m_pos (0), m_btype (BUF_EXTERNAL)
 {
   KVR_ASSERT (m_buf);
@@ -3278,9 +3270,8 @@ kvr::mem_ostream::mem_ostream (uint8_t *buf, size_t sz) : m_buf (buf), m_sz (sz)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::mem_ostream::mem_ostream (size_t sz) : m_buf (NULL), m_sz (sz), m_pos (0), m_btype (BUF_INTERNAL)
+kvr::mem_ostream::mem_ostream (size_t sz) : m_buf (NULL), m_sz (0), m_pos (0), m_btype (BUF_INTERNAL)
 {
-  //KVR_ASSERT (m_sz > 0);
   m_sz = kvr::internal::max (MIN_BUF_SZ, sz);
   m_buf = this->alloc (m_sz);
 }
@@ -3302,7 +3293,7 @@ void kvr::mem_ostream::put (uint8_t byte)
 {
   if (m_pos >= m_sz)
   {
-    size_t sz = kvr::internal::max (MIN_BUF_SZ, m_sz + m_sz);
+    size_t sz = m_sz + m_sz;
     this->reserve (sz);
   }
   m_buf [m_pos++] = byte;
@@ -3317,8 +3308,8 @@ void kvr::mem_ostream::write (uint8_t *bytes, size_t count)
   size_t desired_sz = m_pos + count;
   if (desired_sz > m_sz)
   {
-    size_t sz = kvr::internal::max (MIN_BUF_SZ, m_sz);
-    while (sz < desired_sz) { sz += m_sz; }
+    size_t sz = m_sz;
+    do { sz += m_sz; } while (sz < desired_sz);
     this->reserve (sz);
   }
   memcpy (&m_buf [m_pos], bytes, count);
@@ -3334,8 +3325,8 @@ uint8_t * kvr::mem_ostream::push (size_t count)
   size_t desired_sz = m_pos + count;
   if (desired_sz > m_sz)
   {
-    size_t sz = kvr::internal::max (MIN_BUF_SZ, m_sz);
-    while (sz < desired_sz) { sz += m_sz; }
+    size_t sz = m_sz;
+    do { sz += m_sz; } while (sz < desired_sz);
     this->reserve (sz);
   }
 
