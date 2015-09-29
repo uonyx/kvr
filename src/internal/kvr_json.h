@@ -19,6 +19,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
+
 namespace kvr
 {
   namespace internal
@@ -57,13 +58,14 @@ namespace kvr
         size_t  Tell () { return m_stream->tell (); }
         char *  PutBegin () { return NULL; }
         size_t  PutEnd (char *) { return 0u; }
-        void    Put (char) { } // ???
+        void    Put (char) { KVR_ASSERT (false); } // ?!
 
         kvr::istream *m_stream;
       };
     }
   }
 }
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -472,7 +474,7 @@ namespace kvr
 
         kvr_rapidjson::Reader reader;
         kvr_rapidjson::ParseResult ok = reader.Parse (ss, rctx);
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
         if (ok.IsError ()) { std::fprintf (stderr, "JSON parse error: %s (%lu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
 #endif
         return ok && (rctx.m_depth == 0);
@@ -499,7 +501,7 @@ namespace kvr
         const char *str = (const char *) istr.buffer ();
         KVR_ASSERT (str);
 
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
         size_t len = istr.size ();
         KVR_REF_UNUSED (len); 
         KVR_ASSERT (len > 0); 
@@ -509,7 +511,7 @@ namespace kvr
         kvr_rapidjson::Reader reader;
 
         kvr_rapidjson::ParseResult ok = reader.Parse (ss, rctx);
-    #ifdef KVR_DEBUG
+    #if KVR_DEBUG
         if (ok.IsError ()) { std::fprintf (stderr, "JSON parse error: %s (%lu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
     #endif
         return ok && (rctx.m_depth == 0);

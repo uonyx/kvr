@@ -614,9 +614,9 @@ namespace kvr
             {
               ok &= parse (is, ctx);
             }
-    #if KVR_DEBUG
+#if KVR_DEBUG
             ok &= ctx.read_array_end (alen);
-    #endif
+#endif
           }
           return ok;
         }
@@ -635,9 +635,9 @@ namespace kvr
             {
               ok &= parse (is, ctx);
             }
-    #if KVR_DEBUG
+#if KVR_DEBUG
             ok &= ctx.read_array_end (alen);
-    #endif
+#endif
           }
           return ok;
         }
@@ -674,9 +674,9 @@ namespace kvr
               ok &= parse_key (is, ctx);
               ok &= parse (is, ctx);
             }
-    #if KVR_DEBUG
+#if KVR_DEBUG
             ok &= ctx.read_map_end (msz);
-    #endif
+#endif
           }
           return ok;
         }
@@ -696,9 +696,9 @@ namespace kvr
               ok &= parse_key (is, ctx);
               ok &= parse (is, ctx);
             }
-    #if KVR_DEBUG
+#if KVR_DEBUG
             ok &= ctx.read_map_end (msz);
-    #endif
+#endif
           }
           return ok;
         }
@@ -1335,6 +1335,7 @@ namespace kvr
           ostr->flush ();
           return true;
         }
+
         return false;
       }
 
@@ -1358,30 +1359,14 @@ namespace kvr
 
         write_ctx ctx (ostr);
         writer wrt;
-#if 1
+
         if (wrt.print (src, ctx))
         {
           ostr->flush ();
           return true;
         }
+
         return false;
-#else
-        bool ok = wrt.print (src, ctx);
-#if defined(_MSC_VER) && KVR_DEBUG
-        kvr::mem_ostream hex (512);
-        if (kvr::internal::hex_encode (ostr->buffer (), ostr->tell (), &hex))
-        {
-          hex.flush ();
-          const char *hexstr = (const char *) hex.buffer ();
-          std::fprintf (stderr, "msgpack: %s\n", hexstr);
-          FILE *fp = NULL;
-          fopen_s (&fp, "msgpack_out.txt", "w");
-          fwrite (hexstr, 1, hex.tell (), fp);
-          fclose (fp);
-        }
-#endif
-        return ok;
-#endif
       }
 
       ////////////////////////////////////////////////////////////

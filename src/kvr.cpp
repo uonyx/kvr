@@ -1237,7 +1237,7 @@ kvr::sz_t kvr::value::size () const
 
 #if EXPERIMENTAL_FAST_MAP_SIZE
   sz_t sz2 = this->_size2 ();
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
   sz_t sz1 = this->_size1 ();
   KVR_ASSERT (sz1 == sz2);
 #endif
@@ -1577,11 +1577,11 @@ bool kvr::value::diff (const value *original, const value *modified)
       KVR_ASSERT (rem);
 
       const char * path [KVR_CONSTANT_MAX_TREE_DEPTH];
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
       diff->_diff_set (set, rem, og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
       diff->_diff_add (add, og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
@@ -1875,7 +1875,6 @@ kvr::value * kvr::value::_search_path_expr (const char *expr, const char **lastk
 
     e1 = ++e2;
     e2 = strchr (e1, delim);
-
     kos.seek (0);
   }
 
@@ -2650,7 +2649,7 @@ void kvr::value::_patch_add (const value *add)
       }
       else if (tgp->is_array ())
       {
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
         char *end;
         int64_t ki64 = strtoll (tgk, &end, 10); KVR_ASSERT (!*end);
         KVR_ASSERT (ki64 >= 0);
@@ -2701,7 +2700,7 @@ void kvr::value::_patch_rem (const value *rem)
       }
       else if (tgp->is_array ())
       {
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
         char *end;
         int64_t ki64 = strtoll (tgk, &end, 10); KVR_ASSERT (!*end);
         KVR_ASSERT (ki64 >= 0);
@@ -2728,7 +2727,7 @@ bool kvr::value::_insert_kv (key *k, value *v)
 
   map::node *n = NULL;
 
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   KVR_ASSERT (n == NULL);
 #endif
@@ -2860,7 +2859,7 @@ void kvr::value::string::dyn_str::set (const char *str, sz_t len)
   KVR_ASSERT (str);
   KVR_ASSERT (len > 0);
 
-  sz_t allocsz = ((len + 1) + (string::dyn_str::PAD - 1)) & ~(string::dyn_str::PAD - 1);
+  sz_t allocsz = ((len + 1) + string::dyn_str::PAD) & ~string::dyn_str::PAD;  
   if (allocsz > m_size)
   {
     if (m_data) { delete [] m_data; }
@@ -2894,9 +2893,9 @@ void kvr::value::array::init (sz_t size)
 {
   KVR_ASSERT (size > 0);
 
-  sz_t allocsz = (size + (CAP_INCR - 1)) & ~(CAP_INCR - 1);
+  sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
   m_ptr = new kvr::value * [allocsz];
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
   memset (m_ptr, 0, sizeof (kvr::value *) * allocsz); // debug-only
 #endif
   m_cap = allocsz;
@@ -2929,7 +2928,7 @@ void kvr::value::array::push (value *v)
     // resize
     sz_t new_cap = m_cap + CAP_INCR;
     value ** new_ptr = new value * [new_cap];
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
     memset (new_ptr, 0, sizeof (kvr::value *) * new_cap);
 #endif
     memcpy (new_ptr, m_ptr, sizeof (kvr::value *) * m_len);
@@ -2948,7 +2947,7 @@ void kvr::value::array::push (value *v)
 
 kvr::value *kvr::value::array::pop ()
 {
-#ifdef KVR_DEBUG
+#if KVR_DEBUG
   value *v = NULL;
 
   if (m_len > 0)
@@ -3010,7 +3009,7 @@ void kvr::value::map::init (sz_t size)
   KVR_ASSERT (size > 0);
   if (size == 0) { size = 1U; }
 
-  sz_t allocsz = (size + (CAP_INCR - 1)) & ~(CAP_INCR - 1);
+  sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
   m_ptr = new node [allocsz];
   m_cap = allocsz;
   m_len = 0;
@@ -3187,7 +3186,7 @@ kvr::sz_t kvr::value::map::size_c () const
 kvr::sz_t kvr::value::map::_cap () const
 {
 #if 0
-  sz_t capa = m_len ? ((m_len + (CAP_INCR - 1)) & ~(CAP_INCR - 1)) : m_cap;
+  sz_t capa = m_len ? kvr::internal::align_size (m_len, CAP_INCR) : m_cap;
 #else
   sz_t capa = 0;
 
@@ -3197,7 +3196,7 @@ kvr::sz_t kvr::value::map::_cap () const
   }
   else if (m_len)
   {
-    capa = (m_len + (CAP_INCR - 1)) & ~(CAP_INCR - 1);
+    capa = kvr::internal::align_size (m_len, CAP_INCR);
   }
   else
   {
