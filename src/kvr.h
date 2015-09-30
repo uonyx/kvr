@@ -67,6 +67,7 @@
 #if KVR_CPP11
 #include <unordered_map>
 #define std_unordered_map std::unordered_map
+#define KVR_FINAL final
 #else
 #if defined (_MSC_VER)
 #include <unordered_map>
@@ -74,6 +75,7 @@
 #include <tr1/unordered_map>
 #endif
 #define std_unordered_map std::tr1::unordered_map
+#define KVR_FINAL
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,13 +89,24 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-// ideal to have the first 3 constants constants statically bound by client (aka templates)
-
 #define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (64u)
 #define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 #define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
-#define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8u)    // must be power of 2
+#define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8u)
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if KVR_CPP11
+static_assert (((KVR_CONSTANT_COMMON_BLOCK_SZ & (KVR_CONSTANT_COMMON_BLOCK_SZ - 1)) == 0), 
+               "#define KVR_CONSTANT_COMMON_BLOCK_SZ must be a power of 2");
+#else
+#if !((KVR_CONSTANT_COMMON_BLOCK_SZ & (KVR_CONSTANT_COMMON_BLOCK_SZ - 1)) == 0)
+#error "#define KVR_CONSTANT_COMMON_BLOCK_SZ must be a power of 2"
+#endif
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -367,15 +380,14 @@ namespace kvr
     public:
 
       bool get (pair *p);
-
-    private:
-
-      const map::node * _get ();
-
-      cursor (const map *m) : m_map (m), m_index (0) {}
 #if KVR_CPP11
       cursor (cursor &&c) : m_map (c.m_map), m_index (c.m_index) {}
 #endif
+    private:
+
+      cursor (const map *m) : m_map (m), m_index (0) {}
+      const map::node * _get ();    
+      
       const map * m_map;
       sz_t        m_index;
 
@@ -623,7 +635,7 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class mem_ostream : public ostream
+  class mem_ostream KVR_FINAL : public ostream
   {
   public:
 
@@ -672,7 +684,7 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class mem_istream : public istream
+  class mem_istream KVR_FINAL : public istream
   {
   public:
 
