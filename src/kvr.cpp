@@ -641,7 +641,7 @@ void kvr::value::set_integer (int64_t n)
 
 void kvr::value::set_float (double n)
 {
-  KVR_ASSERT_SAFE ((!kvr::internal::isnan (n) && "n is nan"), (void) 0);
+  KVR_ASSERT_SAFE ((!kvr::internal::isnan (n) && !kvr::internal::isinf (n) && "n is invalid"), (void) 0);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF  
   KVR_ASSERT (is_float ());
@@ -766,6 +766,7 @@ kvr::value * kvr::value::push (int64_t num)
 
 kvr::value * kvr::value::push (double num)
 {
+  KVR_ASSERT_SAFE ((!kvr::internal::isnan (num) && !kvr::internal::isinf (num) && "num is invalid"), NULL);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF  
   KVR_ASSERT (is_array ());
 #else
@@ -967,7 +968,7 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
 kvr::value * kvr::value::insert (const char *keystr, double num)
 {
   KVR_ASSERT (keystr && "invalid input");
-  KVR_ASSERT_SAFE ((!kvr::internal::isnan (num) && "n is nan"), NULL);
+  KVR_ASSERT_SAFE ((!kvr::internal::isnan (num) && !kvr::internal::isinf (num) && "num is invalid"), NULL);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   KVR_ASSERT (is_map ());  
@@ -1405,6 +1406,12 @@ bool kvr::value::encode (codec_t codec, obuffer *obuf)
       break;
     }
 
+    case kvr::CODEC_CBOR:
+    {
+      success = kvr::internal::cbor::write (this, &obuf->m_stream);
+      break;
+    }
+
     default:
     {
       break;
@@ -1435,6 +1442,12 @@ bool kvr::value::decode (codec_t codec, const uint8_t *data, size_t size)
     case kvr::CODEC_MSGPACK:
     {
       success = kvr::internal::msgpack::read (this, istr);
+      break;
+    }
+
+    case kvr::CODEC_CBOR:
+    {
+      success = kvr::internal::cbor::read (this, istr);
       break;
     }
 
@@ -1471,6 +1484,12 @@ bool kvr::value::encode (codec_t codec, ostream *ostr)
       break;
     }
 
+    case kvr::CODEC_CBOR:
+    {
+      success = kvr::internal::cbor::write (this, ostr);
+      break;
+    }
+
     default:
     {
       break;
@@ -1502,6 +1521,12 @@ bool kvr::value::decode (codec_t codec, istream &istr)
       break;
     }
 
+    case kvr::CODEC_CBOR:
+    {
+      success = kvr::internal::cbor::read (this, istr);
+      break;
+    }
+
     default:
     {
       break;
@@ -1530,6 +1555,12 @@ size_t kvr::value::calculate_encode_size (codec_t codec) const
     case kvr::CODEC_MSGPACK:
     {
       size = kvr::internal::msgpack::write_approx_size (this);
+      break;
+    }
+
+    case kvr::CODEC_CBOR:
+    {
+      size = kvr::internal::cbor::write_approx_size (this);
       break;
     }
 
@@ -2099,6 +2130,7 @@ void kvr::value::_clear ()
 
 void kvr::value::_dump (size_t lpad, const char *key) const
 {
+#if KVR_DEBUG || 1
   for (size_t t = 0; t < lpad; ++t)
   {
     std::fprintf (stderr, "  ");
@@ -2187,6 +2219,10 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   {
     std::fprintf (stderr, "value = %s -> [null]\n", kvr_const_str_null);
   }
+#else
+  KVR_REF_UNUSED (lpad);
+  KVR_REF_UNUSED (key);  
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

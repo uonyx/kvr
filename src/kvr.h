@@ -84,6 +84,7 @@
 
 #define KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF   0   // type conversion is on you
 #define KVR_OPTIMIZATION_FAST_MAP_INSERT_ON             0   // ignore duplicate keys in maps
+#define KVR_OPTIMIZATION_CODEC_FAST_COMPACT_FP_ON       0   // fast floating point codec operations
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,7 +104,7 @@
 static_assert (((KVR_CONSTANT_COMMON_BLOCK_SZ & (KVR_CONSTANT_COMMON_BLOCK_SZ - 1)) == 0), 
                "#define KVR_CONSTANT_COMMON_BLOCK_SZ must be a power of 2");
 #else
-#if !((KVR_CONSTANT_COMMON_BLOCK_SZ & (KVR_CONSTANT_COMMON_BLOCK_SZ - 1)) == 0)
+#if (KVR_CONSTANT_COMMON_BLOCK_SZ & (KVR_CONSTANT_COMMON_BLOCK_SZ - 1))
 #error "#define KVR_CONSTANT_COMMON_BLOCK_SZ must be a power of 2"
 #endif
 #endif
@@ -139,7 +140,8 @@ namespace kvr
   enum codec_t
   {
     CODEC_JSON,
-    CODEC_MSGPACK
+    CODEC_MSGPACK,
+    CODEC_CBOR,
   };
 
   ///////////////////////////////////////////////////////////////

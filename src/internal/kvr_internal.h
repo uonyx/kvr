@@ -294,26 +294,99 @@ namespace kvr
 
     bool isnan (double f)
     {
-      // quick nan check (valid for IEEE fp mode). 
-      // TODO: more robust nan check
-
 #if KVR_CPP11
       return std::isnan (f);
-#else
-#if defined (_MSC_VER)
+#elif defined (_MSC_VER)
       return (_isnan (f) != 0);
+#elif defined (__clang__) || defined (__GNUC__)
+      return ::isnan (f);
 #else
-      return (f != f); //return std::tr1::isnan (f);
-#endif
+      // quick nan check (valid for IEEE fp mode only). 
+      // TODO: more robust nan check
+      return (f != f);
 #endif
     }
 
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+
+    bool isinf (double f)
+    {
+#if KVR_CPP11
+      return std::isinf (f);
+#elif defined (_MSC_VER)
+      return (_finite (f) == 0);
+#elif defined (__clang__) || defined (__GNUC__)
+      return ::isinf (f);
+#else
+      // not tested if this works :/
+      return !kvr::internal::isnan (x) && kvr::internal::isnan (x - x);
+#endif
+    }
 
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    // floating point nan check
+    bool float_to_halffloat (float f, uint16_t *hf)
+    {
+      KVR_ASSERT (hf);
+
+      const uint32_t HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP = 0x38000000;
+      const uint32_t HALF_FLOAT_MAX_BIASED_EXP_AS_SINGLE_FP_EXP = 0x47800000;
+      const uint32_t FLOAT_MAX_BIASED_EXP = (0xff << 23);
+
+      union { float f; uint32_t u; } mem; mem.f = f;
+
+      uint32_t x = mem.u;
+      uint32_t sign = (uint16_t) (x >> 31);      
+      uint32_t mantissa = x & ((1 << 23) - 1);
+      uint32_t exp = x & FLOAT_MAX_BIASED_EXP;
+
+      if ((exp > HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP) && (exp < HALF_FLOAT_MAX_BIASED_EXP_AS_SINGLE_FP_EXP))
+      {
+        *hf = (((uint16_t) sign) << 15) |
+              (uint16_t) ((exp - HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP) >> 13) |
+              (uint16_t) (mantissa >> 13);
+        return true;
+      }
+
+      return false;
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+
+    bool halffloat_to_float (uint16_t hf, float *f)
+    {
+      KVR_ASSERT (f);
+
+      const uint32_t HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP = 0x38000000;
+      const uint32_t HALF_FLOAT_MAX_BIASED_EXP = (0x1f << 10);
+
+      uint32_t sign = (uint32_t) (hf >> 15);
+      uint32_t mantissa = (uint32_t) (hf & ((1 << 10) -1));
+      uint32_t exp = (uint32_t) (hf & HALF_FLOAT_MAX_BIASED_EXP);
+
+      if ((exp != 0x0) && (exp != HALF_FLOAT_MAX_BIASED_EXP))
+      {
+        mantissa <<= 13;
+        exp = (exp << 13) + HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP;
+
+        union { float f; uint32_t u; } mem; 
+        mem.u = (sign << 31) | exp | mantissa;
+        *f = mem.f;
+        return true;
+      }
+      
+      return false;
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
   }
 }
 
@@ -321,8 +394,23 @@ namespace kvr
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "kvr_msgpack.h"
+#if defined (KVR_LITTLE_ENDIAN)
+#define bigendian16(X) kvr::internal::byteswap16 (X)
+#define bigendian32(X) kvr::internal::byteswap32 (X)
+#define bigendian64(X) kvr::internal::byteswap64 (X)
+#else
+#define bigendian16(X) (X)
+#define bigendian32(X) (X)
+#define bigendian64(X) (X)
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////
+
 #include "kvr_json.h"
+#include "kvr_msgpack.h"
+#include "kvr_cbor.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////

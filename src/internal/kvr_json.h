@@ -78,6 +78,24 @@ namespace kvr
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if KVR_DEBUG
+#define KVR_JSON_DEBUG_PARSE_FLAGS (kvr_rapidjson::kParseValidateEncodingFlag)
+#else
+#define KVR_JSON_DEBUG_PARSE_FLAGS (0)
+#endif
+
+#if KVR_OPTIMIZATION_CODEC_FAST_COMPACT_FP_ON
+#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseIterativeFlag | kvr_rapidjson::kParseStopWhenDoneFlag)
+#else
+#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseIterativeFlag | kvr_rapidjson::kParseStopWhenDoneFlag | kvr_rapidjson::kParseFullPrecisionFlag)
+#endif
+
+#define KVR_JSON_PARSE_FLAGS (KVR_JSON_BASE_PARSE_FLAGS | KVR_JSON_DEBUG_PARSE_FLAGS)
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 namespace kvr
 {
   namespace internal
@@ -473,8 +491,8 @@ namespace kvr
         icustream_impl ss (&istr);
 
         kvr_rapidjson::Reader reader;
-        kvr_rapidjson::ParseResult ok = reader.Parse (ss, rctx);
-#if KVR_DEBUG
+        kvr_rapidjson::ParseResult ok = reader.Parse<KVR_JSON_PARSE_FLAGS> (ss, rctx);
+#if KVR_DEBUG        
         if (ok.IsError ()) { std::fprintf (stderr, "JSON parse error: %s (%lu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
 #endif
         return ok && (rctx.m_depth == 0);
@@ -509,11 +527,10 @@ namespace kvr
         read_ctx rctx (dest);
         kvr_rapidjson::StringStream ss (str);
         kvr_rapidjson::Reader reader;
-
-        kvr_rapidjson::ParseResult ok = reader.Parse (ss, rctx);
-    #if KVR_DEBUG
+        kvr_rapidjson::ParseResult ok = reader.Parse<KVR_JSON_PARSE_FLAGS> (ss, rctx);
+#if KVR_DEBUG        
         if (ok.IsError ()) { std::fprintf (stderr, "JSON parse error: %s (%lu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
-    #endif
+#endif
         return ok && (rctx.m_depth == 0);
       }
 

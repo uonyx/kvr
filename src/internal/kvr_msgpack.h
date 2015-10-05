@@ -20,7 +20,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define KVR_READ_KEY_SPECIALIZATION 0
+#define KVR_MSGPACK_READ_KEY_SPECIALIZATION     0
+#define KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE   1
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,48 +33,41 @@ namespace kvr
   {
     namespace msgpack
     {
-      ///////////////////////////////////////////////////////////////////////////////////////////////
-      ///////////////////////////////////////////////////////////////////////////////////////////////
-      ///////////////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////////////////////////////////////////////
 
-    #if defined (KVR_LITTLE_ENDIAN)
-    #define bigendian16(X) kvr::internal::byteswap16 (X)
-    #define bigendian32(X) kvr::internal::byteswap32 (X)
-    #define bigendian64(X) kvr::internal::byteswap64 (X)
-    #else
-    #define bigendian16(X) (X)
-    #define bigendian32(X) (X)
-    #define bigendian64(X) (X)
-    #endif
+      // Specification: https://github.com/msgpack/msgpack/blob/master/spec.md
 
       ///////////////////////////////////////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////////////////////////
 
-      static const uint8_t MSGPACK_HEADER_NULL = 0xc0;
-      static const uint8_t MSGPACK_HEADER_BOOL_FALSE = 0xc2;
-      static const uint8_t MSGPACK_HEADER_BOOL_TRUE = 0xc3;
-      static const uint8_t MSGPACK_HEADER_UNSIGNED_8 = 0xcc;
+      // jump table
+      static const uint8_t MSGPACK_HEADER_NULL        = 0xc0;
+      static const uint8_t MSGPACK_HEADER_BOOL_FALSE  = 0xc2;
+      static const uint8_t MSGPACK_HEADER_BOOL_TRUE   = 0xc3;
+      static const uint8_t MSGPACK_HEADER_UNSIGNED_8  = 0xcc;
       static const uint8_t MSGPACK_HEADER_UNSIGNED_16 = 0xcd;
       static const uint8_t MSGPACK_HEADER_UNSIGNED_32 = 0xce;
       static const uint8_t MSGPACK_HEADER_UNSIGNED_64 = 0xcf;
-      static const uint8_t MSGPACK_HEADER_SIGNED_5 = 7u << 5;
-      static const uint8_t MSGPACK_HEADER_SIGNED_8 = 0xd0;
-      static const uint8_t MSGPACK_HEADER_SIGNED_16 = 0xd1;
-      static const uint8_t MSGPACK_HEADER_SIGNED_32 = 0xd2;
-      static const uint8_t MSGPACK_HEADER_SIGNED_64 = 0xd3;
-      static const uint8_t MSGPACK_HEADER_FLOAT_32 = 0xca;
-      static const uint8_t MSGPACK_HEADER_FLOAT_64 = 0xcb;
-      static const uint8_t MSGPACK_HEADER_ARRAY_4 = 9u << 4;
-      static const uint8_t MSGPACK_HEADER_ARRAY_16 = 0xdc;
-      static const uint8_t MSGPACK_HEADER_ARRAY_32 = 0xdd;
-      static const uint8_t MSGPACK_HEADER_MAP_4 = 8u << 4;
-      static const uint8_t MSGPACK_HEADER_MAP_16 = 0xde;
-      static const uint8_t MSGPACK_HEADER_MAP_32 = 0xdf;
-      static const uint8_t MSGPACK_HEADER_STRING_5 = 5u << 5;
-      static const uint8_t MSGPACK_HEADER_STRING_8 = 0xd9;
-      static const uint8_t MSGPACK_HEADER_STRING_16 = 0xda;
-      static const uint8_t MSGPACK_HEADER_STRING_32 = 0xdb;
+      static const uint8_t MSGPACK_HEADER_SIGNED_5    = 7u << 5;
+      static const uint8_t MSGPACK_HEADER_SIGNED_8    = 0xd0;
+      static const uint8_t MSGPACK_HEADER_SIGNED_16   = 0xd1;
+      static const uint8_t MSGPACK_HEADER_SIGNED_32   = 0xd2;
+      static const uint8_t MSGPACK_HEADER_SIGNED_64   = 0xd3;
+      static const uint8_t MSGPACK_HEADER_FLOAT_32    = 0xca;
+      static const uint8_t MSGPACK_HEADER_FLOAT_64    = 0xcb;
+      static const uint8_t MSGPACK_HEADER_ARRAY_4     = 9u << 4;
+      static const uint8_t MSGPACK_HEADER_ARRAY_16    = 0xdc;
+      static const uint8_t MSGPACK_HEADER_ARRAY_32    = 0xdd;
+      static const uint8_t MSGPACK_HEADER_MAP_4       = 8u << 4;
+      static const uint8_t MSGPACK_HEADER_MAP_16      = 0xde;
+      static const uint8_t MSGPACK_HEADER_MAP_32      = 0xdf;
+      static const uint8_t MSGPACK_HEADER_STRING_5    = 5u << 5;
+      static const uint8_t MSGPACK_HEADER_STRING_8    = 0xd9;
+      static const uint8_t MSGPACK_HEADER_STRING_16   = 0xda;
+      static const uint8_t MSGPACK_HEADER_STRING_32   = 0xdb;
 
       ///////////////////////////////////////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -293,7 +287,7 @@ namespace kvr
           KVR_ASSERT_SAFE (node && node->is_map (), false);
 
           KVR_ASSERT (!m_temp);
-    #if KVR_READ_KEY_SPECIALIZATION
+    #if KVR_MSGPACK_READ_KEY_SPECIALIZATION
           char key [256];
           KVR_ASSERT (length < 256);
           kvr_strncpy (key, 256, str, length);
@@ -829,7 +823,7 @@ namespace kvr
         bool parse_unsigned64 (istr *is, read_ctx &ctx)
         {
     #if 1
-          KVR_ASSERT_SAFE ((false && "not supported"), false);
+          KVR_ASSERT (false && "not supported");
           KVR_REF_UNUSED (is);
           KVR_REF_UNUSED (ctx);
           return false;
@@ -956,7 +950,7 @@ namespace kvr
         }
         return false;
       }
-    #if KVR_READ_KEY_SPECIALIZATION
+    #if KVR_MSGPACK_READ_KEY_SPECIALIZATION
       template<>
       bool reader<kvr::mem_istream>::parse_key5 (kvr::mem_istream *is, read_ctx &ctx, uint8_t data)
       {
@@ -1035,14 +1029,14 @@ namespace kvr
           }
           else if (size <= 0xffff)
           {
-            m_os->put (MSGPACK_HEADER_ARRAY_16);
             uint16_t sz = bigendian16 (size);
+            m_os->put (MSGPACK_HEADER_ARRAY_16);            
             m_os->write ((uint8_t *) &sz, 2);
           }
           else if (size <= 0xffffffff)
           {
-            m_os->put (MSGPACK_HEADER_ARRAY_32);
             uint32_t sz = bigendian32 (size);
+            m_os->put (MSGPACK_HEADER_ARRAY_32);            
             m_os->write ((uint8_t *) &sz, 4);
           }
           else
@@ -1064,14 +1058,14 @@ namespace kvr
           }
           else if (size <= 0xffff)
           {
-            m_os->put (MSGPACK_HEADER_MAP_16);
             uint16_t sz = bigendian16 (size);
+            m_os->put (MSGPACK_HEADER_MAP_16);            
             m_os->write ((uint8_t *) &sz, 2);
           }
           else if (size <= 0xffffffff)
           {
-            m_os->put (MSGPACK_HEADER_MAP_32);
             uint16_t sz = bigendian32 (size);
+            m_os->put (MSGPACK_HEADER_MAP_32);            
             m_os->write ((uint8_t *) &sz, 4);
           }
 
@@ -1095,14 +1089,14 @@ namespace kvr
           }
           else if (slen <= 0xffff)
           {
-            m_os->put (MSGPACK_HEADER_STRING_16);
             uint16_t len = bigendian16 (slen);
+            m_os->put (MSGPACK_HEADER_STRING_16);            
             m_os->write ((uint8_t *) &len, 2);
           }
           else if (slen <= 0xffffffff)
           {
-            m_os->put (MSGPACK_HEADER_STRING_32);
             uint32_t len = bigendian32 (slen);
+            m_os->put (MSGPACK_HEADER_STRING_32);            
             m_os->write ((uint8_t *) &len, 4);
           }
           else
@@ -1119,7 +1113,7 @@ namespace kvr
 
         bool write_integer (int64_t i64)
         {
-          if (i64 > 0) // unsigned
+          if (i64 >= 0) // unsigned
           {
             if (i64 <= 127)
             {
@@ -1134,20 +1128,20 @@ namespace kvr
             }
             else if (i64 <= 0xffff)
             {
-              m_os->put (MSGPACK_HEADER_UNSIGNED_16);
               uint16_t i = bigendian16 (i64);
+              m_os->put (MSGPACK_HEADER_UNSIGNED_16);              
               m_os->write ((uint8_t *) &i, 2);
             }
             else if (i64 <= 0xffffffff)
             {
-              m_os->put (MSGPACK_HEADER_UNSIGNED_32);
               uint32_t i = bigendian32 (i64);
+              m_os->put (MSGPACK_HEADER_UNSIGNED_32);              
               m_os->write ((uint8_t *) &i, 4);
             }
             else // max is int64_t;
             {
-              m_os->put (MSGPACK_HEADER_SIGNED_64);
               uint64_t i = bigendian64 (i64);
+              m_os->put (MSGPACK_HEADER_SIGNED_64);              
               m_os->write ((uint8_t *) &i, 8);
             }
           }
@@ -1171,20 +1165,20 @@ namespace kvr
             }
             else if (i64 >= nint16)
             {
-              m_os->put (MSGPACK_HEADER_SIGNED_16);
               uint16_t i = bigendian16 (i64);
+              m_os->put (MSGPACK_HEADER_SIGNED_16);              
               m_os->write ((uint8_t *) &i, 2);
             }
             else if (i64 >= nint32)
             {
-              m_os->put (MSGPACK_HEADER_SIGNED_32);
               uint32_t i = bigendian32 (i64);
+              m_os->put (MSGPACK_HEADER_SIGNED_32);              
               m_os->write ((uint8_t *) &i, 4);
             }
             else
             {
-              m_os->put (MSGPACK_HEADER_SIGNED_64);
               uint64_t i = bigendian64 (i64);
+              m_os->put (MSGPACK_HEADER_SIGNED_64);              
               m_os->write ((uint8_t *) &i, 8);
             }
           }
@@ -1196,26 +1190,24 @@ namespace kvr
 
         bool write_float (double f)
         {
+#if KVR_OPTIMIZATION_CODEC_FAST_COMPACT_FP_ON || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
           const double fmin = std::numeric_limits<float>::min ();
           const double fmax = std::numeric_limits<float>::max ();
-
           if ((f >= fmin) && (f <= fmax))
           {
-            m_os->put (MSGPACK_HEADER_FLOAT_32);
             union { float f; uint32_t i; } mem;
             mem.f = (float) f;
             uint32_t fi = bigendian32 (mem.i);
+            m_os->put (MSGPACK_HEADER_FLOAT_32);
             m_os->write ((uint8_t *) &fi, 4);
+            return true;
           }
-          else
-          {
-            m_os->put (MSGPACK_HEADER_FLOAT_64);
-            union { double f; uint64_t i; } mem;
-            mem.f = (double) f;
-            uint64_t fi = bigendian64 (mem.i);
-            m_os->write ((uint8_t *) &fi, 8);
-          }
-
+#endif
+          union { double f; uint64_t i; } mem;
+          mem.f = f;
+          uint64_t fi = bigendian64 (mem.i);
+          m_os->put (MSGPACK_HEADER_FLOAT_64);
+          m_os->write ((uint8_t *) &fi, 8);
           return true;
         }
 
@@ -1476,7 +1468,7 @@ namespace kvr
         {
           int64_t n = val->get_integer ();
 
-          if (n > 0) // unsigned
+          if (n >= 0) // unsigned
           {
             if (n <= 127)
             {
@@ -1531,6 +1523,7 @@ namespace kvr
 
         else if (val->is_float ())
         {
+#if KVR_OPTIMIZATION_CODEC_FAST_COMPACT_FP_ON || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
           const double fmin = std::numeric_limits<float>::min ();
           const double fmax = std::numeric_limits<float>::max ();
 
@@ -1540,6 +1533,7 @@ namespace kvr
             size += 5;
           }
           else
+#endif
           {
             size += 9;
           }
