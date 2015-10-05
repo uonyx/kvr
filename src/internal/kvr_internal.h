@@ -298,9 +298,9 @@ namespace kvr
       return std::isnan (f);
 #elif defined (_MSC_VER)
       return (_isnan (f) != 0);
-#elif defined (__clang__) || defined (__GNUC__)
-      return ::isnan (f);
+//#elif defined (__clang__) || defined (__GNUC__)
 #else
+
       // quick nan check (valid for IEEE fp mode only). 
       // TODO: more robust nan check
       return (f != f);
@@ -317,11 +317,10 @@ namespace kvr
       return std::isinf (f);
 #elif defined (_MSC_VER)
       return (_finite (f) == 0);
-#elif defined (__clang__) || defined (__GNUC__)
-      return ::isinf (f);
+//#elif defined (__clang__) || defined (__GNUC__)
 #else
       // not tested if this works :/
-      return !kvr::internal::isnan (x) && kvr::internal::isnan (x - x);
+      return !kvr::internal::isnan (f) && kvr::internal::isnan (f - f);
 #endif
     }
 
