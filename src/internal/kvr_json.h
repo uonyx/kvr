@@ -78,16 +78,16 @@ namespace kvr
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if KVR_OPTIMIZATION_CODEC_FULL_FP_PRECISION_OFF
+#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseStopWhenDoneFlag)
+#else
+#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseStopWhenDoneFlag | kvr_rapidjson::kParseFullPrecisionFlag)
+#endif
+
 #if KVR_DEBUG
 #define KVR_JSON_DEBUG_PARSE_FLAGS (kvr_rapidjson::kParseValidateEncodingFlag)
 #else
 #define KVR_JSON_DEBUG_PARSE_FLAGS (0)
-#endif
-
-#if KVR_OPTIMIZATION_CODEC_FAST_COMPACT_FP_ON
-#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseIterativeFlag | kvr_rapidjson::kParseStopWhenDoneFlag)
-#else
-#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseIterativeFlag | kvr_rapidjson::kParseStopWhenDoneFlag | kvr_rapidjson::kParseFullPrecisionFlag)
 #endif
 
 #define KVR_JSON_PARSE_FLAGS (KVR_JSON_BASE_PARSE_FLAGS | KVR_JSON_DEBUG_PARSE_FLAGS)
@@ -544,8 +544,6 @@ namespace kvr
         omemstream_impl wostr (ostr);
         writer<omemstream_impl> wrt (wostr);
         return wrt.print (src);
-    
-        //ostr->set_eos (0);
       }
 
       ////////////////////////////////////////////////////////////

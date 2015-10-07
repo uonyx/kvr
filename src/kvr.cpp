@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define EXPERIMENTAL_FAST_MAP_SIZE  1
+#define EXPERIMENTAL_FAST_MAP_SIZE  (KVR_DEBUG || 0)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1429,6 +1429,8 @@ bool kvr::value::decode (codec_t codec, const uint8_t *data, size_t size)
 {
   bool success = false;
   
+  this->conv_null ();
+
   mem_istream istr (data, size);  
 
   switch (codec)
@@ -1507,6 +1509,8 @@ bool kvr::value::decode (codec_t codec, istream &istr)
 {
   bool success = false;
   
+  this->conv_null ();
+
   switch (codec)
   {
     case kvr::CODEC_JSON:
@@ -2913,8 +2917,7 @@ void kvr::value::string::dyn_str::set (const char *str, sz_t len)
 
 void kvr::value::string::dyn_str::cleanup ()
 {
-  KVR_ASSERT (m_data);
-  delete [] m_data;
+  if (m_data) { delete [] m_data; }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3115,7 +3118,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
 
     // resize
     sz_t new_cap = m_cap + CAP_INCR;
-    node *newPtr = new node [new_cap];
+    node *new_ptr = new node [new_cap];
     memcpy (new_ptr, m_ptr, sizeof (node) * m_cap);
     delete [] m_ptr;
 
@@ -3160,7 +3163,24 @@ kvr::value::map::node *kvr::value::map::find (const key *k) const
 {
   KVR_ASSERT (k);
 
-  node *n = NULL;
+#if KVR_OPTIMIZATION_FAST_MAP_INSERT_ON // search from end (last inserted is active)
+
+#if EXPERIMENTAL_FAST_MAP_SIZE
+  for (sz_t c = _cap (); c >= 1; --c)
+#else
+  for (sz_t c = m_cap; c >= 1; --c)
+#endif
+  {
+    sz_t i = c - 1;
+    node *n = &m_ptr [i];
+    if (n->k == k)
+    {
+      KVR_ASSERT (n->v);
+      return n;
+    }
+  }
+
+#else
 
 #if EXPERIMENTAL_FAST_MAP_SIZE
   for (sz_t i = 0, c = _cap (); i < c; ++i)
@@ -3168,17 +3188,17 @@ kvr::value::map::node *kvr::value::map::find (const key *k) const
   for (sz_t i = 0, c = m_cap; i < c; ++i)
 #endif
   {
-    node *pn = &m_ptr [i];   
-
-    if (pn->k == k)
+    node *n = &m_ptr [i];
+    if (n->k == k)
     {
-      KVR_ASSERT (pn->v);
-      n = pn;
-      break;
+      KVR_ASSERT (n->v);      
+      return n;
     }
   }
- 
-  return n;
+
+#endif
+
+  return NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

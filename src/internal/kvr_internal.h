@@ -210,51 +210,17 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    uint32_t strhash (const char *str)
+    uint32_t strhash (const char *str) // djb hash function (fast)
     {
       KVR_ASSERT (str);
 
-      // djb hash function (fast)
-
       uint32_t hash = 5381;
       char c;
-
-      while ((c = *str++))
+      while ((c = *str++) != 0)
       {
         hash = ((hash << 5) + hash) + c;
       }
-
       return hash;
-    }
-
-    //////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////
-
-    bool hex_encode (const uint8_t *data, size_t size, kvr::mem_ostream *ostr)
-    {
-      static const char lut [] = "0123456789abcdef";
-
-      bool success = false;
-
-      if (data && (size > 0))
-      {
-        size_t tcap = (size * 2) + 1;
-        ostr->reserve (tcap);
-
-        for (size_t i = 0; i < size; ++i)
-        {
-          uint8_t c = data [i];
-          char hi = lut [(c >> 4)];
-          char lo = lut [(c & 15)];
-          ostr->put (hi);
-          ostr->put (lo);
-        }
-
-        success = true;
-      }
-
-      return success;
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -300,7 +266,6 @@ namespace kvr
       return (_isnan (f) != 0);
 //#elif defined (__clang__) || defined (__GNUC__)
 #else
-
       // quick nan check (valid for IEEE fp mode only). 
       // TODO: more robust nan check
       return (f != f);

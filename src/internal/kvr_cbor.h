@@ -1424,7 +1424,7 @@ namespace kvr
 
         bool write_float (double f)
         {
-#if KVR_OPTIMIZATION_CODEC_FAST_COMPACT_FP_ON || KVR_CBOR_WRITE_COMPACT_FP_OVERRIDE
+#if KVR_OPTIMIZATION_CODEC_FULL_FP_PRECISION_OFF || KVR_CBOR_WRITE_COMPACT_FP_OVERRIDE
           uint16_t hf = 0;
           if (kvr::internal::float_to_halffloat (f, &hf))
           {
@@ -1746,7 +1746,7 @@ namespace kvr
 
         else if (val->is_float ())
         {
-#if KVR_OPTIMIZATION_CODEC_FAST_COMPACT_FP_ON || KVR_CBOR_WRITE_COMPACT_FP_OVERRIDE
+#if KVR_OPTIMIZATION_CODEC_FULL_FP_PRECISION_OFF || KVR_CBOR_WRITE_COMPACT_FP_OVERRIDE
           double f = val->get_float ();
           uint16_t hf = 0;
           if (kvr::internal::float_to_halffloat (f, &hf))

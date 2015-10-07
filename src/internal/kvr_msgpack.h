@@ -21,7 +21,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define KVR_MSGPACK_READ_KEY_SPECIALIZATION     0
-#define KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE   1
+#define KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE   0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1190,7 +1190,7 @@ namespace kvr
 
         bool write_float (double f)
         {
-#if KVR_OPTIMIZATION_CODEC_FAST_COMPACT_FP_ON || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
+#if KVR_OPTIMIZATION_CODEC_FULL_FP_PRECISION_OFF || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
           const double fmin = std::numeric_limits<float>::min ();
           const double fmax = std::numeric_limits<float>::max ();
           if ((f >= fmin) && (f <= fmax))
@@ -1523,7 +1523,7 @@ namespace kvr
 
         else if (val->is_float ())
         {
-#if KVR_OPTIMIZATION_CODEC_FAST_COMPACT_FP_ON || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
+#if KVR_OPTIMIZATION_CODEC_FULL_FP_PRECISION_OFF || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
           const double fmin = std::numeric_limits<float>::min ();
           const double fmax = std::numeric_limits<float>::max ();
 
