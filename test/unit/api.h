@@ -11,18 +11,18 @@
 
 class kvrTestSuiteAPI : public CxxTest::TestSuite
 {
-  kvr::context * m_ctx;
+  kvr::ctx * m_ctx;
 
 public:
 
   void setUp ()
   {
-    m_ctx = kvr::create_context ();
+    m_ctx = kvr::ctx::create ();
   }
 
   void tearDown ()
   {
-    kvr::destroy_context (m_ctx);
+    kvr::ctx::destroy (m_ctx);
   }
 
   void testMap (void)

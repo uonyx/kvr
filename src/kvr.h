@@ -120,7 +120,7 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class context;
+  class ctx;
 
 #if KVR_64
   typedef uint32_t sz_t;
@@ -175,7 +175,7 @@ namespace kvr
     sz_t    m_len;
     sz_t    m_ref;
 
-    friend class context;
+    friend class ctx;
     friend class value;
   };
 
@@ -475,7 +475,7 @@ namespace kvr
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
-    value (context *ctx, uint32_t flags);
+    value (ctx *ctx, uint32_t flags);
     ~value ();
 
     ///////////////////////////////////////////
@@ -484,9 +484,9 @@ namespace kvr
 
     data      m_data;
     uint32_t  m_flags;
-    context * m_ctx;
+    ctx * m_ctx;
 
-    friend class context;
+    friend class ctx;
   };
 
   ///////////////////////////////////////////////////////////////
@@ -507,7 +507,7 @@ namespace kvr
     key   * m_k;
     value * m_v;
 
-    friend class context;
+    friend class ctx;
     friend class value;
   };
 
@@ -515,19 +515,12 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  context * create_context (uint32_t flags = 0);
-  void   destroy_context (context *ctx);
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-
-  class context
+  class ctx
   {
   public:
 
-    static context * create (uint32_t flags = 0);
-    static void   destroy (context *ctx);
+    static ctx * create (uint32_t flags = 0);
+    static void  destroy (ctx *ctx);
 
     value * create_value ();
     void    destroy_value (value *v);
@@ -538,9 +531,6 @@ namespace kvr
     ///////////////////////////////////////////
 
   private:
-
-    friend context * create_context (uint32_t);
-    friend void   destroy_context (context *);
 
     struct equal_cstr
     {
@@ -595,9 +585,9 @@ namespace kvr
 
   private:
 
-    context ();
-    context (const context &);
-    ~context ();
+    ctx ();
+    ctx (const ctx &);
+    ~ctx ();
 
     friend class value;
 

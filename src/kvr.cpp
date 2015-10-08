@@ -42,30 +42,16 @@ static const uint32_t KVR_VALUE_TYPE_MASK = 0xffffff00;
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-// kvr
+// kvr::ctx
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::context * kvr::create_context (uint32_t flags)
-{
-  return kvr::context::create (flags);
-}
-
-void kvr::destroy_context (context *ctx)
-{
-  kvr::context::destroy (ctx);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::context * kvr::context::create (uint32_t flags)
+kvr::ctx * kvr::ctx::create (uint32_t flags)
 {
   KVR_REF_UNUSED (flags);
 
-  kvr::context *ctx = new kvr::context ();
+  kvr::ctx *ctx = new kvr::ctx ();
 
   return ctx;
 }
@@ -74,7 +60,7 @@ kvr::context * kvr::context::create (uint32_t flags)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::context::destroy (kvr::context *ctx)
+void kvr::ctx::destroy (kvr::ctx *ctx)
 {
   KVR_ASSERT (ctx);
 
@@ -85,7 +71,7 @@ void kvr::context::destroy (kvr::context *ctx)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::context::context () : m_keystore (256)
+kvr::ctx::ctx () : m_keystore (256)
 {
 }
 
@@ -93,7 +79,7 @@ kvr::context::context () : m_keystore (256)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::context::~context ()
+kvr::ctx::~ctx ()
 {
   KVR_ASSERT (m_keystore.empty ()); // debug warning assert
 
@@ -116,7 +102,7 @@ kvr::context::~context ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::context::create_value ()
+kvr::value * kvr::ctx::create_value ()
 {
   kvr::value *v = this->_create_value_null (kvr::value::FLAG_PARENT_CTX);
 
@@ -127,7 +113,7 @@ kvr::value * kvr::context::create_value ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::context::destroy_value (value *v)
+void kvr::ctx::destroy_value (value *v)
 {
   this->_destroy_value (kvr::value::FLAG_PARENT_CTX, v);
 }
@@ -136,10 +122,10 @@ void kvr::context::destroy_value (value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::context::dump (int id)
+void kvr::ctx::dump (int id)
 {
   std::fprintf (stderr, "\n--------------------------------\n");
-  std::fprintf (stderr, "kvr context state debug dump [%02d]\n", id);
+  std::fprintf (stderr, "kvr ctx state debug dump [%02d]\n", id);
   std::fprintf (stderr, "--------------------------------\n");
   std::fprintf (stderr, "load_factor:       %f\n",   m_keystore.load_factor ());
   std::fprintf (stderr, "bucket_count:      %zu\n",  m_keystore.bucket_count ());
@@ -152,7 +138,7 @@ void kvr::context::dump (int id)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::context::_create_value_null (uint32_t parentType)
+kvr::value * kvr::ctx::_create_value_null (uint32_t parentType)
 {
   value *v = new value (this, parentType);
 
@@ -165,7 +151,7 @@ kvr::value * kvr::context::_create_value_null (uint32_t parentType)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::context::_create_value_map (uint32_t parentType)
+kvr::value * kvr::ctx::_create_value_map (uint32_t parentType)
 {
   value *v = new value (this, parentType);
 
@@ -178,7 +164,7 @@ kvr::value * kvr::context::_create_value_map (uint32_t parentType)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::context::_create_value_array (uint32_t parentType)
+kvr::value * kvr::ctx::_create_value_array (uint32_t parentType)
 {
   value *v = new value (this, parentType);
 
@@ -191,7 +177,7 @@ kvr::value * kvr::context::_create_value_array (uint32_t parentType)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::context::_create_value (uint32_t parentType, int64_t number)
+kvr::value * kvr::ctx::_create_value (uint32_t parentType, int64_t number)
 {
   value *v = new value (this, parentType);
 
@@ -208,7 +194,7 @@ kvr::value * kvr::context::_create_value (uint32_t parentType, int64_t number)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-kvr::value * kvr::context::_create_value (uint32_t parentType, double number)
+kvr::value * kvr::ctx::_create_value (uint32_t parentType, double number)
 {
   value *v = new value (this, parentType);
 
@@ -224,7 +210,7 @@ kvr::value * kvr::context::_create_value (uint32_t parentType, double number)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::context::_create_value (uint32_t parentType, bool boolean)
+kvr::value * kvr::ctx::_create_value (uint32_t parentType, bool boolean)
 {
   value *v = new value (this, parentType);
 
@@ -240,7 +226,7 @@ kvr::value * kvr::context::_create_value (uint32_t parentType, bool boolean)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::context::_create_value (uint32_t parentType, const char *str, sz_t len)
+kvr::value * kvr::ctx::_create_value (uint32_t parentType, const char *str, sz_t len)
 {
   KVR_ASSERT (str);
 
@@ -258,7 +244,7 @@ kvr::value * kvr::context::_create_value (uint32_t parentType, const char *str, 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::context::_destroy_value (uint32_t parentType, value *v)
+void kvr::ctx::_destroy_value (uint32_t parentType, value *v)
 {
   KVR_ASSERT (v);
   KVR_ASSERT ((v->m_flags & parentType) != 0);
@@ -271,7 +257,7 @@ void kvr::context::_destroy_value (uint32_t parentType, value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::key * kvr::context::_find_key (const char *str)
+kvr::key * kvr::ctx::_find_key (const char *str)
 {
   KVR_ASSERT (str);
 
@@ -290,7 +276,7 @@ kvr::key * kvr::context::_find_key (const char *str)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::key *kvr::context::_create_key_copy (const char *str)
+kvr::key *kvr::ctx::_create_key_copy (const char *str)
 {
   KVR_ASSERT (str);
 
@@ -314,7 +300,7 @@ kvr::key *kvr::context::_create_key_copy (const char *str)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::key * kvr::context::_create_key_move (char *str, sz_t len)
+kvr::key * kvr::ctx::_create_key_move (char *str, sz_t len)
 {
   KVR_ASSERT (str);
 
@@ -338,7 +324,7 @@ kvr::key * kvr::context::_create_key_move (char *str, sz_t len)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::context::_destroy_key (kvr::key *k)
+void kvr::ctx::_destroy_key (kvr::key *k)
 {
   KVR_ASSERT (k);
 
@@ -353,7 +339,7 @@ void kvr::context::_destroy_key (kvr::key *k)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-char * kvr::context::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) const
+char * kvr::ctx::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) const
 {
   KVR_ASSERT (pathsz > 0);
 
@@ -408,7 +394,7 @@ char * kvr::context::_create_path_expr (const char **path, sz_t pathsz, sz_t *ex
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::context::_destroy_path_expr (char *expr)
+void kvr::ctx::_destroy_path_expr (char *expr)
 {
   KVR_ASSERT (expr);
 
@@ -460,7 +446,7 @@ kvr::key::~key ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value::value (kvr::context *ctx, uint32_t flags) : m_flags (flags), m_ctx (ctx)
+kvr::value::value (kvr::ctx *ctx, uint32_t flags) : m_flags (flags), m_ctx (ctx)
 {
 }
 
@@ -2248,7 +2234,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
       KVR_ASSERT (pathcnt > 0);
       // add og to rem list
-      kvr::context *ctx = m_ctx;
+      kvr::ctx *ctx = m_ctx;
       value *v = ctx->_create_value_null (FLAG_PARENT_ARRAY);
       v->conv_string ();
 
@@ -2274,7 +2260,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
       KVR_ASSERT (pathcnt > 0);
 
-      kvr::context *ctx = m_ctx;
+      kvr::ctx *ctx = m_ctx;
       key *k = NULL;
       if ((pathcnt == 1) && (ctx == og->m_ctx)) // path key must already be in the key store
       {
@@ -2358,7 +2344,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
 
       if (strcmp (ogstr, mdstr) != 0)
       {
-        kvr::context *ctx = m_ctx;
+        kvr::ctx *ctx = m_ctx;
         key *k = NULL;
         if ((pathcnt == 1) && (ctx == og->m_ctx))
         {
@@ -2394,7 +2380,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
 
         if (ogn != mdn)
         {
-          kvr::context *ctx = m_ctx;
+          kvr::ctx *ctx = m_ctx;
           key *k = NULL;
           if ((pathcnt == 1) && (ctx == og->m_ctx))
           {
@@ -2422,7 +2408,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
 
         if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
         {
-          kvr::context *ctx = m_ctx;
+          kvr::ctx *ctx = m_ctx;
           key *k = NULL;
           if ((pathcnt == 1) && (ctx == og->m_ctx))
           {
@@ -2457,7 +2443,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
 
       if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
       {
-        kvr::context *ctx = m_ctx;
+        kvr::ctx *ctx = m_ctx;
         key *k = NULL;
         if ((pathcnt == 1) && (ctx == og->m_ctx))
         {
@@ -2491,7 +2477,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
 
       if (ogb != mdb)
       {
-        kvr::context *ctx = m_ctx;
+        kvr::ctx *ctx = m_ctx;
         key *k = NULL;
         if ((pathcnt == 1) && (ctx == og->m_ctx))
         {
@@ -2545,7 +2531,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
       KVR_ASSERT (pathcnt > 0);
       // add md to add list
 
-      kvr::context *ctx = m_ctx;
+      kvr::ctx *ctx = m_ctx;
       key *k = NULL;
       if ((pathcnt == 1) && (ctx == md->m_ctx))
       {

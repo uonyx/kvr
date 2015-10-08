@@ -10,7 +10,7 @@
 
 int main () //int argc, char* argv [])
 {
-  kvr::context *ctx = kvr::create_context ();
+  kvr::ctx *ctx = kvr::ctx::create ();
 
   kvr::value *map = ctx->create_value ()->conv_map ();
 
@@ -25,7 +25,7 @@ int main () //int argc, char* argv [])
 
   ctx->destroy_value (map);
 
-  kvr::destroy_context (ctx);
+  kvr::ctx::destroy (ctx);
 
   return 0;
 }
