@@ -1,0 +1,62 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <cxxtest/TestSuite.h>
+#include "../src/kvr.h"
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+class kvrTestSuiteCodec : public CxxTest::TestSuite
+{
+  kvr::ctx * m_ctx;
+
+public:
+
+  void setUp ()
+  {
+    m_ctx = kvr::ctx::create ();
+  }
+
+  void tearDown ()
+  {
+    kvr::ctx::destroy (m_ctx);
+  }
+
+  void testJSON ()
+  {
+    kvr::value *val0 = m_ctx->create_value ()->conv_map ();
+    kvr::value *val1 = m_ctx->create_value ()->conv_map ();
+
+    const char json [] = "{\"sesame\":\"street\",\"t\":true,\"f\":false,\"n\":null,\"i\":123,\"pi\":3.1416,\"a\":[1,256,2048,-1,-255,-2047]}";
+    bool ok = false;
+
+    ok = val0->decode (kvr::CODEC_JSON, (const uint8_t *) json, sizeof (json));
+    TS_ASSERT (ok);
+
+    size_t obufsz = val0->calculate_encode_size (kvr::CODEC_JSON);
+    kvr::obuffer obuf (obufsz);
+
+    ok = val0->encode (kvr::CODEC_JSON, &obuf);
+    TS_ASSERT (ok);
+    TS_ASSERT_LESS_THAN_EQUALS (obuf.get_size (), obufsz);
+
+    if (strcmp (json, (const char *) obuf.get_data ()) != 0)
+    {
+      TS_WARN ("json decode string mismatch");
+    }
+
+    ok = val1->decode (kvr::CODEC_JSON, obuf.get_data (), obuf.get_size ());
+    TS_ASSERT (ok);
+    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+
+    m_ctx->destroy_value (val0);
+    m_ctx->destroy_value (val1);
+  }
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////

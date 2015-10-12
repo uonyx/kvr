@@ -81,7 +81,9 @@ kvr::ctx::ctx () : m_keystore (256)
 
 kvr::ctx::~ctx ()
 {
-  KVR_ASSERT (m_keystore.empty ()); // debug warning assert
+#if 0 // assert all values have been destroyed
+  KVR_ASSERT (m_keystore.empty ()); 
+#endif
 
   // clean up left-over keys
   keystore::iterator iter = m_keystore.begin ();  
@@ -519,6 +521,7 @@ kvr::value * kvr::value::conv_integer ()
     {
       int64_t i = (int64_t) m_data.n.f;
       m_data.n.i = i;
+      m_flags &= ~FLAG_TYPE_NUMBER_FLOAT;
     }
     else
     {
@@ -543,6 +546,7 @@ kvr::value * kvr::value::conv_float ()
     {
       double f = (double) m_data.n.i;;
       m_data.n.f = f;
+      m_flags &= ~FLAG_TYPE_NUMBER_INTEGER;
     }
     else
     {

@@ -55,7 +55,7 @@ if (KVR_BUILD_TESTS)
       enable_testing ()
       include_directories (${CXXTEST_INCLUDE_DIR})
 
-      set (KVR_UNIT_TEST_LIST api diff_patch)
+      set (KVR_UNIT_TEST_LIST api codec diff_patch)
       foreach (utest ${KVR_UNIT_TEST_LIST})
         cxxtest_add_test (unit_test_${utest} ${utest}.cpp ${CMAKE_CURRENT_SOURCE_DIR}/test/unit/${utest}.h)
         #set_target_properties (unit_test_${utest} PROPERTIES COMPILE_FLAGS "-fsanitize=undefined")
