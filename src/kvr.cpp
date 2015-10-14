@@ -2340,10 +2340,9 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       {
         kvr::ctx *ctx = m_ctx;
         key *k = NULL;
-        if ((pathcnt == 1))// && (ctx == og->m_ctx))
+        if (pathcnt == 1)
         {
           const char *pk = path [0];
-          //KVR_ASSERT (ctx->_find_key (pk));
           k = ctx->_create_key_copy (pk);
         }
         else
@@ -2376,10 +2375,9 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         {
           kvr::ctx *ctx = m_ctx;
           key *k = NULL;
-          if ((pathcnt == 1))// && (ctx == og->m_ctx))
+          if (pathcnt == 1)
           {
             const char *pk = path [0];
-            //KVR_ASSERT (ctx->_find_key (pk));
             k = ctx->_create_key_copy (pk);
           }
           else
@@ -2404,10 +2402,9 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         {
           kvr::ctx *ctx = m_ctx;
           key *k = NULL;
-          if ((pathcnt == 1))// && (ctx == og->m_ctx))
+          if (pathcnt == 1)
           {
             const char *pk = path [0];
-            //KVR_ASSERT (ctx->_find_key (pk));
             k = ctx->_create_key_copy (pk);
           }
           else
@@ -2439,10 +2436,9 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       {
         kvr::ctx *ctx = m_ctx;
         key *k = NULL;
-        if ((pathcnt == 1))// && (ctx == og->m_ctx))
+        if (pathcnt == 1)
         {
           const char *pk = path [0];
-          //KVR_ASSERT (ctx->_find_key (pk));
           k = ctx->_create_key_copy (pk);
         }
         else
@@ -2473,10 +2469,9 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       {
         kvr::ctx *ctx = m_ctx;
         key *k = NULL;
-        if ((pathcnt == 1))// && (ctx == og->m_ctx))
+        if (pathcnt == 1)
         {
           const char *pk = path [0];
-          //KVR_ASSERT (ctx->_find_key (pk));
           k = ctx->_create_key_copy (pk);
         }
         else
