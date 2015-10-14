@@ -1060,8 +1060,8 @@ namespace kvr
 
         bool parse_negint5 (read_ctx &ctx, uint8_t data)
         {
-          int64_t ni64 = -1 - (int8_t) data;
-          return ctx.read_integer (ni64);
+          int64_t ni = -1 - (int64_t) data;
+          return ctx.read_integer (ni);
         }
 
         ////////////////////////////////////////////////////////////
@@ -1071,8 +1071,8 @@ namespace kvr
           uint8_t u8 = 0;
           if (is->get (&u8))
           {
-            int8_t ni8 = -1 - (int8_t) u8;
-            return ctx.read_integer (ni8);
+            int64_t ni = -1 - (int64_t) u8;
+            return ctx.read_integer (ni);
           }
           return false;
         }
@@ -1085,8 +1085,8 @@ namespace kvr
           if (is->read ((uint8_t *) &u16, 2))
           {
             uint16_t u = bigendian16 (u16);
-            int16_t ni16 = -1 - (int16_t) u;
-            return ctx.read_integer (ni16);
+            int64_t ni = -1 - (int64_t) u;
+            return ctx.read_integer (ni);
           }
           return false;
         }
@@ -1099,8 +1099,8 @@ namespace kvr
           if (is->read ((uint8_t *) &u32, 4))
           {
             uint32_t u = bigendian32 (u32);
-            int32_t ni32 = -1 - (int32_t) u;
-            return ctx.read_integer (ni32);
+            int64_t ni = -1 - (int64_t) u;
+            return ctx.read_integer (ni);
           }
           return false;
         }
@@ -1113,8 +1113,8 @@ namespace kvr
           if (is->read ((uint8_t *) &u64, 8))
           {
             uint64_t u = bigendian64 (u64);
-            int64_t ni64 = -1 - (int64_t) u;
-            return ctx.read_integer (ni64);
+            int64_t ni = -1 - (int64_t) u;
+            return ctx.read_integer (ni);
           }
           return false;
         }

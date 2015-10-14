@@ -415,7 +415,7 @@ namespace kvr
               default:
               {
                 if (curr <= 127)                                    { success = parse_unsigned7 (ctx, curr); }
-                else if ((curr & MSGPACK_HEADER_SIGNED_5) == 0)     { success = parse_signed5 (ctx, curr); }
+                else if ((curr & 0xe0) == MSGPACK_HEADER_SIGNED_5)  { success = parse_signed5 (ctx, curr); }
                 else if ((curr & 0xe0) == MSGPACK_HEADER_STRING_5)  { success = parse_string5 (is, ctx, curr); }
                 else
                 {
@@ -701,7 +701,8 @@ namespace kvr
 
         bool parse_string5 (istr *is, read_ctx &ctx, uint8_t data)
         {
-          uint8_t slen = (data & 0x1f);
+          uint8_t slen = (data & 0x1f);          
+          //KVR_ASSERT (slen < 32);
           //char str [32];
           m_ss.seek (0);
           uint8_t *str = m_ss.push (slen + 1);
@@ -842,7 +843,8 @@ namespace kvr
 
         bool parse_signed5 (read_ctx &ctx, uint8_t data)
         {
-          return ctx.read_integer (data);
+          int8_t i = (int8_t) data;
+          return ctx.read_integer (i);
         }
 
         ////////////////////////////////////////////////////////////

@@ -93,20 +93,22 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define KVR_CONSTANT_ZERO_TOLERANCE                     (1.0e-7)
+// epsilon for comparing floating point equality
+#define KVR_CONSTANT_FP_EQ_EPSILON                      (1.0e-7)
+// maximum allowed tree depth
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (64u)
-#define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
-#define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
+// memory (re)allocation size for map, array
 #define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8u)
+// delimiter token for path expressions
+#define KVR_CONSTANT_TOKEN_DELIMITER                     '.'
+// token for search grep expression
+#define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if KVR_CPP11
-static_assert (((KVR_CONSTANT_COMMON_BLOCK_SZ & (KVR_CONSTANT_COMMON_BLOCK_SZ - 1)) == 0), 
-               "#define KVR_CONSTANT_COMMON_BLOCK_SZ must be a power of 2");
-#elif (KVR_CONSTANT_COMMON_BLOCK_SZ & (KVR_CONSTANT_COMMON_BLOCK_SZ - 1))
+#if (KVR_CONSTANT_COMMON_BLOCK_SZ & (KVR_CONSTANT_COMMON_BLOCK_SZ - 1))
 #error "#define KVR_CONSTANT_COMMON_BLOCK_SZ must be a power of 2"
 #endif
 
@@ -274,8 +276,8 @@ namespace kvr
     size_t        calculate_encode_size (codec_t codec) const;
 
     // diff/patch
-    bool          diff (const value *original, const value *modified);
-    bool          patch (const value *diff);
+    value *       diff (const value *original, const value *modified);
+    void          patch (const value *diff);
 
     // hash code
     uint32_t      hashcode (uint32_t seed = 0) const;

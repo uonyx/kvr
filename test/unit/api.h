@@ -15,15 +15,27 @@ class kvrTestSuiteAPI : public CxxTest::TestSuite
 
 public:
 
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
   void setUp ()
   {
     m_ctx = kvr::ctx::create ();
   }
 
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
   void tearDown ()
   {
     kvr::ctx::destroy (m_ctx);
   }
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
 
   void testCopy ()
   {
@@ -143,7 +155,99 @@ public:
     m_ctx->destroy_value (val1);
   }
 
-  void testMap (void)
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  void testSearch (void)
+  {
+    ///////////////////////////////
+    // set up tree
+    ///////////////////////////////
+
+    kvr::value *map = m_ctx->create_value ()->conv_map ();
+    {
+      map->insert ("name", "elmo");
+      map->insert ("address", "1 sesame street");
+      map->insert ("age", 19);
+      kvr::value *m = map->insert_map ("phrases");
+      {
+        m->insert ("eat", "chow time!");
+        m->insert ("play", "lalalalaa");
+        m->insert ("sleep", "zzzzzzzz");
+      }
+      kvr::value *scores = map->insert_array ("scores");
+      {
+        scores->push (30.5);
+        scores->push (50.0);
+        scores->push (100);
+        scores->push (900000000LL);
+      }
+      kvr::value *collection = map->insert_array ("collection");
+      {
+        kvr::value *c1 = collection->push_map ();
+        {
+          c1->insert ("int", 0);
+          c1->insert ("dbl", 2.7);
+          c1->insert ("str", "one");
+          c1->insert ("bool", false);
+        }
+        kvr::value *c2 = collection->push_map ();
+        {
+          c2->insert ("int", 1);
+          c2->insert ("dbl", 4.7);
+          c2->insert ("str", "two");
+          c2->insert ("bool", true);
+        }
+      }
+    }
+
+    ///////////////////////////////
+    // search
+    ///////////////////////////////
+
+    {
+      const char *path [] = { "phrases", "sleep" };
+      kvr::sz_t pathLen = sizeof (path) / sizeof (path [0]);
+      kvr::value *sv = map->search (path, pathLen);
+      TS_ASSERT (sv);
+      const char *sleep = sv->get_string ();
+      TS_ASSERT_EQUALS (strcmp (sleep, "zzzzzzzz"), 0);
+    }
+
+    {
+      const char *path [] = { "scores", "2" };
+      kvr::sz_t pathLen = sizeof (path) / sizeof (path [0]);
+      kvr::value *sv = map->search (path, pathLen);
+      TS_ASSERT (sv);
+      int64_t iv = sv->get_integer ();
+      TS_ASSERT_EQUALS (iv, 100);
+    }
+
+    {
+      const char *path = "collection.0";
+      kvr::value *sv = map->search (path);
+      TS_ASSERT (sv);
+      const char *strv = sv->find ("str")->get_string ();
+      TS_ASSERT_EQUALS (strcmp (strv, "one"), 0);
+    }
+
+    {
+      const char *path = "collection.@int=1";
+      kvr::value *sv = map->search (path);
+      TS_ASSERT (sv);
+      double flv = sv->find ("dbl")->get_float ();
+      TS_ASSERT_EQUALS (flv, 4.7);
+    }
+
+    m_ctx->destroy_value (map);
+  }
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  void testMap ()
   {
     const kvr::key    * null_key = NULL;
     const kvr::value  * null_val = NULL;

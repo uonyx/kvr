@@ -1573,13 +1573,11 @@ size_t kvr::value::calculate_encode_size (codec_t codec) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::value::diff (const value *original, const value *modified)
+kvr::value * kvr::value::diff (const value *original, const value *modified)
 {
   KVR_ASSERT (original);
   KVR_ASSERT (modified);
-
-  bool success = false;
-
+  
   value *diff = this;
 
   const value *og = original;
@@ -1646,7 +1644,7 @@ bool kvr::value::diff (const value *original, const value *modified)
         double ogn = og->get_float ();
         double mdn = md->get_float ();
 
-        if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
+        if (fabs (ogn - mdn) > KVR_CONSTANT_FP_EQ_EPSILON)
         {
           diff->copy (md);
         }
@@ -1660,7 +1658,7 @@ bool kvr::value::diff (const value *original, const value *modified)
       double ogn = og->get_float ();
       double mdn = md->get_float ();
 
-      if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
+      if (fabs (ogn - mdn) > KVR_CONSTANT_FP_EQ_EPSILON)
       {
         diff->copy (md);
       }
@@ -1680,19 +1678,17 @@ bool kvr::value::diff (const value *original, const value *modified)
     }
   }
 
-  return success;
+  return diff;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::value::patch (const value *diff)
+void kvr::value::patch (const value *diff)
 {
   KVR_ASSERT (diff);
-
-  bool success = false;
-
+  
   value *tg = this;
 
   if (diff->is_map () && (tg->is_map () || tg->is_array ()))
@@ -1709,8 +1705,6 @@ bool kvr::value::patch (const value *diff)
     tg->_patch_set (set);
     tg->_patch_add (add);
     tg->_patch_rem (rem);
-
-    success = true;
   }
   else if (diff->is_array ())
   {
@@ -1719,11 +1713,7 @@ bool kvr::value::patch (const value *diff)
   else if ((diff->_type () == diff->_type ()) || (diff->_is_number () && tg->_is_number ()))
   {
     tg->copy (diff);
-
-    success = true;
   }
-
-  return success;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1983,7 +1973,7 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                     const char *pvstr = pv->get_string ();
                     if (strcmp (sv, pvstr) == 0)
                     {
-                      v = pv;
+                      v = m;
                       f = 1;
                     }
                   }
@@ -1991,9 +1981,9 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                   {
                     double svf = strtod (sv, NULL);
                     double pvf = pv->get_float ();                    
-                    if (fabs (svf - pvf) <= KVR_CONSTANT_ZERO_TOLERANCE)
+                    if (fabs (svf - pvf) <= KVR_CONSTANT_FP_EQ_EPSILON)
                     {
-                      v = pv;
+                      v = m;
                       f = 1;
                     }
                   }
@@ -2004,7 +1994,7 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                     int64_t pvi = pv->get_integer ();
                     if (end && (!*end) && (svi == pvi))
                     {
-                      v = pv;
+                      v = m;
                       f = 1;
                     }
                   }
@@ -2017,7 +2007,7 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                       bool pvb = pv->get_boolean ();
                       if (svb == pvb)
                       {
-                        v = pv;
+                        v = m;
                         f = 1;
                       }
                     }
@@ -2027,7 +2017,7 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                     bool svnull = (strcmp (sv, kvr_const_str_null) == 0);
                     if (svnull)
                     {
-                      v = pv;
+                      v = m;
                       f = 1;
                     }
                   }
@@ -2350,10 +2340,10 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       {
         kvr::ctx *ctx = m_ctx;
         key *k = NULL;
-        if ((pathcnt == 1) && (ctx == og->m_ctx))
+        if ((pathcnt == 1))// && (ctx == og->m_ctx))
         {
           const char *pk = path [0];
-          KVR_ASSERT (ctx->_find_key (pk));
+          //KVR_ASSERT (ctx->_find_key (pk));
           k = ctx->_create_key_copy (pk);
         }
         else
@@ -2386,10 +2376,10 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         {
           kvr::ctx *ctx = m_ctx;
           key *k = NULL;
-          if ((pathcnt == 1) && (ctx == og->m_ctx))
+          if ((pathcnt == 1))// && (ctx == og->m_ctx))
           {
             const char *pk = path [0];
-            KVR_ASSERT (ctx->_find_key (pk));
+            //KVR_ASSERT (ctx->_find_key (pk));
             k = ctx->_create_key_copy (pk);
           }
           else
@@ -2410,14 +2400,14 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         double ogn = og->get_float ();
         double mdn = md->get_float ();
 
-        if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
+        if (fabs (ogn - mdn) > KVR_CONSTANT_FP_EQ_EPSILON)
         {
           kvr::ctx *ctx = m_ctx;
           key *k = NULL;
-          if ((pathcnt == 1) && (ctx == og->m_ctx))
+          if ((pathcnt == 1))// && (ctx == og->m_ctx))
           {
             const char *pk = path [0];
-            KVR_ASSERT (ctx->_find_key (pk));
+            //KVR_ASSERT (ctx->_find_key (pk));
             k = ctx->_create_key_copy (pk);
           }
           else
@@ -2445,14 +2435,14 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       double ogn = og->get_float ();
       double mdn = md->get_float ();
 
-      if (fabs (ogn - mdn) > KVR_CONSTANT_ZERO_TOLERANCE)
+      if (fabs (ogn - mdn) > KVR_CONSTANT_FP_EQ_EPSILON)
       {
         kvr::ctx *ctx = m_ctx;
         key *k = NULL;
-        if ((pathcnt == 1) && (ctx == og->m_ctx))
+        if ((pathcnt == 1))// && (ctx == og->m_ctx))
         {
           const char *pk = path [0];
-          KVR_ASSERT (ctx->_find_key (pk));
+          //KVR_ASSERT (ctx->_find_key (pk));
           k = ctx->_create_key_copy (pk);
         }
         else
@@ -2483,10 +2473,10 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       {
         kvr::ctx *ctx = m_ctx;
         key *k = NULL;
-        if ((pathcnt == 1) && (ctx == og->m_ctx))
+        if ((pathcnt == 1))// && (ctx == og->m_ctx))
         {
           const char *pk = path [0];
-          KVR_ASSERT (ctx->_find_key (pk));
+          //KVR_ASSERT (ctx->_find_key (pk));
           k = ctx->_create_key_copy (pk);
         }
         else
@@ -2505,7 +2495,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
 
     //////////////////////////////////
     else if (og->is_null ())
-      //////////////////////////////////
+    //////////////////////////////////
     {
       KVR_ASSERT (md->is_null ());
       // should already be taken care of in type check
