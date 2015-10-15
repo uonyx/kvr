@@ -548,7 +548,6 @@ namespace kvr
       {
         uint32_t hash = 5381;
         char c;
-
         while ((c = *s++) != 0)
         {
           hash = ((hash << 5) + hash) + c;
@@ -642,16 +641,12 @@ namespace kvr
     void            put (uint8_t byte);
     void            write (uint8_t *bytes, size_t count);
     void            flush ();
-
     uint8_t *       push (size_t count);
     uint8_t *       pop (size_t count);
-
     size_t          tell () const;
-    void            seek (size_t pos);    
-    
+    void            seek (size_t pos);        
     const uint8_t * buffer () const;
     size_t          size () const;
-
     void            reserve (size_t sz);
 
   private:

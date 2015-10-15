@@ -493,7 +493,7 @@ namespace kvr
         kvr_rapidjson::Reader reader;
         kvr_rapidjson::ParseResult ok = reader.Parse<KVR_JSON_PARSE_FLAGS> (ss, rctx);
 #if KVR_DEBUG        
-        if (ok.IsError ()) { std::fprintf (stderr, "JSON parse error: %s (%lu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
+        if (ok.IsError ()) { std::fprintf (stderr, "JSON parse error: %s (%zu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
 #endif
         return ok && (rctx.m_depth == 0);
       }
@@ -529,7 +529,7 @@ namespace kvr
         kvr_rapidjson::Reader reader;
         kvr_rapidjson::ParseResult ok = reader.Parse<KVR_JSON_PARSE_FLAGS> (ss, rctx);
 #if KVR_DEBUG        
-        if (ok.IsError ()) { std::fprintf (stderr, "JSON parse error: %s (%lu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
+        if (ok.IsError ()) { std::fprintf (stderr, "JSON parse error: %s (%zu)", kvr_rapidjson::GetParseError_En (ok.Code ()), ok.Offset ()); }
 #endif
         return ok && (rctx.m_depth == 0);
       }
