@@ -305,6 +305,128 @@ public:
     m_ctx->destroy_value (val_cbor);
     m_ctx->destroy_value (val_mspk);
   }
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  void testSampleStream ()
+  {
+    ///////////////////////////////
+    // utility
+    ///////////////////////////////
+
+    class hex_ostream : public kvr::ostream
+    {
+    public:
+
+      hex_ostream (size_t size) : m_os (size) {}
+      void put (uint8_t byte) { this->put_hex (byte); }
+      void write (uint8_t *bytes, size_t count) { for (size_t i = 0; i < count; ++i) { this->put_hex (bytes [i]); } }
+      void flush () { m_os.flush (); }
+      const uint8_t *buffer () { return m_os.buffer (); }
+
+    private:
+
+      void put_hex (uint8_t byte)
+      {
+        static const char lut [] = "0123456789abcdef";
+        char hi = lut [(byte >> 4)];
+        char lo = lut [(byte & 15)];
+        m_os.put (hi);
+        m_os.put (lo);
+      }
+
+    public:
+
+      static bool encode_buffer (const uint8_t *data, size_t size, kvr::mem_ostream *ostr)
+      {
+        if (data && (size > 0))
+        {
+          size_t tcap = (size * 2) + 1;
+          ostr->reserve (tcap);
+
+          static const char lut [] = "0123456789abcdef";
+          for (size_t i = 0; i < size; ++i)
+          {
+            uint8_t c = data [i];
+            char hi = lut [(c >> 4)];
+            char lo = lut [(c & 15)];
+            ostr->put (hi);
+            ostr->put (lo);
+          }
+          return true;
+        }
+        return false;
+      }
+
+      kvr::mem_ostream m_os;
+    };
+
+    ///////////////////////////////
+    // set up
+    ///////////////////////////////
+
+    kvr::value *val = m_ctx->create_value ()->conv_map ();
+    {
+      val->insert ("sesame", "street");
+      val->insert ("t", true);
+      val->insert ("f", false);
+      val->insert_null ("n");
+      val->insert ("i", 123);
+      val->insert ("pi", 3.1416);
+      kvr::value *a = val->insert_array ("a");
+      {
+        a->push (1);
+        a->push (256);
+        a->push (4096);
+        a->push (-1);
+        a->push (-255);
+        a->push (-256);
+        a->push (-4095);
+      }
+    }
+
+    ///////////////////////////////
+    // encode to mem, then to hex
+    ///////////////////////////////
+
+    kvr::mem_ostream mem_ostr (512);
+    {
+      kvr::obuffer obuf;
+      bool ok = val->encode (kvr::CODEC_MSGPACK, &obuf);
+      TS_ASSERT (ok);
+      ok = hex_ostream::encode_buffer (obuf.get_data (), obuf.get_size (), &mem_ostr);
+      TS_ASSERT (ok);
+      mem_ostr.flush ();
+    }
+
+    ///////////////////////////////
+    // encode directly to hex
+    ///////////////////////////////
+
+    hex_ostream hex_ostr (8192);
+    {
+      bool ok = val->encode (kvr::CODEC_MSGPACK, &hex_ostr);
+      TS_ASSERT (ok);
+      hex_ostr.flush ();
+    }
+
+    ///////////////////////////////
+    // verify
+    ///////////////////////////////
+
+    const char *str0 = (const char *) mem_ostr.buffer ();
+    const char *str1 = (const char *) hex_ostr.buffer ();
+
+    TS_ASSERT_EQUALS (strcmp (str0, str1), 0);
+
+    ///////////////////////////////
+    // clean up
+    ///////////////////////////////
+
+    m_ctx->destroy_value (val);
+  }
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
