@@ -75,6 +75,13 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+#define KVR_INTERNAL_FLAG_TYPE_PUNNING_ON   0 // check compiler
+#define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE  (KVR_DEBUG || 0)
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 namespace kvr
 {
   namespace internal
@@ -98,6 +105,7 @@ namespace kvr
       const char* end = kvr_rapidjson::internal::u64toa (i64, dest);
       return (end - dest);
     }
+
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
@@ -301,9 +309,14 @@ namespace kvr
       const uint32_t HALF_FLOAT_MAX_BIASED_EXP_AS_SINGLE_FP_EXP = 0x47800000;
       const uint32_t FLOAT_MAX_BIASED_EXP = (0xff << 23);
 
-      union { float f; uint32_t u; } mem; mem.f = f;
-
+#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+      union { float f; uint32_t u; } mem; mem.f = f;      
       uint32_t x = mem.u;
+#else
+      uint32_t x = 0;
+      KVR_ASSERT (sizeof (x) == sizeof (f));
+      memcpy (&x, &f, sizeof (f));
+#endif
       uint32_t sign = (uint16_t) (x >> 31);      
       uint32_t mantissa = x & ((1 << 23) - 1);
       uint32_t exp = x & FLOAT_MAX_BIASED_EXP;
@@ -339,9 +352,14 @@ namespace kvr
         mantissa <<= 13;
         exp = (exp << 13) + HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP;
 
-        union { float f; uint32_t u; } mem; 
+#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+        union { float f; uint32_t u; } mem;
         mem.u = (sign << 31) | exp | mantissa;
         *f = mem.f;
+#else
+        uint32_t u = (sign << 31) | exp | mantissa;
+        memcpy (f, &u, sizeof (u));
+#endif
         return true;
       }
       

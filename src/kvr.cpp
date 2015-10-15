@@ -20,12 +20,6 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define EXPERIMENTAL_FAST_MAP_SIZE  (KVR_DEBUG || 0)
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 static const char * const kvr_const_str_null  = "null";
 static const char * const kvr_const_str_true  = "true";
 static const char * const kvr_const_str_false = "false";
@@ -96,8 +90,6 @@ kvr::ctx::~ctx ()
     m_keystore.erase (iter);
     iter = m_keystore.begin ();
   }
-
-  //this->dump ();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -126,6 +118,7 @@ void kvr::ctx::destroy_value (value *v)
 
 void kvr::ctx::dump (int id)
 {
+#if KVR_DEBUG
   std::fprintf (stderr, "\n--------------------------------\n");
   std::fprintf (stderr, "kvr ctx state debug dump [%02d]\n", id);
   std::fprintf (stderr, "--------------------------------\n");
@@ -134,6 +127,7 @@ void kvr::ctx::dump (int id)
   std::fprintf (stderr, "max_size:          %zu\n",  m_keystore.max_size ());
   std::fprintf (stderr, "max_load_factor:   %f\n",   m_keystore.max_load_factor ());
   std::fprintf (stderr, "max_bucket_count:  %zu\n",  m_keystore.max_bucket_count ());
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -519,7 +513,7 @@ kvr::value * kvr::value::conv_integer ()
   {
     if (is_float ())
     {
-      int64_t i = (int64_t) m_data.n.f;
+      int64_t i = static_cast<int64_t> (m_data.n.f);
       m_data.n.i = i;
       m_flags &= ~FLAG_TYPE_NUMBER_FLOAT;
     }
@@ -544,7 +538,7 @@ kvr::value * kvr::value::conv_float ()
   {
     if (is_integer ())
     {
-      double f = (double) m_data.n.i;;
+      double f = static_cast<double> (m_data.n.i);
       m_data.n.f = f;
       m_flags &= ~FLAG_TYPE_NUMBER_INTEGER;
     }
@@ -700,7 +694,7 @@ const char * kvr::value::get_string (sz_t *len) const
 int64_t kvr::value::get_integer () const
 {
   KVR_ASSERT_SAFE (this->_is_number (), 0);
-  return is_integer () ? m_data.n.i : (int64_t) m_data.n.f;
+  return is_integer () ? m_data.n.i : static_cast<int64_t>(m_data.n.f);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -710,7 +704,7 @@ int64_t kvr::value::get_integer () const
 double kvr::value::get_float () const
 {
   KVR_ASSERT_SAFE (this->_is_number (), 0.0f);
-  return is_float () ? m_data.n.f : (double) m_data.n.i;
+  return is_float () ? m_data.n.f : static_cast<double>(m_data.n.i);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -729,7 +723,7 @@ bool kvr::value::get_boolean () const
 
 kvr::value * kvr::value::push (int32_t num)
 {
-  return this->push ((int64_t) num);
+  return this->push (static_cast<int64_t>(num));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -801,7 +795,7 @@ kvr::value * kvr::value::push (const char *str)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, str, (sz_t) strlen (str));
+  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, str, static_cast<sz_t>(strlen (str)));
   this->m_data.a.push (v);
 
   return v;
@@ -913,7 +907,7 @@ kvr::sz_t kvr::value::length () const
 
 kvr::value * kvr::value::insert (const char *keystr, int32_t num)
 {
-  return this->insert (keystr, (int64_t) num);
+  return this->insert (keystr, static_cast<int64_t>(num));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1226,7 +1220,7 @@ kvr::sz_t kvr::value::size () const
 {
   KVR_ASSERT_SAFE (is_map (), 0);
 
-#if EXPERIMENTAL_FAST_MAP_SIZE
+#if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
   sz_t sz2 = this->_size2 ();
 #if KVR_DEBUG
   sz_t sz1 = this->_size1 ();
@@ -1775,7 +1769,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   {
     hc += (FLAG_TYPE_NUMBER_INTEGER);
     int64_t n = get_integer ();
-    uint32_t hv = (uint32_t) (n % (1ULL << 32));
+    uint32_t hv = static_cast<uint32_t>(n % (1ULL << 32));
     hc += hv;
   }
 
@@ -1785,7 +1779,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   {
     hc += (FLAG_TYPE_NUMBER_FLOAT);
     double n = get_float ();
-    uint32_t hv = (uint32_t) std::floor (n);
+    uint32_t hv = static_cast<uint32_t>(std::floor (n));
     hc += hv;
   }
 
@@ -1815,8 +1809,10 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
 
 void kvr::value::dump () const
 {
+#if KVR_DEBUG
   this->_dump (0, NULL);
   std::fprintf (stderr, "\n");
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2114,7 +2110,7 @@ void kvr::value::_clear ()
 
 void kvr::value::_dump (size_t lpad, const char *key) const
 {
-#if KVR_DEBUG || 1
+#if KVR_DEBUG
   for (size_t t = 0; t < lpad; ++t)
   {
     std::fprintf (stderr, "  ");
@@ -2205,7 +2201,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   }
 #else
   KVR_REF_UNUSED (lpad);
-  KVR_REF_UNUSED (key);  
+  KVR_REF_UNUSED (key);
 #endif
 }
 
@@ -3049,7 +3045,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
   KVR_ASSERT (v);
   KVR_ASSERT (m_ptr);
 
-#if EXPERIMENTAL_FAST_MAP_SIZE
+#if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
   sz_t cap = _cap ();
 #if 1
   // see if we can shrink current space first
@@ -3124,7 +3120,7 @@ void kvr::value::map::remove (node *n)
     n->k = NULL;
     n->v = NULL;
 
-#if EXPERIMENTAL_FAST_MAP_SIZE
+#if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
     --m_cap;
 #endif
   }
@@ -3140,7 +3136,7 @@ kvr::value::map::node *kvr::value::map::find (const key *k) const
 
 #if KVR_OPTIMIZATION_FAST_MAP_INSERT_ON // search from end (last inserted is active)
 
-#if EXPERIMENTAL_FAST_MAP_SIZE
+#if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
   for (sz_t c = _cap (); c >= 1; --c)
 #else
   for (sz_t c = m_cap; c >= 1; --c)
@@ -3157,7 +3153,7 @@ kvr::value::map::node *kvr::value::map::find (const key *k) const
 
 #else
 
-#if EXPERIMENTAL_FAST_MAP_SIZE
+#if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
   for (sz_t i = 0, c = _cap (); i < c; ++i)
 #else
   for (sz_t i = 0, c = m_cap; i < c; ++i)

@@ -554,12 +554,20 @@ namespace kvr
 
         bool parse_float32 (istr *is, read_ctx &ctx)
         {
-          uint32_t fi = 0;
-          if (is->read ((uint8_t *) &fi, 4))
+          uint32_t u = 0;
+          if (is->read ((uint8_t *) &u, 4))
           {
-            union { float f; uint32_t i; } mem;
-            mem.i = bigendian32 (fi);
+#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+            union { float f; uint32_t u; } mem;
+            mem.u = bigendian32 (u);
             return ctx.read_float (mem.f);
+#else
+            float f = 0;
+            uint32_t u32 = bigendian32 (u);
+            KVR_ASSERT (sizeof (f) == sizeof (u32));
+            memcpy (&f, &u32, sizeof (u32));
+            return ctx.read_float (f);
+#endif
           }
           return false;
         }
@@ -568,12 +576,20 @@ namespace kvr
 
         bool parse_float64 (istr *is, read_ctx &ctx)
         {
-          uint64_t fi = 0;
-          if (is->read ((uint8_t *) &fi, 8))
+          uint64_t u = 0;
+          if (is->read ((uint8_t *) &u, 8))
           {
-            union { double f; uint64_t i; } mem;
-            mem.i = bigendian64 (fi);
+#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+            union { double f; uint64_t u; } mem;
+            mem.u = bigendian64 (u);
             return ctx.read_float (mem.f);
+#else
+            double f = 0;
+            uint64_t u64 = bigendian64 (u);
+            KVR_ASSERT (sizeof (f) == sizeof (u64));
+            memcpy (&f, &u64, sizeof (u64));
+            return ctx.read_float (f);
+#endif
           }
           return false;
         }
@@ -1197,19 +1213,33 @@ namespace kvr
           const double fmax = std::numeric_limits<float>::max ();
           if ((f >= fmin) && (f <= fmax))
           {
-            union { float f; uint32_t i; } mem;
+#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+            union { float f; uint32_t u; } mem;
             mem.f = (float) f;
-            uint32_t fi = bigendian32 (mem.i);
+            uint32_t f32 = bigendian32 (mem.u);
+#else
+            float ff = (float) f;
+            uint32_t u = 0;
+            memcpy (&u, &ff, sizeof (ff));
+            uint32_t f32 = bigendian32 (u);
+#endif
             m_os->put (MSGPACK_HEADER_FLOAT_32);
-            m_os->write ((uint8_t *) &fi, 4);
+            m_os->write ((uint8_t *) &f32, 4);
             return true;
           }
 #endif
-          union { double f; uint64_t i; } mem;
+
+#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+          union { double f; uint64_t u; } mem;
           mem.f = f;
-          uint64_t fi = bigendian64 (mem.i);
+          uint64_t f64 = bigendian64 (mem.u);
+#else
+          uint64_t u = 0;
+          memcpy (&u, &f, sizeof (f));
+          uint64_t f64 = bigendian64 (u);
+#endif
           m_os->put (MSGPACK_HEADER_FLOAT_64);
-          m_os->write ((uint8_t *) &fi, 8);
+          m_os->write ((uint8_t *) &f64, 8);
           return true;
         }
 
