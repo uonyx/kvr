@@ -66,8 +66,8 @@
 #define kvr_strncpy(dst, dsz, src, n) strncpy_s (dst, dsz, src, n)
 #define kvr_strdup(src, sz) _strdup (src)
 #else
-#define kvr_strcpy(dst, dsz, src) do { strncpy (dst, src, dsz); dst [dsz - 1] = 0; } while (0,0)
-#define kvr_strncpy(dst, dsz, src, n) kvr_strcpy(dst, n, src)
+#define kvr_strcpy(dst, dsz, src) { strncpy (dst, src, dsz); dst [dsz - 1] = 0; } 
+#define kvr_strncpy(dst, dsz, src, n) { KVR_ASSERT (n < dsz); strncpy (dst, src, n); dst [n] = 0; } 
 #define kvr_strdup(src, sz) strndup (src, sz)
 #endif
 
