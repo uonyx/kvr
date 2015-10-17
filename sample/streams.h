@@ -36,7 +36,11 @@ public:
   {
     if (!m_fp)
     {
+#ifdef _MSC_VER
       fopen_s (&m_fp, filename, "rb");
+#else
+      m_fp = fopen (filename, "rb");
+#endif
       return m_fp ? true : false;
     }
 
@@ -56,7 +60,11 @@ public:
   {
     if (m_pos >= m_sz)
     {
+#ifdef _MSC_VER
       m_sz = fread_s (m_buf, MAX_BUF_SZ, sizeof (uint8_t), MAX_BUF_SZ, m_fp);
+#else
+      m_sz = fread (m_buf, sizeof (uint8_t), MAX_BUF_SZ, m_fp);
+#endif
       m_pos = 0;
     }
 
@@ -78,13 +86,21 @@ public:
 
     if (count >= MAX_BUF_SZ)
     {
+#ifdef _MSC_VER
       fread_s (bytes, count, sizeof (uint8_t), count, m_fp);
+#else
+      fread (bytes, sizeof (uint8_t), count, m_fp);
+#endif
     }
     else
     {
       if ((m_pos + count) > m_sz)
       {
+#ifdef _MSC_VER
         m_sz = fread_s (m_buf, MAX_BUF_SZ, sizeof (uint8_t), MAX_BUF_SZ, m_fp);
+#else
+        m_sz = fread (m_buf, sizeof (uint8_t), MAX_BUF_SZ, m_fp);
+#endif
         m_pos = 0;
       }
 
@@ -152,7 +168,11 @@ public:
   {
     if (!m_fp)
     {
+#ifdef _MSC_VER
       fopen_s (&m_fp, filename, "wb");
+#else
+      m_fp = fopen (filename, "wb");
+#endif
       return m_fp ? true : false;
     }
 
@@ -236,7 +256,11 @@ public:
   {
     if (!m_fp)
     {
+#ifdef _MSC_VER
       fopen_s (&m_fp, filename, "rb");
+#else
+      m_fp = fopen (filename, "rb");
+#endif
       if (m_fp)
       {
         setvbuf (m_fp, m_buf, _IOFBF, BUFSIZ);
@@ -257,13 +281,21 @@ public:
 
   bool get (uint8_t *byte)
   {
+#ifdef _MSC_VER
     fread_s (byte, 1, sizeof (uint8_t), 1, m_fp);
+#else
+    fread (byte, sizeof (uint8_t), 1, m_fp);
+#endif
     return true;
   }
 
   bool read (uint8_t *bytes, size_t count)
   {
+#ifdef _MSC_VER
     fread_s (bytes, count, sizeof (uint8_t), count, m_fp);
+#else
+    fread (bytes, sizeof (uint8_t), count, m_fp);
+#endif
     return true;
   }
 
@@ -311,7 +343,11 @@ public:
   {
     if (!m_fp)
     {
+#ifdef _MSC_VER
       fopen_s (&m_fp, filename, "wb");
+#else
+      m_fp = fopen (filename, "wb");
+#endif
       if (m_fp)
       {
         setvbuf (m_fp, m_buf, _IOFBF, BUFSIZ);
