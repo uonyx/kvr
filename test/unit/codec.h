@@ -40,11 +40,26 @@ public:
     ///////////////////////////////
 
     bool ok = false;
-    const char json [] = "{\"sesame\":\"street\",\"t\":true,\"f\":false,\"n\":null,\"i\":123,\"pi\":3.1416,\"a\":[1,256,4096,-1,-255,-256,-4095]}";
 
     kvr::value *val0 = m_ctx->create_value ()->conv_map ();
-    ok = val0->decode (kvr::CODEC_JSON, (const uint8_t *) json, sizeof (json));
-    TS_ASSERT (ok);
+    {
+      val0->insert ("sesame", "street");
+      val0->insert ("t", true);
+      val0->insert ("f", false);
+      val0->insert_null ("n");
+      val0->insert ("i", 123);
+      val0->insert ("pi", 3.1416);
+      kvr::value *a = val0->insert_array ("a");
+      {
+        a->push (1);
+        a->push (256);
+        a->push (4096);
+        a->push (-1);
+        a->push (-255);
+        a->push (-256);
+        a->push (-4095);
+      }
+    }
 
     ///////////////////////////////
     // encode
@@ -55,11 +70,6 @@ public:
     ok = val0->encode (kvr::CODEC_JSON, &obuf);
     TS_ASSERT (ok);
     TS_ASSERT_LESS_THAN_EQUALS (obuf.get_size (), obufsz);
-
-    if (strcmp (json, (const char *) obuf.get_data ()) != 0)
-    {
-      TS_WARN ("json decode string mismatch");
-    }
 
     ///////////////////////////////
     // decode

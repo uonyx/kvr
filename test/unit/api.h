@@ -249,8 +249,8 @@ public:
 
   void testMap ()
   {
-    const kvr::key    * null_key = NULL;
-    const kvr::value  * null_val = NULL;
+    const kvr::key   * null_key = NULL;
+    const kvr::value * null_val = NULL;
 
     kvr::value *map = m_ctx->create_value ()->conv_map ();
     TS_ASSERT (map->is_map ());
@@ -274,6 +274,15 @@ public:
       TS_ASSERT (vm->is_map ());
     }
 
+    // remove
+    {
+      kvr::sz_t size1 = map->size ();
+      map->remove ("null");
+      kvr::sz_t size2 = map->size ();
+      TS_ASSERT_LESS_THAN (size2, size1);
+      TS_ASSERT_EQUALS ((size1 - size2), 1);
+    }
+
     // find
     {
       kvr::value *vi = map->find ("int");
@@ -281,23 +290,24 @@ public:
       kvr::value *vs = map->find ("string");
       kvr::value *vb = map->find ("boolean");
       kvr::value *vn = map->find ("null");
-      kvr::value *vg = map->find ("garbage");
+      kvr::value *va = map->find ("array");
+      kvr::value *vm = map->find ("map");
 
       TS_ASSERT_DIFFERS (vi, null_val);
       TS_ASSERT_DIFFERS (vf, null_val);
       TS_ASSERT_DIFFERS (vs, null_val);
       TS_ASSERT_DIFFERS (vb, null_val);
-      TS_ASSERT_DIFFERS (vn, null_val);
-      TS_ASSERT_EQUALS  (vg, null_val);
+      TS_ASSERT_EQUALS (vn, null_val);
+      TS_ASSERT_DIFFERS (va, null_val);
+      TS_ASSERT_DIFFERS (vm, null_val);
 
       TS_ASSERT_EQUALS (vi->get_integer (), 16LL);
       TS_ASSERT_EQUALS (vf->get_float (), 3.14);
       TS_ASSERT_EQUALS (vb->get_boolean (), true);
       TS_ASSERT (strcmp (vs->get_string (), "hello world") == 0);
-      TS_ASSERT (vn->is_null ());
     }
 
-    // cursor
+    // iterate
     {
       kvr::sz_t count = 0;
       kvr::value::cursor cur = map->fcursor ();
@@ -319,6 +329,88 @@ public:
     }
 
     m_ctx->destroy_value (map);
+  }
+
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  void testArray ()
+  {
+    kvr::value *array = m_ctx->create_value ()->conv_array ();
+    TS_ASSERT (array->is_array ());
+
+    // push
+    {
+      kvr::value *vu = array->push (255);
+      kvr::value *vi = array->push (-1);
+      kvr::value *vf = array->push (3.142);
+      kvr::value *vs = array->push ("string-wing-thing");
+      kvr::value *vb = array->push (false);
+      kvr::value *vn = array->push_null ();
+      kvr::value *va = array->push_array ();
+      kvr::value *vm = array->push_map ();
+
+      TS_ASSERT (vu->is_integer ());
+      TS_ASSERT (vi->is_integer ());
+      TS_ASSERT (vf->is_float ());
+      TS_ASSERT (vs->is_string ());
+      TS_ASSERT (vb->is_boolean ());
+      TS_ASSERT (vn->is_null ());
+      TS_ASSERT (va->is_array ());
+      TS_ASSERT (vm->is_map ());
+    }
+
+    // pop
+    {
+      kvr::sz_t len1 = array->length ();
+      array->pop ();
+      array->pop ();
+      kvr::sz_t len2 = array->length ();
+      TS_ASSERT_LESS_THAN (len2, len1);
+      TS_ASSERT_EQUALS ((len1 - len2), 2);
+    }
+
+    // access
+    {
+      kvr::value *vu = array->element (0);
+      kvr::value *vi = array->element (1);
+      kvr::value *vf = array->element (2);
+      kvr::value *vs = array->element (3);
+      kvr::value *vb = array->element (4);
+      kvr::value *vn = array->element (5);
+      kvr::value *va = array->element (6);
+      kvr::value *vm = array->element (7);
+
+      TS_ASSERT (vu);
+      TS_ASSERT (vi);
+      TS_ASSERT (vf);
+      TS_ASSERT (vs);
+      TS_ASSERT (vb);
+      TS_ASSERT (vn);
+      TS_ASSERT (va == NULL);
+      TS_ASSERT (vm == NULL);
+
+      TS_ASSERT (vu->is_integer ());
+      TS_ASSERT (vi->is_integer ());
+      TS_ASSERT (vf->is_float ());
+      TS_ASSERT (vs->is_string ());
+      TS_ASSERT (vb->is_boolean ());
+      TS_ASSERT (vn->is_null ());
+    }
+
+    // iterate
+    {
+      kvr::sz_t count = array->length ();
+      for (kvr::sz_t i = 0; i < count; ++i)
+      {
+        kvr::value *v = array->element (i);
+        TS_ASSERT (v != NULL);
+      }
+    }
+
+    m_ctx->destroy_value (array);
   }
 };
 
