@@ -16,11 +16,15 @@ void sample_encode_stream ()
   // create a map and transcode from a json file to a msgpack file
   kvr::value *val0 = ctx->create_value ();
   {
-    file_istream<1024> iarnx ("ARN-x.json");
+    file_istream<1024> iarnx ("data/ARN-x.json");
     if (val0->decode (kvr::CODEC_JSON, iarnx))
     {
-      file_ostream<1024> oarnx ("ARN-x.msgpack");
-      val0->encode (kvr::CODEC_MSGPACK, &oarnx);
+      printf ("%s\n", "decoded ARN-x.json");
+      file_ostream<1024> oarnx ("data/ARN-x.msgpack");
+      if (val0->encode (kvr::CODEC_MSGPACK, &oarnx))
+      {
+        printf ("%s\n", "encoded ARN-x.msgpack");
+      }
       oarnx.close ();
     }
     iarnx.close ();
@@ -29,11 +33,15 @@ void sample_encode_stream ()
   // let's transcode again but this time the reverse (msgpack back to json)
   kvr::value *val1 = ctx->create_value ();
   {
-    zero_copy_file_istream iarnx ("ARN-x.msgpack");
+    zero_copy_file_istream iarnx ("data/ARN-x.msgpack");
     if (val1->decode (kvr::CODEC_MSGPACK, iarnx))
     {
-      zero_copy_file_ostream oarnx ("ARN-x.2.json");
-      val1->encode (kvr::CODEC_JSON, &oarnx);
+      printf ("%s\n", "decoded ARN-x.msgpack");
+      zero_copy_file_ostream oarnx ("data/ARN-x.2.json");
+      if (val1->encode (kvr::CODEC_JSON, &oarnx))
+      {
+        printf ("%s\n", "encoded ARN-x.2.json");
+      }
       oarnx.close ();
     }
     iarnx.close ();
@@ -51,7 +59,7 @@ void sample_encode_stream ()
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-int main (int argc, char* argv [])
+int main ()
 {
   sample_encode_stream ();
 
