@@ -218,7 +218,6 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<size_t MAX_BUF_SZ = 1024u>
 class zero_copy_file_istream : public kvr::istream
 {
 public:
@@ -240,7 +239,7 @@ public:
       fopen_s (&m_fp, filename, "rb");
       if (m_fp)
       {
-        setvbuf (m_fp, m_buf, _IOFBF, MAX_BUF_SZ);
+        setvbuf (m_fp, m_buf, _IOFBF, BUFSIZ);
         return true;
       }
     }
@@ -287,14 +286,13 @@ private:
   zero_copy_file_istream &operator=(const zero_copy_file_istream &);
 
   FILE  * m_fp;
-  char    m_buf [MAX_BUF_SZ];
+  char    m_buf [BUFSIZ];
 };
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-template<size_t MAX_BUF_SZ = BUFSIZ>
 class zero_copy_file_ostream : public kvr::ostream
 {
 public:
@@ -316,7 +314,7 @@ public:
       fopen_s (&m_fp, filename, "wb");
       if (m_fp)
       {
-        setvbuf (m_fp, m_buf, _IOFBF, MAX_BUF_SZ);
+        setvbuf (m_fp, m_buf, _IOFBF, BUFSIZ);
         return true;
       }
     }
@@ -354,7 +352,7 @@ private:
   zero_copy_file_ostream &operator=(const zero_copy_file_ostream &);
 
   FILE  * m_fp;
-  char    m_buf [MAX_BUF_SZ];
+  char    m_buf [BUFSIZ];
 };
 
 //////////////////////////////////////////////////////////////////////////

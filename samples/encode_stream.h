@@ -29,10 +29,10 @@ void sample_encode_stream ()
   // let's transcode again but this time the reverse (msgpack back to json)
   kvr::value *val1 = ctx->create_value ();
   {
-    zero_copy_file_istream<> iarnx ("ARN-x.msgpack");
+    zero_copy_file_istream iarnx ("ARN-x.msgpack");
     if (val1->decode (kvr::CODEC_MSGPACK, iarnx))
     {
-      zero_copy_file_ostream<> oarnx ("ARN-x.2.json");
+      zero_copy_file_ostream oarnx ("ARN-x.2.json");
       val1->encode (kvr::CODEC_JSON, &oarnx);
       oarnx.close ();
     }
