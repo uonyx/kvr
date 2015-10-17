@@ -39,7 +39,8 @@ void sample_simple ()
 
   // access 2nd element of map's array  
   int64_t i = map->find ("array")->element (1)->get_integer ();
-  printf ("%lld\n", i);
+  (void) i;
+  //printf ("%lld\n", i);
 
   // clean up
   ctx->destroy_value (map);
