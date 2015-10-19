@@ -1272,7 +1272,7 @@ namespace kvr
           {
             kvr::sz_t msz = val->size ();
             bool ok = ctx.write_map (msz);
-            kvr::value::cursor c = val->fcursor ();
+            kvr::value::cursor c (val);
             kvr::pair p;
             while (ok && c.get (&p))
             {
@@ -1416,7 +1416,7 @@ namespace kvr
             size += 5;
           }
 
-          kvr::value::cursor c = val->fcursor ();
+          kvr::value::cursor c (val);
           kvr::pair p;
           while (c.get (&p))
           {

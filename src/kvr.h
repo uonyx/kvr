@@ -254,7 +254,6 @@ namespace kvr
     value *       insert_null (const char *key);
     value *       find (const char *key) const;
     void          remove (const char *key);
-    cursor        fcursor () const;
     sz_t          size () const;
 
     // copy
@@ -386,18 +385,16 @@ namespace kvr
     public:
 
       bool get (pair *p);
+      explicit cursor (const value *map);
 #if KVR_CPP11
       cursor (cursor &&c) : m_map (c.m_map), m_index (c.m_index) {}
 #endif
+
     private:
 
-      cursor (const map *m) : m_map (m), m_index (0) {}
-      const map::node * _get ();    
-      
-      const map * m_map;
-      sz_t        m_index;
-
-      friend class value;
+      const map::node * _get ();
+      const value *m_map;
+      sz_t   m_index;
     };
 
   private:
@@ -573,8 +570,8 @@ namespace kvr
     void    _destroy_value (uint32_t parentType, value *v);
 
     key *   _find_key (const char *str);
-    key *   _create_key_copy (const char *str);
-    key *   _create_key_move (char *str, sz_t len);
+    key *   _create_key (const char *str);    
+    key *   _create_key (char *str, sz_t len);
     void    _destroy_key (key *k);
 
     char *  _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz = NULL) const;

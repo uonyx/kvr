@@ -310,7 +310,7 @@ public:
     // iterate
     {
       kvr::sz_t count = 0;
-      kvr::value::cursor cur = map->fcursor ();
+      kvr::value::cursor cur (map);
       kvr::pair p;
 
       while (cur.get (&p))

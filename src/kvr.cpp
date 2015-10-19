@@ -75,7 +75,7 @@ kvr::ctx::ctx () : m_keystore (256)
 
 kvr::ctx::~ctx ()
 {
-#if 0 // assert all values have been destroyed
+#if 1 // assert all values have been destroyed
   KVR_ASSERT (m_keystore.empty ()); 
 #endif
 
@@ -272,10 +272,10 @@ kvr::key * kvr::ctx::_find_key (const char *str)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::key *kvr::ctx::_create_key_copy (const char *str)
+kvr::key *kvr::ctx::_create_key (const char *str)
 {
   KVR_ASSERT (str);
-
+#if KVR_INTERNAL_FLAG_DEBUG_ORIGINAL_KEY_SEARCH
   key *k = this->_find_key (str);
   if (k)
   {
@@ -283,23 +283,36 @@ kvr::key *kvr::ctx::_create_key_copy (const char *str)
   }
   else
   {
-    k = new key (str);    
+    k = new key (str);
     std::pair<const char *, key *> p (k->m_str, k);
     bool s = m_keystore.insert (p).second;
     KVR_ASSERT (s); KVR_REF_UNUSED (s);
   }
 
   return k;
+#else
+  sz_t len = static_cast<sz_t> (strlen (str));
+  char *cstr = new char [len + 1];
+  kvr_strcpy (cstr, len + 1, str);
+
+  key *k = this->_create_key (cstr, len);
+
+  if (k->m_ref > 1) { delete [] cstr; }
+
+  return k;
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::key * kvr::ctx::_create_key_move (char *str, sz_t len)
+kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
 {
   KVR_ASSERT (str);
+  KVR_ASSERT (len > 0);
 
+#if KVR_INTERNAL_FLAG_DEBUG_ORIGINAL_KEY_SEARCH
   key *k = this->_find_key (str);
   if (k)
   {
@@ -307,13 +320,35 @@ kvr::key * kvr::ctx::_create_key_move (char *str, sz_t len)
   }
   else
   {
-    k = new key (str, len);    
+    k = new key (str, len);
     std::pair<const char *, key *> p (k->m_str, k);
     bool s = m_keystore.insert (p).second;
     KVR_ASSERT (s); KVR_REF_UNUSED (s);
   }
 
   return k;
+#else
+  std::pair<const char *, key *> p (str, NULL);
+  std::pair<keystore::iterator, bool> res = m_keystore.insert (p);
+
+  key *k = NULL;
+  if (res.second)
+  {
+    // insert succeeded: update value
+    KVR_ASSERT (!res.first->second);
+    k = res.first->second = new key (str, len);
+    k->m_ref = 1;
+  }
+  else
+  {
+    // insert failed: key already exists
+    KVR_ASSERT (res.first->second);
+    k = res.first->second;
+    k->m_ref++;
+  }
+
+  return k;
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -925,7 +960,7 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key_copy (keystr);
+  key *k = m_ctx->_create_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -961,7 +996,7 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key_copy (keystr);
+  key *k = m_ctx->_create_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -996,7 +1031,7 @@ kvr::value * kvr::value::insert (const char *keystr, bool b)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key_copy (keystr);
+  key *k = m_ctx->_create_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1032,7 +1067,7 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key_copy (keystr);
+  key *k = m_ctx->_create_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1067,7 +1102,7 @@ kvr::value * kvr::value::insert_map (const char *keystr)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key_copy (keystr);
+  key *k = m_ctx->_create_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1102,7 +1137,7 @@ kvr::value * kvr::value::insert_array (const char *keystr)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key_copy (keystr);
+  key *k = m_ctx->_create_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1137,7 +1172,7 @@ kvr::value * kvr::value::insert_null (const char *keystr)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key_copy (keystr);
+  key *k = m_ctx->_create_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1205,17 +1240,6 @@ void kvr::value::remove (const char *keystr)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value::cursor kvr::value::fcursor () const
-{
-  KVR_ASSERT (is_map ());
-  
-  return cursor (&m_data.m);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 kvr::sz_t kvr::value::size () const
 {
   KVR_ASSERT_SAFE (is_map (), 0);
@@ -1247,7 +1271,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     {
       this->conv_map (rhs->size ());
 
-      cursor c = rhs->fcursor ();
+      cursor c (rhs);
       pair rp;
       while (c.get (&rp))
       {
@@ -1724,7 +1748,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   {
     hc += (FLAG_TYPE_MAP);
     uint32_t mhc = 0;
-    cursor c = fcursor ();
+    cursor c (this);
 
     pair p;
     while (c.get (&p))
@@ -1949,7 +1973,7 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
 
             if (m && m->is_map ())
             {
-              cursor cur = m->fcursor ();
+              cursor cur (m);
               pair p;
 
               while (cur.get (&p))
@@ -2061,9 +2085,9 @@ uint8_t kvr::value::_type () const
 
 void kvr::value::_destruct ()
 {
-  if (is_map ())
+  if (this->is_map ())
   {
-    cursor c = fcursor ();
+    cursor c (this);
     pair   p;
     while (c.get (&p))
     {
@@ -2072,7 +2096,7 @@ void kvr::value::_destruct ()
     }
     m_data.m.deinit ();
   }
-  else if (is_array ())
+  else if (this->is_array ())
   {
     sz_t c = this->length ();
     while (c)
@@ -2127,7 +2151,7 @@ void kvr::value::_dump (size_t lpad, const char *key) const
   {
     std::fprintf (stderr, "value = -> [map]\n");
 
-    cursor c = fcursor ();
+    cursor c (this);
     pair   p;
     while (c.get (&p))
     {
@@ -2253,17 +2277,18 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       kvr::ctx *ctx = m_ctx;
       key *k = NULL;
       if ((pathcnt == 1) && (ctx == og->m_ctx)) // path key must already be in the key store
+      //if (pathcnt == 1)
       {
         const char *pk = path [0];
         KVR_ASSERT (ctx->_find_key (pk));
-        k = ctx->_create_key_copy (pk); // increment reference count
+        k = ctx->_create_key (pk); // increment reference count
       }
       else
       {
         sz_t pksz = 0;
         char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
         KVR_ASSERT (pk && pksz);
-        k = ctx->_create_key_move (pk, pksz - 1);
+        k = ctx->_create_key (pk, pksz - 1);
         if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
       }
 
@@ -2278,7 +2303,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
     {
       KVR_ASSERT (md->is_map ());
 
-      value::cursor c = og->fcursor ();
+      value::cursor c (og);
       pair ogp;
 
       while (c.get (&ogp))
@@ -2339,14 +2364,14 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         if (pathcnt == 1)
         {
           const char *pk = path [0];
-          k = ctx->_create_key_copy (pk);
+          k = ctx->_create_key (pk);
         }
         else
         {
           sz_t pksz = 0;
           char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
           KVR_ASSERT (pk && pksz);
-          k = ctx->_create_key_move (pk, pksz - 1);
+          k = ctx->_create_key (pk, pksz - 1);
           if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
         }
 
@@ -2374,14 +2399,14 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
           if (pathcnt == 1)
           {
             const char *pk = path [0];
-            k = ctx->_create_key_copy (pk);
+            k = ctx->_create_key (pk);
           }
           else
           {
             sz_t pksz = 0;
             char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
             KVR_ASSERT (pk && pksz);
-            k = ctx->_create_key_move (pk, pksz - 1);
+            k = ctx->_create_key (pk, pksz - 1);
             if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
           }
 
@@ -2401,14 +2426,14 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
           if (pathcnt == 1)
           {
             const char *pk = path [0];
-            k = ctx->_create_key_copy (pk);
+            k = ctx->_create_key (pk);
           }
           else
           {
             sz_t pksz = 0;
             char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
             KVR_ASSERT (pk && pksz);
-            k = ctx->_create_key_move (pk, pksz - 1);
+            k = ctx->_create_key (pk, pksz - 1);
             if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
           }
 
@@ -2435,14 +2460,14 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         if (pathcnt == 1)
         {
           const char *pk = path [0];
-          k = ctx->_create_key_copy (pk);
+          k = ctx->_create_key (pk);
         }
         else
         {
           sz_t pksz = 0;
           char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
           KVR_ASSERT (pk && pksz);
-          k = ctx->_create_key_move (pk, pksz - 1);
+          k = ctx->_create_key (pk, pksz - 1);
           if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
         }
 
@@ -2468,14 +2493,14 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         if (pathcnt == 1)
         {
           const char *pk = path [0];
-          k = ctx->_create_key_copy (pk);
+          k = ctx->_create_key (pk);
         }
         else
         {
           sz_t pksz = 0;
           char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
           KVR_ASSERT (pk && pksz);
-          k = ctx->_create_key_move (pk, pksz - 1);
+          k = ctx->_create_key (pk, pksz - 1);
           if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
         }
 
@@ -2522,14 +2547,14 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
       {
         const char *pk = path [0];
         KVR_ASSERT (ctx->_find_key (pk));
-        k = ctx->_create_key_copy (pk);
+        k = ctx->_create_key (pk);
       }
       else
       {
         sz_t pksz = 0;
         char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
         KVR_ASSERT (pk && pksz);
-        k = ctx->_create_key_move (pk, pksz - 1);
+        k = ctx->_create_key (pk, pksz - 1);
         if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
       }
 
@@ -2553,7 +2578,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
     {
       KVR_ASSERT (og->is_map ());
 
-      value::cursor c = md->fcursor ();
+      value::cursor c (md);
       pair mdp;
 
       while (c.get (&mdp))
@@ -2608,7 +2633,7 @@ void kvr::value::_patch_set (const value *set)
   
   kvr::value *tg = this;
 
-  kvr::value::cursor cursor = set->fcursor ();
+  kvr::value::cursor cursor (set);
   kvr::pair p;
 
   while (cursor.get (&p))
@@ -2634,7 +2659,7 @@ void kvr::value::_patch_add (const value *add)
 
   value *tg = this;
 
-  kvr::value::cursor cursor = add->fcursor ();
+  kvr::value::cursor cursor (add);
   kvr::pair p;
 
   while (cursor.get (&p))
@@ -3242,12 +3267,16 @@ kvr::sz_t kvr::value::map::_cap () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+kvr::value::cursor::cursor (const value *map) : m_map (map), m_index (0)
+{
+  KVR_ASSERT (map);
+}
+
 bool kvr::value::cursor::get (pair *p)
 {
-  KVR_ASSERT_SAFE (p, false);
-
+  KVR_ASSERT (p);
   const map::node *n = this->_get ();
-  if (n)
+  if (p && n)
   {
     KVR_ASSERT (n->k && n->v);
     p->m_k = n->k;
@@ -3257,17 +3286,26 @@ bool kvr::value::cursor::get (pair *p)
   return false;
 }
 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 const kvr::value::map::node * kvr::value::cursor::_get ()
 {
-  const map::node *n = (m_index < m_map->m_len) ? &m_map->m_ptr [m_index++] : NULL;
+  const map::node *n = NULL;
 
-  while (n && !n->k && !n->v)
+  if (m_map && m_map->is_map ())
   {
-    n = (m_index < m_map->m_len) ? &m_map->m_ptr [m_index++] : NULL;
+    const map *map_impl = &m_map->m_data.m;
+
+    n = (m_index < map_impl->m_len) ? &map_impl->m_ptr [m_index++] : NULL;
+
+    while (n && !n->k)
+    {
+      KVR_ASSERT (!n->v);
+      n = (m_index < map_impl->m_len) ? &map_impl->m_ptr [m_index++] : NULL;
+    }
   }
 
   return n;

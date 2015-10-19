@@ -419,7 +419,7 @@ namespace kvr
           if (val->is_map ())
           {
             bool ok = m_wrt.StartObject ();
-            kvr::value::cursor c = val->fcursor ();
+            kvr::value::cursor c (val);
             kvr::pair p;
             while (ok && c.get (&p))
             {
@@ -555,7 +555,7 @@ namespace kvr
         if (val->is_map ())
         {
           size += 2; // brackets
-          kvr::value::cursor c = val->fcursor ();
+          kvr::value::cursor c (val);
           kvr::pair p;
           while (c.get (&p))
           {
