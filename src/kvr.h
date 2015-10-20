@@ -88,6 +88,8 @@
 #define KVR_OPTIMIZATION_FAST_MAP_INSERT_ON             0
 // set to 1 to approximate fp precision for codec ops
 #define KVR_OPTIMIZATION_CODEC_FULL_FP_PRECISION_OFF    0
+// set to 1 to disable tracking of context memory
+#define KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF    0
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -393,8 +395,8 @@ namespace kvr
     private:
 
       const map::node * _get ();
-      const value *m_map;
-      sz_t   m_index;
+      const value * m_map;
+      sz_t          m_index;
     };
 
   private:
@@ -555,6 +557,7 @@ namespace kvr
     };
 
     typedef std_unordered_map<const char *, key *, hash_djb, equal_cstr> keystore;
+    typedef std::list<value *> rootvalues;
 
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -570,8 +573,9 @@ namespace kvr
     void    _destroy_value (uint32_t parentType, value *v);
 
     key *   _find_key (const char *str);
-    key *   _create_key (const char *str);    
+    key *   _create_key (const char *str);
     key *   _create_key (char *str, sz_t len);
+    key *   _create_key_if_not_exists (const char *str);
     void    _destroy_key (key *k);
 
     char *  _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz = NULL) const;
@@ -589,7 +593,10 @@ namespace kvr
 
     friend class value;
 
-    keystore m_keystore;
+    keystore    m_keystore;
+#if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
+    rootvalues  m_rootvals;
+#endif
   };
   
   ///////////////////////////////////////////////////////////////

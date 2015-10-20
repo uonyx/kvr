@@ -3,6 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cxxtest/TestSuite.h>
+#include <stdlib.h>
 #include "../src/kvr.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -326,6 +327,26 @@ public:
 
       kvr::sz_t size = map->size ();
       TS_ASSERT_EQUALS (size, count);
+    }
+
+    // stress
+    {
+      char str [16];
+      kvr::value *val [1024];
+      for (int i = 0; i < 8; ++i)
+      {
+#ifdef _MSC_VER
+        sprintf_s (str, "%d", i);
+#else
+        sprintf (str, "%d", i);
+#endif
+        val [i] = map->insert (str, i);
+        int r = std::rand () % 4;
+        if (r == 1)
+        {
+          map->remove (str);
+        }
+      }
     }
 
     m_ctx->destroy_value (map);

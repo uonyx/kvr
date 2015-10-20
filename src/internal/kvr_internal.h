@@ -76,7 +76,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define KVR_INTERNAL_FLAG_TYPE_PUNNING_ON   0 // check compiler
-#define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE  (KVR_DEBUG || 0)
+#define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE  (KVR_DEBUG || 0) && 1
 #define KVR_INTERNAL_FLAG_DEBUG_ORIGINAL_KEY_SEARCH (0)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
