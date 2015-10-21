@@ -270,6 +270,7 @@ void kvr::ctx::_destroy_value (uint32_t parentType, value *v)
   KVR_ASSERT ((v->m_flags & parentType) != 0);
   
   if ((v->m_flags & parentType) == 0) return;
+
   delete v;
 }
 
@@ -321,7 +322,6 @@ kvr::key *kvr::ctx::_create_key (const char *str)
   kvr_strcpy (cstr, len + 1, str);
 
   key *k = this->_create_key (cstr, len);
-
   if (k->m_ref > 1) { delete [] cstr; }
 
   return k;
@@ -385,9 +385,12 @@ kvr::key * kvr::ctx::_create_key_if_not_exists (const char *str)
 {
   KVR_ASSERT (str);
 
-  key *k = this->_find_key (str);
-  if (k)
+  key *k = NULL;
+
+  keystore::iterator iter = m_keystore.find (str);
+  if (iter != m_keystore.end ())
   {
+    k = (*iter).second;
     k->m_ref++;
   }
   else
@@ -1325,10 +1328,27 @@ kvr::value * kvr::value::copy (const value *rhs)
       pair rp;
       while (c.get (&rp))
       {
+#if KVR_INTERNAL_FLAG_DEBUG_ORIGINAL_KEY_SEARCH
         const char *rk = rp.get_key ()->get_string ();
         value *lv = this->insert_null (rk);
         value *rv = rp.get_value ();
         lv->copy (rv);
+#else
+        value *rv = rp.get_value ();
+        if (rhs->m_ctx == this->m_ctx)
+        {
+          KVR_ASSERT (m_ctx->_find_key (rp.get_key ()->get_string ()));
+          key *k = rp.get_key (); k->m_ref++;
+          value *lv = m_ctx->_create_value_null (FLAG_PARENT_MAP)->copy (rv);          
+          this->_insert_kv (k, lv);
+        }
+        else
+        {
+          const char *rk = rp.get_key ()->get_string ();
+          value *lv = this->insert_null (rk);
+          lv->copy (rv);
+        }
+#endif
       }
     }
 
@@ -2804,7 +2824,7 @@ void kvr::value::_patch_rem (const value *rem)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool kvr::value::_insert_kv (key *k, value *v)
+void kvr::value::_insert_kv (key *k, value *v)
 {
   KVR_ASSERT (k);
   KVR_ASSERT (v);
@@ -2818,7 +2838,7 @@ bool kvr::value::_insert_kv (key *k, value *v)
 #endif
 
   n = m_data.m.insert (k, v);
-  return n ? true : false;
+  KVR_ASSERT (n != NULL);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

@@ -464,7 +464,7 @@ namespace kvr
     void    _patch_add (const value *add);
     void    _patch_rem (const value *rem);
 
-    bool    _insert_kv (key *k, value *v);
+    void    _insert_kv (key *k, value *v);
     void    _push_v (value *v);
 
     value * _conv_map (sz_t cap);

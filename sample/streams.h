@@ -18,16 +18,16 @@
 //////////////////////////////////////////////////////////////////////////
 
 template<size_t MAX_BUF_SZ = 1024u>
-class file_istream : public kvr::istream
+class buffered_file_istream : public kvr::istream
 {
 public:
 
-  file_istream (const char *filename) : m_fp (0), m_sz (0), m_pos (0)
+  buffered_file_istream (const char *filename) : m_fp (0), m_sz (0), m_pos (0)
   {
     this->open (filename);
   }
 
-  ~file_istream ()
+  ~buffered_file_istream ()
   {
     this->close ();
   }
@@ -136,8 +136,8 @@ public:
 
 private:
 
-  file_istream (const file_istream &);
-  file_istream &operator=(const file_istream &);
+  buffered_file_istream (const buffered_file_istream &);
+  buffered_file_istream &operator=(const buffered_file_istream &);
 
   FILE    * m_fp;
   size_t    m_sz;
@@ -150,16 +150,16 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 template<size_t MAX_BUF_SZ = 1024u>
-class file_ostream : public kvr::ostream
+class buffered_file_ostream : public kvr::ostream
 {
 public:
 
-  file_ostream (const char *filename) : m_fp (NULL), m_pos (0)
+  buffered_file_ostream (const char *filename) : m_fp (NULL), m_pos (0)
   {
     this->open (filename);
   }
 
-  ~file_ostream ()
+  ~buffered_file_ostream ()
   {
     this->close ();
   }
@@ -226,8 +226,8 @@ public:
 
 private:
 
-  file_ostream (const file_ostream &);
-  file_ostream &operator=(const file_ostream &);
+  buffered_file_ostream (const buffered_file_ostream &);
+  buffered_file_ostream &operator=(const buffered_file_ostream &);
 
   FILE    * m_fp;
   size_t    m_pos;
@@ -238,16 +238,16 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class zero_copy_file_istream : public kvr::istream
+class file_istream : public kvr::istream
 {
 public:
 
-  zero_copy_file_istream (const char *filename) : m_fp (0)
+  file_istream (const char *filename) : m_fp (0)
   {
     this->open (filename);
   }
 
-  ~zero_copy_file_istream ()
+  ~file_istream ()
   {
     this->close ();
   }
@@ -314,8 +314,8 @@ public:
 
 private:
 
-  zero_copy_file_istream (const zero_copy_file_istream &);
-  zero_copy_file_istream &operator=(const zero_copy_file_istream &);
+  file_istream (const file_istream &);
+  file_istream &operator=(const file_istream &);
 
   FILE  * m_fp;
   char    m_buf [BUFSIZ];
@@ -325,16 +325,16 @@ private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-class zero_copy_file_ostream : public kvr::ostream
+class file_ostream : public kvr::ostream
 {
 public:
 
-  zero_copy_file_ostream (const char *filename) : m_fp (NULL)
+  file_ostream (const char *filename) : m_fp (NULL)
   {
     this->open (filename);
   }
 
-  ~zero_copy_file_ostream ()
+  ~file_ostream ()
   {
     this->close ();
   }
@@ -384,8 +384,8 @@ public:
 
 private:
 
-  zero_copy_file_ostream (const zero_copy_file_ostream &);
-  zero_copy_file_ostream &operator=(const zero_copy_file_ostream &);
+  file_ostream (const file_ostream &);
+  file_ostream &operator=(const file_ostream &);
 
   FILE  * m_fp;
   char    m_buf [BUFSIZ];
