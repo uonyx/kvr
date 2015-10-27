@@ -2070,7 +2070,7 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                   {
                     double svf = strtod (sv, NULL);
                     double pvf = pv->get_float (); 
-                    if (kvr::internal::fp_equal (svf, pvf, DBL_EPSILON))
+                    if (kvr::internal::fp_equal (svf, pvf))
                     {
                       v = m;
                       f = 1;
