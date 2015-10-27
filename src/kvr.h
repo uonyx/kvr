@@ -6,7 +6,7 @@
  * Copyright (c) 2015 Ubaka Onyechi
  *
  * kvr is free software distributed under the MIT license.
- * See LICENSE file for details.
+ * See https://raw.githubusercontent.com/uonyx/kvr/master/LICENSE for details.
  */
 
  ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -712,9 +712,10 @@ namespace kvr
   class obuffer
   {
   public:
-
-    obuffer (uint8_t *bytes, size_t size) : m_stream (bytes, size) {}
+    // uses internal buffer with minimum size of 256 bytes
     obuffer (size_t size = 256u) : m_stream (size) {}
+    // uses external 'data' buffer but an internal buffer will be created if size is insufficient
+    obuffer (uint8_t *data, size_t size) : m_stream (data, size) {}    
 
     const uint8_t * get_data () const;
     size_t          get_size () const;

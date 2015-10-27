@@ -4,17 +4,27 @@
 
 /*
  * Copyright (c) 2015 Ubaka Onyechi
- * 
+ *
  * kvr is free software distributed under the MIT license.
- * See LICENSE file for details.
+ * See https://raw.githubusercontent.com/uonyx/kvr/master/LICENSE for details.
  */
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "kvr.h"
 #include "internal/kvr_internal.h"
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if 1
+#define KVR_STD_NEW_FORM (std::nothrow)
+#else
+#define KVR_STD_NEW_FORM 
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -45,7 +55,7 @@ kvr::ctx * kvr::ctx::create (uint32_t flags)
 {
   KVR_REF_UNUSED (flags);
 
-  kvr::ctx *ctx = new kvr::ctx ();
+  kvr::ctx *ctx = new KVR_STD_NEW_FORM kvr::ctx ();
 
   return ctx;
 }
@@ -159,7 +169,7 @@ void kvr::ctx::dump (int id)
 
 kvr::value * kvr::ctx::_create_value_null (uint32_t parentType)
 {
-  value *v = new value (this, parentType);
+  value *v = new KVR_STD_NEW_FORM value (this, parentType);
 
   v->conv_null ();
 
@@ -172,7 +182,7 @@ kvr::value * kvr::ctx::_create_value_null (uint32_t parentType)
 
 kvr::value * kvr::ctx::_create_value_map (uint32_t parentType)
 {
-  value *v = new value (this, parentType);
+  value *v = new KVR_STD_NEW_FORM value (this, parentType);
 
   v->conv_map ();
 
@@ -185,7 +195,7 @@ kvr::value * kvr::ctx::_create_value_map (uint32_t parentType)
 
 kvr::value * kvr::ctx::_create_value_array (uint32_t parentType)
 {
-  value *v = new value (this, parentType);
+  value *v = new KVR_STD_NEW_FORM value (this, parentType);
 
   v->conv_array ();
 
@@ -198,7 +208,7 @@ kvr::value * kvr::ctx::_create_value_array (uint32_t parentType)
 
 kvr::value * kvr::ctx::_create_value (uint32_t parentType, int64_t number)
 {
-  value *v = new value (this, parentType);
+  value *v = new KVR_STD_NEW_FORM value (this, parentType);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_integer ();
@@ -215,7 +225,7 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, int64_t number)
 
 kvr::value * kvr::ctx::_create_value (uint32_t parentType, double number)
 {
-  value *v = new value (this, parentType);
+  value *v = new KVR_STD_NEW_FORM value (this, parentType);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_float ();
@@ -231,7 +241,7 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, double number)
 
 kvr::value * kvr::ctx::_create_value (uint32_t parentType, bool boolean)
 {
-  value *v = new value (this, parentType);
+  value *v = new KVR_STD_NEW_FORM value (this, parentType);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_boolean ();
@@ -249,7 +259,7 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, const char *str, sz_t
 {
   KVR_ASSERT (str);
 
-  value *v = new value (this, parentType);
+  value *v = new KVR_STD_NEW_FORM value (this, parentType);
 
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_string ();
@@ -308,7 +318,7 @@ kvr::key *kvr::ctx::_create_key (const char *str)
   }
   else
   {
-    k = new key (str);
+    k = new KVR_STD_NEW_FORM key (str);
     std::pair<const char *, key *> p (k->m_str, k);
     bool s = m_keystore.insert (p).second;
     KVR_ASSERT (s); KVR_REF_UNUSED (s);
@@ -317,7 +327,7 @@ kvr::key *kvr::ctx::_create_key (const char *str)
   return k;
 #else
   sz_t len = static_cast<sz_t> (strlen (str));
-  char *cstr = new char [len + 1];
+  char *cstr = new KVR_STD_NEW_FORM char [len + 1];
   kvr_strcpy (cstr, len + 1, str);
 
   key *k = this->_create_key (cstr, len);
@@ -344,7 +354,7 @@ kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
   }
   else
   {
-    k = new key (str, len);
+    k = new KVR_STD_NEW_FORM key (str, len);
     std::pair<const char *, key *> p (k->m_str, k);
     bool s = m_keystore.insert (p).second;
     KVR_ASSERT (s); KVR_REF_UNUSED (s);
@@ -360,7 +370,7 @@ kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
   {
     // insert succeeded: update value
     KVR_ASSERT (!res.first->second);
-    k = res.first->second = new key (str, len);
+    k = res.first->second = new KVR_STD_NEW_FORM key (str, len);
     k->m_ref = 1;
   }
   else
@@ -394,7 +404,7 @@ kvr::key * kvr::ctx::_create_key_if_not_exists (const char *str)
   }
   else
   {
-    k = new key (str);
+    k = new KVR_STD_NEW_FORM key (str);
     std::pair<const char *, key *> p (k->m_str, k);
     bool s = m_keystore.insert (p).second;
     KVR_ASSERT (s); KVR_REF_UNUSED (s);
@@ -447,7 +457,7 @@ char * kvr::ctx::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz
     if (expsz > 0)
     {
       // create key
-      expr = new char [expsz];
+      expr = new KVR_STD_NEW_FORM char [expsz];
 
       char *dst = expr;
       const char delim = KVR_CONSTANT_TOKEN_DELIMITER;
@@ -498,7 +508,7 @@ kvr::key::key (const char *str) : m_str (NULL), m_len (0), m_ref (1)
 
   sz_t len = (sz_t) strlen (str);  
   m_len = len;
-  m_str = new char [len + 1];  
+  m_str = new KVR_STD_NEW_FORM char [len + 1];
   kvr_strcpy (m_str, len + 1, str);
 }
 
@@ -2967,7 +2977,7 @@ void kvr::value::string::dyn_str::set (const char *str, sz_t len)
   if (allocsz > m_size)
   {
     if (m_data) { delete [] m_data; }
-    m_data = new char [allocsz];
+    m_data = new KVR_STD_NEW_FORM char [allocsz];
     m_size = allocsz;
   }
 
@@ -2997,7 +3007,7 @@ void kvr::value::array::init (sz_t size)
   KVR_ASSERT (size > 0);
 
   sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
-  m_ptr = new kvr::value * [allocsz];
+  m_ptr = new KVR_STD_NEW_FORM kvr::value * [allocsz];
 #if KVR_DEBUG
   memset (m_ptr, 0, sizeof (kvr::value *) * allocsz); // debug-only
 #endif
@@ -3030,7 +3040,7 @@ void kvr::value::array::push (value *v)
 
     // resize
     sz_t new_cap = m_cap + CAP_INCR;
-    value ** new_ptr = new value * [new_cap];
+    value ** new_ptr = new KVR_STD_NEW_FORM value * [new_cap];
 #if KVR_DEBUG
     memset (new_ptr, 0, sizeof (kvr::value *) * new_cap);
 #endif
@@ -3112,7 +3122,7 @@ void kvr::value::map::init (sz_t size)
   KVR_ASSERT (size > 0); //if (size == 0) { size = 1U; }
 
   sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
-  m_ptr = new node [allocsz];
+  m_ptr = new KVR_STD_NEW_FORM node [allocsz];
   m_cap = allocsz;
   m_len = 0;
 }
@@ -3165,7 +3175,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
   {
     // resize
     sz_t new_cap = cap + CAP_INCR;
-    node *new_ptr = new node [new_cap];
+    node *new_ptr = new KVR_STD_NEW_FORM node [new_cap];
     memcpy (new_ptr, m_ptr, sizeof (node) * cap);
     delete [] m_ptr;
 
@@ -3181,7 +3191,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
 
     // resize
     sz_t new_cap = m_cap + CAP_INCR;
-    node *new_ptr = new node [new_cap];
+    node *new_ptr = new KVR_STD_NEW_FORM node [new_cap];
 
 #if 1 // slower than memcpy but garbage-collects nullified (i.e. removed) nodes
     sz_t ir = 0, iw = 0;
@@ -3581,7 +3591,7 @@ void kvr::mem_ostream::reserve (size_t sz)
 uint8_t * kvr::mem_ostream::alloc (size_t sz)
 {
   KVR_ASSERT (sz > 0);
-  uint8_t *bytes = new uint8_t [sz];
+  uint8_t *bytes = new KVR_STD_NEW_FORM uint8_t [sz];
   return bytes;
 }
 
