@@ -115,11 +115,9 @@ kvr::ctx::~ctx ()
 kvr::value * kvr::ctx::create_value ()
 {
   kvr::value *v = this->_create_value_null (kvr::value::FLAG_PARENT_CTX);
-
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
   m_rootvals.push_back (v);
 #endif
-
   return v;
 }
 
@@ -132,7 +130,6 @@ void kvr::ctx::destroy_value (value *v)
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
   m_rootvals.remove (v);
 #endif
-
   this->_destroy_value (kvr::value::FLAG_PARENT_CTX, v);
 }
 
@@ -151,6 +148,8 @@ void kvr::ctx::dump (int id)
   std::fprintf (stderr, "max_size:          %zu\n",  m_keystore.max_size ());
   std::fprintf (stderr, "max_load_factor:   %f\n",   m_keystore.max_load_factor ());
   std::fprintf (stderr, "max_bucket_count:  %zu\n",  m_keystore.max_bucket_count ());
+#else
+  KVR_REF_UNUSED (id);
 #endif
 }
 
@@ -1316,7 +1315,7 @@ kvr::value * kvr::value::copy (const value *rhs)
 {
   KVR_ASSERT (rhs);
 
-  if (this != rhs)
+  if (rhs && (this != rhs))
   {
     //////////////////////////////////
     if (rhs->is_map ())
@@ -1732,7 +1731,7 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
         double ogn = og->get_float ();
         double mdn = md->get_float ();
 
-        if (fabs (ogn - mdn) > KVR_CONSTANT_FP_EQ_EPSILON)
+        if (!kvr::internal::fp_equal (ogn, mdn, KVR_CONSTANT_DIFF_FP_EQ_EPSILON))
         {
           diff->copy (md);
         }
@@ -1746,7 +1745,7 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
       double ogn = og->get_float ();
       double mdn = md->get_float ();
 
-      if (fabs (ogn - mdn) > KVR_CONSTANT_FP_EQ_EPSILON)
+      if (!kvr::internal::fp_equal (ogn, mdn, KVR_CONSTANT_DIFF_FP_EQ_EPSILON))
       {
         diff->copy (md);
       }
@@ -1862,8 +1861,8 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   //////////////////////////////////
   {
     hc += (FLAG_TYPE_NUMBER_INTEGER);
-    int64_t n = get_integer ();
-    uint32_t hv = static_cast<uint32_t>(n % (1ULL << 32));
+    int64_t i = get_integer ();
+    uint32_t hv = static_cast<uint32_t>(i % (1ULL << 32));
     hc += hv;
   }
 
@@ -1872,8 +1871,8 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   //////////////////////////////////
   {
     hc += (FLAG_TYPE_NUMBER_FLOAT);
-    double n = get_float ();
-    uint32_t hv = static_cast<uint32_t>(std::floor (n));
+    double f = get_float ();
+    uint32_t hv = static_cast<uint32_t>(std::floor (f));
     hc += hv;
   }
 
@@ -2070,8 +2069,8 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
                   else if (pv->is_float ())
                   {
                     double svf = strtod (sv, NULL);
-                    double pvf = pv->get_float ();                    
-                    if (fabs (svf - pvf) <= KVR_CONSTANT_FP_EQ_EPSILON)
+                    double pvf = pv->get_float (); 
+                    if (kvr::internal::fp_equal (svf, pvf, DBL_EPSILON))
                     {
                       v = m;
                       f = 1;
@@ -2488,7 +2487,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         double ogn = og->get_float ();
         double mdn = md->get_float ();
 
-        if (fabs (ogn - mdn) > KVR_CONSTANT_FP_EQ_EPSILON)
+        if (!kvr::internal::fp_equal (ogn, mdn, KVR_CONSTANT_DIFF_FP_EQ_EPSILON))
         {
           kvr::ctx *ctx = m_ctx;
           key *k = NULL;
@@ -2522,7 +2521,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
       double ogn = og->get_float ();
       double mdn = md->get_float ();
 
-      if (fabs (ogn - mdn) > KVR_CONSTANT_FP_EQ_EPSILON)
+      if (!kvr::internal::fp_equal (ogn, mdn, KVR_CONSTANT_DIFF_FP_EQ_EPSILON))
       {
         kvr::ctx *ctx = m_ctx;
         key *k = NULL;
@@ -3293,16 +3292,15 @@ kvr::sz_t kvr::value::map::size_l () const
 {
   sz_t size = 0;
   sz_t idx = 0;
-  const node *n = NULL;
 
   while (idx < m_len)
   {
-    n = &m_ptr [idx++];
-    if (n->k)
+    if (m_ptr [idx].k)
     {
-      KVR_ASSERT (n->v);
+      KVR_ASSERT (m_ptr [idx].v);      
       ++size;
     }
+    ++idx;
   }
 
   return size;

@@ -75,9 +75,9 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define KVR_INTERNAL_FLAG_TYPE_PUNNING_ON   0 // check compiler
-#define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE  (KVR_DEBUG || 0) && 1
-#define KVR_INTERNAL_FLAG_DEBUG_ORIGINAL_KEY_SEARCH (0)
+#define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE  1 && (KVR_DEBUG || 0)
+#define KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON       0 // TODO: check compiler
+#define KVR_INTERNAL_FLAG_DEBUG_ORIGINAL_KEY_SEARCH   0
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,7 +91,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    size_t u32toa (uint32_t u32, char dest [11])
+    inline size_t u32toa (uint32_t u32, char dest [11])
     {
       const char* end = kvr_rapidjson::internal::u32toa (u32, dest);
       return (end - dest);
@@ -101,7 +101,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    size_t u64toa (int64_t i64, char dest [21])
+    inline size_t u64toa (int64_t i64, char dest [21])
     {
       const char* end = kvr_rapidjson::internal::u64toa (i64, dest);
       return (end - dest);
@@ -111,7 +111,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    size_t i64toa (int64_t i64, char dest [22])
+    inline size_t i64toa (int64_t i64, char dest [22])
     {
       const char* end = kvr_rapidjson::internal::i64toa (i64, dest);
       return (end - dest);
@@ -121,7 +121,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    uint32_t ndigitsu32 (uint32_t u32)
+    inline uint32_t ndigitsu32 (uint32_t u32)
     {
       uint32_t count = kvr_rapidjson::internal::CountDecimalDigit32 (u32);
       return count;
@@ -131,7 +131,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    uint32_t ndigitsi64 (int64_t i64)
+    inline uint32_t ndigitsi64 (int64_t i64)
     {
 #if 0
       int64_t n = i64;
@@ -179,7 +179,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    uint16_t byteswap16 (uint16_t val)
+    inline uint16_t byteswap16 (uint16_t val)
     {
       uint16_t swap = (uint16_t) ((val >> 8) | (val << 8));
       return swap;
@@ -189,7 +189,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    uint32_t byteswap32 (uint32_t val)
+    inline uint32_t byteswap32 (uint32_t val)
     {
       uint32_t swap = (uint32_t) (((val >> 24) & 0x000000ff) |
                                   ((val >> 8) & 0x0000ff00) |
@@ -202,7 +202,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    uint64_t byteswap64 (uint64_t val)
+    inline uint64_t byteswap64 (uint64_t val)
     {
       uint64_t swap = (uint64_t) (((val >> 56) & 0x00000000000000ff) |
                                   ((val >> 40) & 0x000000000000ff00) |
@@ -237,7 +237,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
 
     template<typename T>
-    const T& min (const T& a, const T& b)
+    inline const T& min (const T& a, const T& b)
     {
       return (a < b) ? a : b;
     }
@@ -247,7 +247,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
 
     template<typename T>
-    const T& max (const T& a, const T& b)
+    inline const T& max (const T& a, const T& b)
     {
       return (a > b) ? a : b;
     }
@@ -256,7 +256,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     
-    sz_t align_size (sz_t s, sz_t align)
+    inline sz_t align_size (sz_t s, sz_t align)
     {
       sz_t a = align - 1;
       sz_t as = (s + a) & ~a;
@@ -267,7 +267,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    bool isnan (double f)
+    inline bool isnan (double f)
     {
 #if KVR_CPP11
       return std::isnan (f);
@@ -285,7 +285,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    bool isinf (double f)
+    inline bool isinf (double f)
     {
 #if KVR_CPP11
       return std::isinf (f);
@@ -293,8 +293,7 @@ namespace kvr
       return (_finite (f) == 0);
 //#elif defined (__clang__) || defined (__GNUC__)
 #else
-      // not tested if this works :/
-      return !kvr::internal::isnan (f) && kvr::internal::isnan (f - f);
+      return !kvr::internal::isnan (f) && kvr::internal::isnan (f - f); // not tested if this works :/
 #endif
     }
 
@@ -302,7 +301,16 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    bool float_to_halffloat (float f, uint16_t *hf)
+    inline bool fp_equal (double f1, double f2, double ep)
+    {
+      return (f1 == f2) ? true : (fabs (f1 - f2) <= ep);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////
+
+    bool fp_single_to_half (float f, uint16_t *hf)
     {
       KVR_ASSERT (hf);
 
@@ -310,8 +318,9 @@ namespace kvr
       const uint32_t HALF_FLOAT_MAX_BIASED_EXP_AS_SINGLE_FP_EXP = 0x47800000;
       const uint32_t FLOAT_MAX_BIASED_EXP = (0xff << 23);
 
-#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
-      union { float f; uint32_t u; } mem; mem.f = f;      
+#if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
+      union { float f; uint32_t u; } mem; mem.f = f;
+      //union { float f; uint32_t u; } mem = { f };
       uint32_t x = mem.u;
 #else
       uint32_t x = 0;
@@ -337,7 +346,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    bool halffloat_to_float (uint16_t hf, float *f)
+    bool fp_half_to_single (uint16_t hf, float *f)
     {
       KVR_ASSERT (f);
 
@@ -353,7 +362,7 @@ namespace kvr
         mantissa <<= 13;
         exp = (exp << 13) + HALF_FLOAT_MIN_BIASED_EXP_AS_SINGLE_FP_EXP;
 
-#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+#if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
         union { float f; uint32_t u; } mem;
         mem.u = (sign << 31) | exp | mantissa;
         *f = mem.f;
@@ -377,7 +386,7 @@ namespace kvr
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if defined (KVR_LITTLE_ENDIAN)
+#ifdef KVR_LITTLE_ENDIAN
 #define bigendian16(X) kvr::internal::byteswap16 (X)
 #define bigendian32(X) kvr::internal::byteswap32 (X)
 #define bigendian64(X) kvr::internal::byteswap64 (X)

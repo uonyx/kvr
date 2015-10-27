@@ -87,8 +87,8 @@
 #define KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF   0
 // set to 1 to allow duplicate keys in maps
 #define KVR_OPTIMIZATION_FAST_MAP_INSERT_ON             0
-// set to 1 to approximate fp precision for codec ops
-#define KVR_OPTIMIZATION_CODEC_FULL_FP_PRECISION_OFF    0
+// set to 1 to compact fp precision for codec ops
+#define KVR_OPTIMIZATION_CODEC_COMPACT_FP_PRECISION_ON  0
 // set to 1 to disable tracking of context memory
 #define KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF    0
 
@@ -96,10 +96,10 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-// epsilon for comparing floating point equality
-#define KVR_CONSTANT_FP_EQ_EPSILON                      (1.0e-7)
 // maximum allowed tree depth
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (64u)
+// epsilon for comparing floating point equality for diffs
+#define KVR_CONSTANT_DIFF_FP_EQ_EPSILON                 (1.0e-7)
 // memory (re)allocation size for map, array
 #define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8u)
 // delimiter token for path expressions

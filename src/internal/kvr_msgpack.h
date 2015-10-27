@@ -557,7 +557,7 @@ namespace kvr
           uint32_t u = 0;
           if (is->read ((uint8_t *) &u, 4))
           {
-#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+#if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
             union { float f; uint32_t u; } mem;
             mem.u = bigendian32 (u);
             return ctx.read_float (mem.f);
@@ -579,7 +579,7 @@ namespace kvr
           uint64_t u = 0;
           if (is->read ((uint8_t *) &u, 8))
           {
-#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+#if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
             union { double f; uint64_t u; } mem;
             mem.u = bigendian64 (u);
             return ctx.read_float (mem.f);
@@ -1208,12 +1208,12 @@ namespace kvr
 
         bool write_float (double f)
         {
-#if KVR_OPTIMIZATION_CODEC_FULL_FP_PRECISION_OFF || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
+#if KVR_OPTIMIZATION_CODEC_COMPACT_FP_PRECISION_ON || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
           const double fmin = std::numeric_limits<float>::min ();
           const double fmax = std::numeric_limits<float>::max ();
           if ((f >= fmin) && (f <= fmax))
           {
-#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+#if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
             union { float f; uint32_t u; } mem;
             mem.f = (float) f;
             uint32_t f32 = bigendian32 (mem.u);
@@ -1229,7 +1229,7 @@ namespace kvr
           }
 #endif
 
-#if KVR_INTERNAL_FLAG_TYPE_PUNNING_ON
+#if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
           union { double f; uint64_t u; } mem;
           mem.f = f;
           uint64_t f64 = bigendian64 (mem.u);
@@ -1555,7 +1555,7 @@ namespace kvr
 
         else if (val->is_float ())
         {
-#if KVR_OPTIMIZATION_CODEC_FULL_FP_PRECISION_OFF || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
+#if KVR_OPTIMIZATION_CODEC_COMPACT_FP_PRECISION_ON || KVR_MSGPACK_WRITE_COMPACT_FP_OVERRIDE
           const double fmin = std::numeric_limits<float>::min ();
           const double fmax = std::numeric_limits<float>::max ();
 
