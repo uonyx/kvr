@@ -5,12 +5,12 @@ kvr: key-value runtime
 
 *Currently somewhere between a dictionary engine and a key-value store*
 
-## Features
-- Easy-to-use API
-- Variant value types:
+### Features
+- Easy-to-use and generic API
+- Common Variant value types:
 	* Integer
-	* Floating point (Double-precision), 
-	* Strings (UTF-8 encoded)
+	* Floating Point (Double-precision)
+	* String (UTF-8)
 	* Boolean
 	* Map
 	* Array
@@ -22,15 +22,15 @@ kvr: key-value runtime
 - Custom serialization stream interface
 - Diff and Patch functionality
 
-## Compatibiity
-C++98: So far tested on
+### Compatibiity
+C++98. So far tested on:
 - Visual C++ 2015 on Windows
 - GCC 4.2.1 and Clang 3.2 on Mac OS X
 
-## Install
+### Install
 Simply add the src/ directory to your project and include the header "kvr.h" to use
 
-## Sample Usage
+### Sample Usage
 This simple example demonstrates common use cases
 
 ~~~~~~~~~~cpp
@@ -90,5 +90,5 @@ int main ()
 
 More [examples](https://github.com/uonyx/kvr/tree/master/sample).
 
-## Caveats
+### Note
 Currently no support for custom memory allocators (yet).
