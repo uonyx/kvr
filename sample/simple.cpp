@@ -42,16 +42,8 @@ void sample_simple ()
   array->push (-1);
   array->push (-255);
 
-  // change street value  
-  map->find ("street")->set_string ("pigeon");
-
   // remove null value
   map->remove ("null");
-
-  // read value of 2nd element of map's array  
-  int64_t i = map->find ("array")->element (1)->get_integer ();
-  if (i == 42)
-    printf ("%s\n", "got it");
 
   // iterate through the map and print keys
   kvr::pair p;
@@ -59,9 +51,16 @@ void sample_simple ()
   while (cur.get (&p))
   {
     kvr::key *key = p.get_key ();
-    kvr::value *val = p.get_value ();
     printf ("%s\n", key->get_string ());
   }
+
+  // change street value  
+  map->find ("street")->set_string ("pigeon");
+
+  // read value of 2nd element of map's array  
+  int64_t i = map->find ("array")->element (1)->get_integer ();
+  if (i == 42)
+    printf ("%s\n", "got it");
 
   // clean up
   ctx->destroy_value (map);

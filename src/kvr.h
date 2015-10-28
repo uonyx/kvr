@@ -484,9 +484,9 @@ namespace kvr
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
-    data      m_data;
-    uint32_t  m_flags;
+    data      m_data;    
     ctx     * m_ctx;
+    uint32_t  m_flags;
 
     friend class ctx;
   };
