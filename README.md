@@ -8,14 +8,14 @@ kvr: key-value runtime
 ### Features
 - Easy-to-use and generic API
 - Common Variant value types:
-	* Integer
+	* Integer (64-bit signed)
 	* Floating Point (Double-precision)
 	* String (UTF-8)
 	* Boolean
 	* Map
 	* Array
 	* Null
-- Serialization to/from:
+- Serialization to and from:
 	* [JSON](http://json.org/) (using [rapidJSON](https://github.com/miloyip/rapidjson/))
 	* [CBOR](http://cbor.io/)
 	* [MessagePack](http://msgpack.org/)
@@ -28,7 +28,7 @@ C++98. So far tested on:
 - GCC 4.2.1 and Clang 3.2 on Mac OS X
 
 ### Install
-Simply add the src/ directory to your project and include the header "kvr.h" to use
+Simply add the 'src/' directory to your project and include 'kvr.h' to use
 
 ### Sample Usage
 This simple example demonstrates common use cases
