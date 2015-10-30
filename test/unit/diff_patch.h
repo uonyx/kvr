@@ -62,6 +62,7 @@ public:
     m->insert ("a", "zero");
     m->insert ("b", "one");
     kvr::value *a = map0->insert_array ("distance");
+    a->push_map ()->insert ("yard", 1.1);
     a->push (3.14);
     a->push (5.0);
     kvr::value *am = a->push_map ();
@@ -74,13 +75,14 @@ public:
     ///////////////////////////////
 
     kvr::value *map1 = m_ctx->create_value ()->copy (map0);
-    TS_ASSERT_EQUALS (map0->hashcode (), map1->hashcode ());
+    TS_ASSERT_EQUALS (map0->hash (), map1->hash ());
     map1->find ("bill")->set_integer (9000LL);
     kvr::value *v1m = map1->find ("mapping");
     v1m->remove ("a");
     v1m->find ("b")->set_string ("thirteen");
     v1m->insert ("c", "sixty-four");
     kvr::value *v1a = map1->find ("distance");
+    v1a->element (0)->insert ("yard", 10);
     v1a->pop ();
     v1a->pop ();
 
@@ -100,7 +102,7 @@ public:
     // verify diff/patch
     ///////////////////////////////
 
-    TS_ASSERT_EQUALS (map0->hashcode (), map1->hashcode ());
+    TS_ASSERT_EQUALS (map0->hash (), map1->hash ());
 
     ///////////////////////////////
     // clean up

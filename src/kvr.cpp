@@ -170,9 +170,7 @@ void kvr::ctx::dump (int id)
 kvr::value * kvr::ctx::_create_value_null (uint32_t parentType)
 {
   value *v = new KVR_STD_NEW_FORM value (this, parentType);
-
   v->conv_null ();
-
   return v;
 }
 
@@ -183,9 +181,7 @@ kvr::value * kvr::ctx::_create_value_null (uint32_t parentType)
 kvr::value * kvr::ctx::_create_value_map (uint32_t parentType)
 {
   value *v = new KVR_STD_NEW_FORM value (this, parentType);
-
   v->conv_map ();
-
   return v;
 }
 
@@ -209,12 +205,10 @@ kvr::value * kvr::ctx::_create_value_array (uint32_t parentType)
 kvr::value * kvr::ctx::_create_value (uint32_t parentType, int64_t number)
 {
   value *v = new KVR_STD_NEW_FORM value (this, parentType);
-
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_integer ();
 #endif
   v->set_integer (number);
-
   return v;
 }
 
@@ -226,12 +220,10 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, int64_t number)
 kvr::value * kvr::ctx::_create_value (uint32_t parentType, double number)
 {
   value *v = new KVR_STD_NEW_FORM value (this, parentType);
-
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_float ();
 #endif
   v->set_float (number);
-
   return v;
 }
 
@@ -242,12 +234,10 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, double number)
 kvr::value * kvr::ctx::_create_value (uint32_t parentType, bool boolean)
 {
   value *v = new KVR_STD_NEW_FORM value (this, parentType);
-
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_boolean ();
 #endif
   v->set_boolean (boolean);
-
   return v;
 }
 
@@ -260,12 +250,10 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, const char *str, sz_t
   KVR_ASSERT (str);
 
   value *v = new KVR_STD_NEW_FORM value (this, parentType);
-
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_string ();
 #endif
   v->set_string (str, len);
-
   return v;
 }
 
@@ -490,7 +478,6 @@ char * kvr::ctx::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz
 void kvr::ctx::_destroy_path_expr (char *expr)
 {
   KVR_ASSERT (expr);
-
   delete [] expr;
 }
 
@@ -678,7 +665,6 @@ void kvr::value::set_string (const char *str, sz_t len)
 #else
   conv_string ();
 #endif
-
   this->_set_string (str, len);
 }
 
@@ -695,7 +681,6 @@ void kvr::value::set_string (const char *str)
 #else
   conv_string ();
 #endif
-
   size_t len = strlen (str);  
   KVR_ASSERT ((uint64_t) len <= SZ_T_MAX);
   this->_set_string (str, (sz_t) len);
@@ -728,8 +713,7 @@ void kvr::value::set_float (double n)
   KVR_ASSERT (is_float ());
 #else  
   conv_float ();
-#endif
-  
+#endif  
   m_data.n.f = n;
 }
 
@@ -744,7 +728,6 @@ void kvr::value::set_boolean (bool b)
 #else
   conv_boolean ();
 #endif
-
   m_data.b = b;
 }
 
@@ -755,7 +738,6 @@ void kvr::value::set_boolean (bool b)
 const char * kvr::value::get_string () const
 {
   KVR_ASSERT_SAFE (is_string (), NULL);
-
   const char *str = this->_is_string_dynamic () ? m_data.s.m_dyn.get () : m_data.s.m_stt.get ();
   return str;
 }
@@ -837,7 +819,6 @@ kvr::value * kvr::value::push (int64_t num)
 
   kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, num);
   this->m_data.a.push (v);
-
   return v;
 }
 
@@ -856,7 +837,6 @@ kvr::value * kvr::value::push (double num)
 
   kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, num);
   this->m_data.a.push (v);
-
   return v;
 }
 
@@ -874,7 +854,6 @@ kvr::value * kvr::value::push (bool b)
 
   kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, b);
   this->m_data.a.push (v);
-
   return v;
 }
 
@@ -894,7 +873,6 @@ kvr::value * kvr::value::push (const char *str)
 
   kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, str, static_cast<sz_t>(strlen (str)));
   this->m_data.a.push (v);
-
   return v;
 }
 
@@ -912,7 +890,6 @@ kvr::value * kvr::value::push_map ()
 
   kvr::value *v = m_ctx->_create_value_map (FLAG_PARENT_ARRAY);
   this->m_data.a.push (v);
-
   return v;
 }
 
@@ -930,7 +907,6 @@ kvr::value * kvr::value::push_array ()
 
   kvr::value *v = m_ctx->_create_value_array (FLAG_PARENT_ARRAY);
   this->m_data.a.push (v);
-
   return v;
 }
 
@@ -948,7 +924,6 @@ kvr::value * kvr::value::push_null ()
 
   kvr::value *v = m_ctx->_create_value_null (FLAG_PARENT_ARRAY);
   this->m_data.a.push (v);
-
   return v;
 }
 
@@ -978,10 +953,8 @@ bool kvr::value::pop ()
 
 kvr::value * kvr::value::element (kvr::sz_t index) const
 {
-  KVR_ASSERT_SAFE (is_array (), NULL);
-  
+  KVR_ASSERT_SAFE (is_array (), NULL);  
   kvr::value *v = this->m_data.a.elem (index);
-
   return v;
 }
 
@@ -992,9 +965,7 @@ kvr::value * kvr::value::element (kvr::sz_t index) const
 kvr::sz_t kvr::value::length () const
 {
   KVR_ASSERT_SAFE (is_array (), 0);
-
   sz_t len = this->m_data.a.m_len;
-
   return len;
 }
 
@@ -1321,9 +1292,44 @@ kvr::sz_t kvr::value::size () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+kvr::value * kvr::value::search (const char *pathexpr) const
+{
+  KVR_ASSERT_SAFE ((is_map () || is_array ()), NULL);
+  KVR_ASSERT_SAFE ((pathexpr && (pathexpr [0] != 0)), NULL);
+
+  value *v = this->_search_path_expr (pathexpr);
+  return v;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value * kvr::value::search (const char **path, sz_t pathsz) const
+{
+  KVR_ASSERT (is_map () || is_array ());
+  KVR_ASSERT_SAFE (path, NULL);
+
+  value *v = (value *) this;
+
+  sz_t pc = 0;
+  while (v && (pc < pathsz))
+  {
+    const char *key = path [pc++];
+    v = v->_search_key (key);
+  }
+
+  return v;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 kvr::value * kvr::value::copy (const value *rhs)
 {
   KVR_ASSERT (rhs);
+  KVR_ASSERT (this != rhs);
 
   if (rhs && (this != rhs))
   {
@@ -1331,6 +1337,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     if (rhs->is_map ())
     //////////////////////////////////
     {
+      this->_clear ();
       this->conv_map (rhs->size ());
 
       cursor c (rhs);
@@ -1365,6 +1372,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     else if (rhs->is_array ())
     //////////////////////////////////
     {
+      this->_clear ();
       sz_t rlen = rhs->length ();
       this->conv_array (rlen);
 
@@ -1435,235 +1443,115 @@ kvr::value * kvr::value::copy (const value *rhs)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::search (const char *pathexpr) const
+kvr::value * kvr::value::merge (const value *rhs)
 {
-  KVR_ASSERT (is_map () || is_array ());
-  KVR_ASSERT_SAFE ((pathexpr && (pathexpr [0] != 0)), NULL);
+  KVR_ASSERT (rhs);
+  KVR_ASSERT (this != rhs);
   
-  value *v = this->_search_path_expr (pathexpr);
-
-  return v;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value * kvr::value::search (const char **path, sz_t pathsz) const
-{
-  KVR_ASSERT (is_map () || is_array ());
-  KVR_ASSERT_SAFE ((path && (pathsz > 0)), NULL);
-
-  value *v = (value *) this;
-
-  sz_t pc = 0;
-
-  while (v && (pc < pathsz))
+  if (rhs && (this != rhs) && this->_type_equiv (rhs))
   {
-    const char *key = path [pc++];
-    v = v->_search_key (key);
-  }
-
-  return v;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool kvr::value::encode (codec_t codec, obuffer *obuf)
-{
-  KVR_ASSERT_SAFE (obuf, false);
-
-  bool success = false;
-
-  obuf->m_stream.seek (0);
-
-  switch (codec)
-  {
-    case kvr::CODEC_JSON:
+    //////////////////////////////////
+    if (this->is_map ())
+    //////////////////////////////////
     {
-      success = kvr::internal::json::write (this, &obuf->m_stream);
-      break;
-    }
+      // merge top level pairs
+      // if pair from [rhs] does not exist in [this], add to [this]
+      // if pair.key from [rhs] exists in [this], move to [this]
 
-    case kvr::CODEC_MSGPACK:
+      value::cursor c (rhs);
+      pair op;
+
+      while (c.get (&op))
+      {
+        key *ok = op.get_key ();
+        value *ov = op.get_value ();
+
+        KVR_ASSERT (ok);
+        KVR_ASSERT (ov);
+
+        const char *k = ok->get_string ();
+        value *tv = this->find (k);
+
+        if (tv == NULL)
+        {
+          key *tk = NULL;
+          if (m_ctx == ov->m_ctx) // same ctx so simple increment reference count
+          {
+            tk = ok;
+            tk->m_ref++;
+          }
+          else
+          {
+            tk = m_ctx->_create_key (k);
+          }          
+          tv = m_ctx->_create_value_null (FLAG_PARENT_MAP)->copy (ov);
+          this->_insert_kv (op.get_key (), tv);
+        }
+        else
+        {
+          tv->copy (ov);
+        }
+      }
+    }
+    //////////////////////////////////
+    else if (this->is_array ())
+    //////////////////////////////////
     {
-      success = kvr::internal::msgpack::write (this, &obuf->m_stream);
-      break;
+      // append [rhs] to [this]
+      for (sz_t i = 0, c = rhs->length (); i < c; ++i)
+      {
+        value *oe = rhs->element (i);
+        KVR_ASSERT (oe);
+        this->push_null ()->copy (oe);        
+      }
     }
-
-    case kvr::CODEC_CBOR:
+    //////////////////////////////////
+    else if (this->is_string ())
+    //////////////////////////////////
     {
-      success = kvr::internal::cbor::write (this, &obuf->m_stream);
-      break;
-    }
+      // append [rhs] to [this]
 
-    default:
+      sz_t tvlen = 0, ovlen = 0;
+      const char *tv = this->get_string (&tvlen);      
+      const char *ov = rhs->get_string (&ovlen);
+
+      sz_t bufsize = tvlen + ovlen + 1;
+      char *buf = new char [bufsize];
+      kvr_strcpy (buf, bufsize, tv);
+      kvr_strcpy ((buf + tvlen), (bufsize - tvlen), ov);
+
+      this->_move_string (buf, bufsize - 1); 
+    }
+    //////////////////////////////////
+    else if (this->is_integer ())
+    //////////////////////////////////
     {
-      break;
+      // sum
+      int64_t tv = this->get_integer ();
+      int64_t ov = rhs->get_integer ();
+      this->set_integer (tv + ov);
     }
-  }
-
-  return success;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool kvr::value::decode (codec_t codec, const uint8_t *data, size_t size)
-{
-  bool success = false;
-  
-  this->conv_null ();
-
-  mem_istream istr (data, size);  
-
-  switch (codec)
-  {
-    case kvr::CODEC_JSON:
-    {      
-      success = kvr::internal::json::read (this, istr);
-      break;
-    }
-
-    case kvr::CODEC_MSGPACK:
+    //////////////////////////////////
+    else if (this->is_float ())
+    //////////////////////////////////
     {
-      success = kvr::internal::msgpack::read (this, istr);
-      break;
+      // sum
+      double tv = this->get_float ();
+      double ov = rhs->get_float ();
+      this->set_float (tv + ov);
     }
-
-    case kvr::CODEC_CBOR:
+    //////////////////////////////////
+    else if (this->is_boolean ())
+    //////////////////////////////////
     {
-      success = kvr::internal::cbor::read (this, istr);
-      break;
-    }
-
-    default:
-    {
-      break;
+      // XOR
+      bool tv = this->get_boolean ();
+      bool ov = rhs->get_boolean ();
+      this->set_boolean (tv ^ ov);
     }
   }
 
-  return success;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool kvr::value::encode (codec_t codec, ostream *ostr)
-{
-  KVR_ASSERT_SAFE (ostr, false);
-
-  bool success = false;
-
-  switch (codec)
-  {
-    case kvr::CODEC_JSON:
-    {
-      success = kvr::internal::json::write (this, ostr);
-      break;
-    }
-
-    case kvr::CODEC_MSGPACK:
-    {
-      success = kvr::internal::msgpack::write (this, ostr);
-      break;
-    }
-
-    case kvr::CODEC_CBOR:
-    {
-      success = kvr::internal::cbor::write (this, ostr);
-      break;
-    }
-
-    default:
-    {
-      break;
-    }
-  }
-
-  return success;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool kvr::value::decode (codec_t codec, istream &istr)
-{
-  bool success = false;
-  
-  this->conv_null ();
-
-  switch (codec)
-  {
-    case kvr::CODEC_JSON:
-    {    
-      success = kvr::internal::json::read (this, istr);
-      break;
-    }
-
-    case kvr::CODEC_MSGPACK:
-    {
-      success = kvr::internal::msgpack::read (this, istr);
-      break;
-    }
-
-    case kvr::CODEC_CBOR:
-    {
-      success = kvr::internal::cbor::read (this, istr);
-      break;
-    }
-
-    default:
-    {
-      break;
-    }
-  }
-
-  return success;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-size_t kvr::value::calculate_encode_size (codec_t codec) const
-{
-  size_t size = 0;
-
-  switch (codec)
-  {
-    case kvr::CODEC_JSON:
-    {
-      size = kvr::internal::json::write_approx_size (this);
-      break;
-    }
-
-    case kvr::CODEC_MSGPACK:
-    {
-      size = kvr::internal::msgpack::write_approx_size (this);
-      break;
-    }
-
-    case kvr::CODEC_CBOR:
-    {
-      size = kvr::internal::cbor::write_approx_size (this);
-      break;
-    }
-
-    default:
-    {
-      break;
-    }
-  }
-
-  size = ((size + 7u) & ~7u);
-
-  return size;
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1674,13 +1562,14 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
 {
   KVR_ASSERT (original);
   KVR_ASSERT (modified);
+  KVR_ASSERT (original != modified);
   
   value *diff = this;
 
   const value *og = original;
   const value *md = modified;
 
-  if (og && md && (og != md) && ((og->_type () == md->_type ()) || (og->_is_number () && md->_is_number ()) || (og->is_string () && md->is_string ())))
+  if (og && md && (og != md) && og->_type_equiv (md))
   {
     //////////////////////////////////
     if (og->is_map () || og->is_array ())
@@ -1700,7 +1589,7 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
 #if KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
-      diff->_diff_set (set, rem, og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
+      diff->_diff_set_rem (set, rem, og, md, path, KVR_CONSTANT_MAX_TREE_DEPTH, 0);
 #if KVR_DEBUG
       memset (path, 0, sizeof (path));
 #endif
@@ -1782,13 +1671,11 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::patch (const value *diff)
+kvr::value * kvr::value::patch (const value *diff)
 {
   KVR_ASSERT (diff);
   
-  value *tg = this;
-
-  if (diff->is_map () && (tg->is_map () || tg->is_array ()))
+  if (diff && diff->is_map () && (this->is_map () || this->is_array ()))
   {
     // patch
     value *set = diff->find (kvr_const_str_set);
@@ -1799,25 +1686,27 @@ void kvr::value::patch (const value *diff)
     KVR_ASSERT (add);
     KVR_ASSERT (rem);
 
-    tg->_patch_set (set);
-    tg->_patch_add (add);
-    tg->_patch_rem (rem);
+    this->_patch_set (set);
+    this->_patch_add (add);
+    this->_patch_rem (rem);
   }
   else if (diff->is_array ())
   {
     // do nothing.
   }
-  else if ((diff->_type () == diff->_type ()) || (diff->_is_number () && tg->_is_number ()))
+  else if (diff->_type_equiv (this))
   {
-    tg->copy (diff);
+    this->copy (diff);
   }
+
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-uint32_t kvr::value::hashcode (uint32_t seed) const
+uint32_t kvr::value::hash (uint32_t seed) const
 {
   uint32_t hc = seed;
 
@@ -1835,7 +1724,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
       const char *k = p.get_key ()->get_string ();
       value *v = p.get_value ();
       uint32_t kh = kvr::internal::strhash (k);
-      uint32_t vh = v->hashcode ();
+      uint32_t vh = v->hash ();
       mhc ^= (kh * vh);
     }
     hc += mhc;
@@ -1851,7 +1740,7 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
     {
       value *v = this->element (i);
       uint32_t kh = i;
-      uint32_t vh = v->hashcode ();
+      uint32_t vh = v->hash ();
       ahc += (kh * vh);
     }
     hc += ahc;
@@ -1904,6 +1793,205 @@ uint32_t kvr::value::hashcode (uint32_t seed) const
   }
 
   return hc;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::encode (codec_t codec, obuffer *obuf)
+{
+  KVR_ASSERT_SAFE (obuf, false);
+
+  bool success = false;
+
+  obuf->m_stream.seek (0);
+
+  switch (codec)
+  {
+    case kvr::CODEC_JSON:
+    {
+      success = kvr::internal::json::write (this, &obuf->m_stream);
+      break;
+    }
+
+    case kvr::CODEC_MSGPACK:
+    {
+      success = kvr::internal::msgpack::write (this, &obuf->m_stream);
+      break;
+    }
+
+    case kvr::CODEC_CBOR:
+    {
+      success = kvr::internal::cbor::write (this, &obuf->m_stream);
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+
+  return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::decode (codec_t codec, const uint8_t *data, size_t size)
+{
+  bool success = false;
+
+  this->conv_null ();
+
+  mem_istream istr (data, size);
+
+  switch (codec)
+  {
+    case kvr::CODEC_JSON:
+    {
+      success = kvr::internal::json::read (this, istr);
+      break;
+    }
+
+    case kvr::CODEC_MSGPACK:
+    {
+      success = kvr::internal::msgpack::read (this, istr);
+      break;
+    }
+
+    case kvr::CODEC_CBOR:
+    {
+      success = kvr::internal::cbor::read (this, istr);
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+
+  return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::encode (codec_t codec, ostream *ostr)
+{
+  KVR_ASSERT_SAFE (ostr, false);
+
+  bool success = false;
+
+  switch (codec)
+  {
+    case kvr::CODEC_JSON:
+    {
+      success = kvr::internal::json::write (this, ostr);
+      break;
+    }
+
+    case kvr::CODEC_MSGPACK:
+    {
+      success = kvr::internal::msgpack::write (this, ostr);
+      break;
+    }
+
+    case kvr::CODEC_CBOR:
+    {
+      success = kvr::internal::cbor::write (this, ostr);
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+
+  return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::decode (codec_t codec, istream &istr)
+{
+  bool success = false;
+
+  this->conv_null ();
+
+  switch (codec)
+  {
+    case kvr::CODEC_JSON:
+    {
+      success = kvr::internal::json::read (this, istr);
+      break;
+    }
+
+    case kvr::CODEC_MSGPACK:
+    {
+      success = kvr::internal::msgpack::read (this, istr);
+      break;
+    }
+
+    case kvr::CODEC_CBOR:
+    {
+      success = kvr::internal::cbor::read (this, istr);
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+
+  return success;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+size_t kvr::value::approx_encode_size (codec_t codec) const
+{
+  size_t size = 0;
+
+  switch (codec)
+  {
+    case kvr::CODEC_JSON:
+    {
+      size = kvr::internal::json::write_approx_size (this);
+      break;
+    }
+
+    case kvr::CODEC_MSGPACK:
+    {
+      size = kvr::internal::msgpack::write_approx_size (this);
+      break;
+    }
+
+    case kvr::CODEC_CBOR:
+    {
+      size = kvr::internal::cbor::write_approx_size (this);
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+
+  size = ((size + 7u) & ~7u);
+
+  return size;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2154,8 +2242,25 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
 uint8_t kvr::value::_type () const
 {
   uint8_t t = m_flags & ~KVR_VALUE_TYPE_MASK;
-
   return t;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::value::_type_equiv (const value *rhs) const
+{
+  KVR_ASSERT (rhs);
+
+  if ((this->_type () == rhs->_type ()) || 
+      (this->_is_number () && rhs->_is_number ()) || 
+      (this->is_string () && rhs->is_string ()))
+  {
+    return true;
+  }
+
+  return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2312,11 +2417,14 @@ void kvr::value::_dump (size_t lpad, const char *key) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::_diff_set (value *set, value *rem, const value *og, const value *md,
-                            const char **path, const sz_t pathsz, sz_t pathcnt)
+void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const value *md,
+                                const char **path, const sz_t pathsz, sz_t pathcnt)
 {
   KVR_ASSERT (set);
   KVR_ASSERT (rem);
+
+  // find og values in md that need to be updated
+  // if missing, mark for removal
 
   if (og)
   {
@@ -2347,7 +2455,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
     }
 
     //////////////////////////////////
-    else if (!(og->_is_number () && md->_is_number ()) && !(og->is_string () && md->is_string ()) && (og->_type () != md->_type ()))
+    else if (!og->_type_equiv (md))
     //////////////////////////////////
     {
       // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
@@ -2394,7 +2502,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         value *mdv = md->find (k);
         value *ogv = ogp.get_value ();
 
-        this->_diff_set (set, rem, ogv, mdv, path, pathsz, pathcnt);
+        this->_diff_set_rem (set, rem, ogv, mdv, path, pathsz, pathcnt);
 
         path [--pathcnt] = NULL;
       }
@@ -2418,7 +2526,7 @@ void kvr::value::_diff_set (value *set, value *rem, const value *og, const value
         value *mdv = md->element (i);
         value *ogv = og->element (i);
 
-        this->_diff_set (set, rem, ogv, mdv, path, pathsz, pathcnt);
+        this->_diff_set_rem (set, rem, ogv, mdv, path, pathsz, pathcnt);
 
         path [--pathcnt] = NULL;
       }
@@ -2606,7 +2714,6 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
 {
   KVR_ASSERT (add);
 
-  //
   // go through md and og and look for nodes in md that are not in og
 
   if (md)
@@ -2642,12 +2749,12 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
     }
 
     //////////////////////////////////
-    else if (og->_type () != md->_type ())
+    else if (!og->_type_equiv (md))
     //////////////////////////////////
     {
       // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
       KVR_ASSERT (pathcnt > 0);
-      // handled by _diff_set (which must be called before _diff_add)
+      // case handled by _diff_set_rem (which must be called before _diff_add)
     }
 
     //////////////////////////////////
@@ -2684,8 +2791,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
       char k [21];
       for (sz_t i = 0, c = md->length (); i < c; ++i)
       {
-        size_t kl = kvr::internal::u64toa (i, k);
-        k [kl] = 0;
+        size_t kl = kvr::internal::u64toa (i, k); k [kl] = 0;
 
         KVR_ASSERT (pathcnt < pathsz);
         path [pathcnt++] = k;
@@ -2699,7 +2805,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
       }
     }
   }
-}
+}                   
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2938,6 +3044,10 @@ kvr::sz_t kvr::value::string::stt_str::length () const
   size_t length = strlen (m_data);
   return (sz_t) length;
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 void kvr::value::string::stt_str::set (const char *str, sz_t len)
 {

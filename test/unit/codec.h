@@ -76,7 +76,7 @@ public:
     // encode
     ///////////////////////////////
 
-    size_t obufsz = val0->calculate_encode_size (kvr::CODEC_JSON);
+    size_t obufsz = val0->approx_encode_size (kvr::CODEC_JSON);
     kvr::obuffer obuf (obufsz);
     ok = val0->encode (kvr::CODEC_JSON, &obuf);
     TS_ASSERT (ok);
@@ -94,7 +94,7 @@ public:
     // verify
     ///////////////////////////////
 
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // clean up
@@ -140,7 +140,7 @@ public:
     // encode
     ///////////////////////////////
 
-    size_t obufsz = val0->calculate_encode_size (kvr::CODEC_CBOR);
+    size_t obufsz = val0->approx_encode_size (kvr::CODEC_CBOR);
     kvr::obuffer obuf (obufsz);
 
     ok = val0->encode (kvr::CODEC_CBOR, &obuf);
@@ -159,7 +159,7 @@ public:
     // verify
     ///////////////////////////////
 
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // clean up
@@ -205,7 +205,7 @@ public:
     // encode
     ///////////////////////////////
 
-    size_t obufsz = val0->calculate_encode_size (kvr::CODEC_MSGPACK);
+    size_t obufsz = val0->approx_encode_size (kvr::CODEC_MSGPACK);
     kvr::obuffer obuf (obufsz);
 
     ok = val0->encode (kvr::CODEC_MSGPACK, &obuf);
@@ -224,7 +224,7 @@ public:
     // verify
     ///////////////////////////////
 
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // clean up
@@ -272,7 +272,7 @@ public:
     // json encode/decode
     ///////////////////////////////
     {
-      size_t obufsz = val->calculate_encode_size (kvr::CODEC_JSON);
+      size_t obufsz = val->approx_encode_size (kvr::CODEC_JSON);
       kvr::obuffer obuf (obufsz);
 
       bool ok = val->encode (kvr::CODEC_JSON, &obuf);
@@ -286,7 +286,7 @@ public:
     // cbor encode/decode
     ///////////////////////////////
     {
-      size_t obufsz = val->calculate_encode_size (kvr::CODEC_CBOR);
+      size_t obufsz = val->approx_encode_size (kvr::CODEC_CBOR);
       kvr::obuffer obuf (obufsz);
 
       bool ok = val->encode (kvr::CODEC_CBOR, &obuf);
@@ -300,7 +300,7 @@ public:
     // msgpack encode/decode
     ///////////////////////////////
     {
-      size_t obufsz = val->calculate_encode_size (kvr::CODEC_MSGPACK);
+      size_t obufsz = val->approx_encode_size (kvr::CODEC_MSGPACK);
       kvr::obuffer obuf (obufsz);
 
       bool ok = val->encode (kvr::CODEC_MSGPACK, &obuf);
@@ -314,8 +314,8 @@ public:
     // verify
     ///////////////////////////////
 
-    TS_ASSERT_EQUALS (val_json->hashcode (), val_cbor->hashcode ());
-    TS_ASSERT_EQUALS (val_cbor->hashcode (), val_mspk->hashcode ());
+    TS_ASSERT_EQUALS (val_json->hash (), val_cbor->hash ());
+    TS_ASSERT_EQUALS (val_cbor->hash (), val_mspk->hash ());
 
     ///////////////////////////////
     // clean up

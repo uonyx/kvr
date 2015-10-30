@@ -19,7 +19,7 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
-void sample_encode_stream ()
+void example_encode_stream ()
 {
   // create a kvr context
   kvr::ctx *ctx = kvr::ctx::create ();
@@ -52,7 +52,7 @@ void sample_encode_stream ()
     }
   }
 
-#if KVR_SAMPLE_HAVE_OPENSSL
+#if KVR_EXAMPLE_HAVE_OPENSSL
   // encode to SHA1 string of JSON-encoded value
   {
     sha1_ostream jsonsha1;
@@ -77,7 +77,7 @@ void sample_encode_stream ()
 
 int main ()
 {
-  sample_encode_stream ();
+  example_encode_stream ();
 
   return 0;
 }

@@ -171,6 +171,167 @@ public:
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
+  void testMerge ()
+  {
+    ///////////////////////////////
+    // set up
+    ///////////////////////////////
+
+    kvr::value *val0 = m_ctx->create_value ();
+    kvr::value *val1 = m_ctx->create_value ();
+
+    ///////////////////////////////
+    // boolean
+    ///////////////////////////////
+
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    val0->conv_boolean ();
+    val1->conv_boolean ();
+#endif
+    val0->set_boolean (true);
+    val1->set_boolean (false);
+    val0->merge (val1);
+
+    TS_ASSERT (val0->is_boolean ());
+    TS_ASSERT (val1->is_boolean ());
+    TS_ASSERT_EQUALS (val0->get_boolean (), true);
+
+    val0->set_boolean (true);
+    val1->set_boolean (true);
+    val0->merge (val1);
+
+    TS_ASSERT (val0->is_boolean ());
+    TS_ASSERT (val1->is_boolean ());
+    TS_ASSERT_EQUALS (val0->get_boolean (), false);
+
+    ///////////////////////////////
+    // string
+    ///////////////////////////////
+
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    val0->conv_string ();
+    val1->conv_string ();
+#endif
+    val0->set_string ("test_copy_");
+    val1->set_string ("_copy_test");
+    val0->merge (val1);
+
+    TS_ASSERT (val0->is_string ());
+    TS_ASSERT (val1->is_string ());
+    TS_ASSERT_EQUALS (strcmp (val0->get_string (), "test_copy__copy_test"), 0);
+
+    ///////////////////////////////
+    // integer
+    ///////////////////////////////
+
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    val0->conv_integer ();
+    val1->conv_integer ();
+#endif
+    val0->set_integer (42);
+    val1->set_integer (-42);
+    val0->merge (val1);
+
+    TS_ASSERT (val0->is_integer ());
+    TS_ASSERT (val1->is_integer ());
+    TS_ASSERT_EQUALS (val0->get_integer (), 0);
+
+    ///////////////////////////////
+    // float
+    ///////////////////////////////
+
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    val0->conv_float ();
+    val1->conv_float ();
+#endif
+    val0->set_float (74.5);
+    val1->set_float (25.5);
+    val0->merge (val1);
+
+    TS_ASSERT (val0->is_float ());
+    TS_ASSERT (val1->is_float ());
+    TS_ASSERT_EQUALS (val0->get_float (), 100.0);
+
+    ///////////////////////////////
+    // map
+    ///////////////////////////////
+
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    val0->conv_map ();
+    val1->conv_map ();
+#endif
+    val0->insert ("one", 1);
+    val0->insert ("pi", 3.14);
+    val0->insert ("text", "the quick brown fox jumped over the moon");
+    val0->insert_map ("child")->insert ("apple", "seed");
+
+    val1->conv_null ();
+    val1->insert ("two", 2);
+    val1->insert ("three", 3);
+    val1->insert ("pi", 3.1416);
+    val1->insert_map ("child")->insert ("bumble", "bee");
+
+    val0->merge (val1);
+
+    TS_ASSERT (val0->is_map ());
+    TS_ASSERT (val1->is_map ());
+    TS_ASSERT (val0->find ("one"));
+    TS_ASSERT (val0->find ("two"));
+    TS_ASSERT (val0->find ("three"));
+    TS_ASSERT (val0->find ("pi"));
+    TS_ASSERT (val0->find ("text"));
+    TS_ASSERT (val0->find ("child"));
+
+    ///////////////////////////////
+    // array
+    ///////////////////////////////
+
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    val0->conv_array ();
+    val1->conv_array ();
+#endif
+    val0->push (1);
+    val0->push (3.14);
+    val0->push ("the quick brown fox jumped over the moon");
+    val0->push_map ()->insert ("apple", "seed");
+
+    val1->push (9000);
+    val1->push (3.14);
+    val1->push ("testing");
+
+    kvr::sz_t val0sz = val0->length ();
+    kvr::sz_t val1sz = val1->length ();
+
+    val0->merge (val1);
+
+    TS_ASSERT (val0->is_array ());
+    TS_ASSERT (val1->is_array ());
+    TS_ASSERT ((val1sz + val0sz) == val0->length ());
+
+    ///////////////////////////////
+    // null
+    ///////////////////////////////
+
+    val0->conv_null ();
+    val1->conv_null ();
+
+    val0->merge (val1);
+
+    TS_ASSERT (val0->is_null ());
+    TS_ASSERT (val1->is_null ());
+
+    ///////////////////////////////
+    // clean up
+    ///////////////////////////////
+
+    m_ctx->destroy_value (val0);
+    m_ctx->destroy_value (val1);
+  }
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
   void testSearch (void)
   {
     ///////////////////////////////
@@ -237,7 +398,7 @@ public:
     }
 
     {
-      const char *path = "collection.0";
+      const char *path = "collection/0";
       kvr::value *sv = map->search (path);
       TS_ASSERT (sv);
       const char *strv = sv->find ("str")->get_string ();
@@ -245,7 +406,7 @@ public:
     }
 
     {
-      const char *path = "collection.@int=1";
+      const char *path = "collection/@int=1";
       kvr::value *sv = map->search (path);
       TS_ASSERT (sv);
       double flv = sv->find ("dbl")->get_float ();

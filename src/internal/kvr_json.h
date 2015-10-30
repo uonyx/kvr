@@ -78,7 +78,7 @@ namespace kvr
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if KVR_OPTIMIZATION_CODEC_COMPACT_FP_PRECISION_ON
+#if KVR_OPTIMIZATION_COMPACT_CODEC_FP_PRECISION_ON
 #define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseStopWhenDoneFlag)
 #else
 #define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseStopWhenDoneFlag | kvr_rapidjson::kParseFullPrecisionFlag)
