@@ -70,7 +70,7 @@ public:
 
     TS_ASSERT (val0->is_boolean ());
     TS_ASSERT (val1->is_boolean ());
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // string
@@ -84,7 +84,7 @@ public:
 
     TS_ASSERT (val0->is_string ());
     TS_ASSERT (val1->is_string ());
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // integer
@@ -98,7 +98,7 @@ public:
 
     TS_ASSERT (val0->is_integer ());
     TS_ASSERT (val1->is_integer ());
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // float
@@ -112,7 +112,7 @@ public:
 
     TS_ASSERT (val0->is_float ());
     TS_ASSERT (val1->is_float ());
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // map
@@ -129,7 +129,7 @@ public:
 
     TS_ASSERT (val0->is_map ());
     TS_ASSERT (val1->is_map ());
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // array
@@ -146,7 +146,7 @@ public:
 
     TS_ASSERT (val0->is_array ());
     TS_ASSERT (val1->is_array ());
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // null
@@ -157,7 +157,7 @@ public:
 
     TS_ASSERT (val0->is_null ());
     TS_ASSERT (val1->is_null ());
-    TS_ASSERT_EQUALS (val0->hashcode (), val1->hashcode ());
+    TS_ASSERT_EQUALS (val0->hash (), val1->hash ());
 
     ///////////////////////////////
     // clean up

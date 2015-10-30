@@ -136,7 +136,7 @@ public:
     ///////////////////////////////
 
     kvr::value *array1 = m_ctx->create_value ()->copy (array0);
-    TS_ASSERT_EQUALS (array0->hashcode (), array1->hashcode ());
+    TS_ASSERT_EQUALS (array0->hash (), array1->hash ());
     array1->element (0)->set_float (175.5);
     array1->element (1)->set_string ("algorithm");
     array1->element (2)->set_boolean (true);
@@ -159,7 +159,7 @@ public:
     // verify diff/patch
     ///////////////////////////////
 
-    TS_ASSERT_EQUALS (array0->hashcode (), array1->hashcode ());
+    TS_ASSERT_EQUALS (array0->hash (), array1->hash ());
 
     ///////////////////////////////
     // clean up
@@ -226,10 +226,10 @@ public:
     // verify diff/patch
     ///////////////////////////////
 
-    TS_ASSERT_EQUALS (int0->hashcode (), int1->hashcode ());
-    TS_ASSERT_EQUALS (float0->hashcode (), float1->hashcode ());
-    TS_ASSERT_EQUALS (bool0->hashcode (), bool1->hashcode ());
-    TS_ASSERT_EQUALS (string0->hashcode (), string1->hashcode ());
+    TS_ASSERT_EQUALS (int0->hash (), int1->hash ());
+    TS_ASSERT_EQUALS (float0->hash (), float1->hash ());
+    TS_ASSERT_EQUALS (bool0->hash (), bool1->hash ());
+    TS_ASSERT_EQUALS (string0->hash (), string1->hash ());
 
     ///////////////////////////////
     // clean up

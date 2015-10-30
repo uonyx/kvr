@@ -1,9 +1,10 @@
-kvr: key-value runtime 
+kvr: key-value runtime [alpha]
 ========================================================================
 
 [![Build Status] (https://travis-ci.org/uonyx/kvr.svg)](https://travis-ci.org/uonyx/kvr)
 
-**kvr** is a runtime system that provides dynamically typed values with reference-counted keys. In essence it is a stand-alone low-level C++ dictionary with powerful data transformation and serialization features, and most importantly, a simple API. 
+**kvr** is a runtime system that provides dynamically typed values with reference-counted keys. In essence it is a stand-alone low-level C++ dictionary engine with powerful data transformation and serialization features, and most importantly, a simple API. 
+
 It's all I've ever wanted.
 
 ### Features
@@ -22,7 +23,7 @@ It's all I've ever wanted.
 	* [CBOR](http://cbor.io/)
 	* [MessagePack](http://msgpack.org/)
 - Custom serialization stream interface
-	* File stream? Compression stream? Encryption stream? Yes you can; for [example](https://github.com/uonyx/kvr/blob/master/example/streams.h)
+	* File stream? Compression stream? Encryption stream? Yes you can; for [example...](https://github.com/uonyx/kvr/blob/master/example/streams.h)
 - Powerful Diff and Patch functionality 
 	* kvr's true raison d'être
 - Memory-efficent (or tries to be)
