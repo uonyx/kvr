@@ -5,11 +5,9 @@ kvr: key-value runtime [alpha]
 
 **kvr** is a runtime system that provides dynamically typed values with reference-counted keys. In essence it is a stand-alone low-level C++ dictionary engine with powerful data transformation and serialization features, and most importantly, a simple API. 
 
-It's all I've ever wanted.
-
 ### Features
 - Simple API
-	* No modern C++ here. C-programmer friendly with raw pointers everywhere :O (for people like me who think they know what they're doing)
+	* No modern C++ here. C-programmer friendly with raw pointers everywhere :o
 - Supported value types:
 	* Integer (64-bit signed)
 	* Floating Point (Double-precision)
@@ -103,19 +101,22 @@ int main ()
 More [examples](https://github.com/uonyx/kvr/tree/master/example).
 
 ### Caveats
-- No documenation yet (kvr.h has sparse comments though)
-- No exception safety (so please use that 'if' statement)
 - No support for custom memory allocators (yet)
+- No exception safety (so please use that 'if' statement)
 - No UTF8-validation on strings (until serialization)
+- No documenation yet (kvr.h has sparse comments though)
 
 ### Alternatives
-And guess what I discovered after I got kvr to alpha :/
 - [folly/dynamic](https://github.com/facebook/folly/blob/master/folly/docs/Dynamic.md)
-	* Sweet API built with modern C++ and throws exceptions
-	* Battle-tested
-	* JSON-ony serialization support
-	* Depends on [boost](http://www.boost.org/) and other folly data structures		
-- [poco::Dynamic](http://pocoproject.org/docs-1.5.0/Poco.Dynamic.html)
+	* Nice exception-throwing APIs built with modern C++	
+	* JSON serialization
+	* Battle-tested at Facebook
+	* Not self-contained (part of [folly](https://github.com/facebook/folly) which depends on gcc and [boost](http://www.boost.org/))
+- [Poco::Dynamic](http://pocoproject.org/docs-1.5.0/Poco.Dynamic.html)
+	* Exception-throwing APIs with neat advanced features
+	* JSON serialization
+	* Cross-platform	
+	* Not self-contained (part of the impressive-looking [Poco libs](http://pocoproject.org/features.html))
 
 ### License
 [MIT](https://raw.githubusercontent.com/uonyx/kvr/master/LICENSE)
