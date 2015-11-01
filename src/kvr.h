@@ -150,8 +150,8 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class ostream;
   class istream;
+  class ostream;  
   class obuffer;
   class pair;
 
@@ -521,6 +521,10 @@ namespace kvr
 
     value * create_value ();
     void    destroy_value (value *v);
+
+    size_t  get_key_count ();
+    size_t  get_value_count ();
+
     void    dump (int id = 0);
 
     ///////////////////////////////////////////
