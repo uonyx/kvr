@@ -47,8 +47,9 @@ void example_encode_stream ()
     hex_ostream cborhex;
     if (val->encode (kvr::CODEC_CBOR, &cborhex))
     {
-      const char *hexstr = cborhex.data ();
-      printf ("CBOR-HEX: %s\n", hexstr);
+      const char *hexstr = cborhex.string ();
+      size_t hexstrlen = cborhex.length ();
+      printf ("CBOR-HEX: %s [%zu]\n", hexstr, hexstrlen);
     }
   }
 
@@ -58,8 +59,9 @@ void example_encode_stream ()
     sha1_ostream jsonsha1;
     if (val->encode (kvr::CODEC_JSON, &jsonsha1))
     {
-      const char *sha1str = jsonsha1.data ();
-      printf ("JSON-SHA1: %s\n", sha1str);
+      const char *sha1str = jsonsha1.string ();
+      size_t sha1strlen = jsonsha1.length ();
+      printf ("JSON-SHA1: %s [%zu]\n", sha1str, sha1strlen);
     }
   }
 #endif

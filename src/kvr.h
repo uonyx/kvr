@@ -386,9 +386,6 @@ namespace kvr
 
       bool get (pair *p);
       explicit cursor (const value *map);
-#if KVR_CPP11
-      cursor (cursor &&c) : m_map (c.m_map), m_index (c.m_index) {}
-#endif
 
     private:
 
@@ -498,8 +495,8 @@ namespace kvr
   {
   public:
 
-    key   *       get_key () const;
-    value *       get_value ();
+    key   * get_key () const;
+    value * get_value ();
 
     pair () : m_k (NULL), m_v (NULL) {}
 
@@ -508,7 +505,6 @@ namespace kvr
     key   * m_k;
     value * m_v;
 
-    friend class ctx;
     friend class value;
   };
 
@@ -557,7 +553,7 @@ namespace kvr
     };
 
     typedef std_unordered_map<const char *, key *, hash_djb, equal_cstr> keystore;
-    typedef std::list<value *> rootvalues;
+    typedef std::list<value *> valstore;
 
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -593,9 +589,9 @@ namespace kvr
 
     friend class value;
 
-    keystore    m_keystore;
+    keystore  m_keystore;
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
-    rootvalues  m_rootvals;
+    valstore  m_valstore;
 #endif
   };
   
@@ -634,7 +630,8 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class mem_ostream KVR_FINAL : public ostream
+  // optimized memory output stream
+  class mem_ostream KVR_FINAL // : public ostream
   {
   public:
 
@@ -679,7 +676,8 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class mem_istream KVR_FINAL : public istream
+  // optimized memory input stream
+  class mem_istream KVR_FINAL // : public istream
   {
   public:
 

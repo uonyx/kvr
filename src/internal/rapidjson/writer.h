@@ -351,7 +351,7 @@ private:
 // Full specialization for StringStream to prevent memory copying
 #ifdef KVR_MEMSTREAM_SPECIALIZATION
 template<>
-inline bool Writer<kvr::internal::json::omemstream_impl>::WriteInt(int i) {
+inline bool Writer<kvr::internal::json::ostream_memory>::WriteInt(int i) {
     char *buffer = os_->Push(11);
     const char* end = internal::i32toa(i, buffer);
     os_->Pop(11 - (end - buffer));
@@ -359,7 +359,7 @@ inline bool Writer<kvr::internal::json::omemstream_impl>::WriteInt(int i) {
 }
 
 template<>
-inline bool Writer<kvr::internal::json::omemstream_impl>::WriteUint(unsigned u) {
+inline bool Writer<kvr::internal::json::ostream_memory>::WriteUint(unsigned u) {
     char *buffer = os_->Push(10);
     const char* end = internal::u32toa(u, buffer);
     os_->Pop(10 - (end - buffer));
@@ -367,7 +367,7 @@ inline bool Writer<kvr::internal::json::omemstream_impl>::WriteUint(unsigned u) 
 }
 
 template<>
-inline bool Writer<kvr::internal::json::omemstream_impl>::WriteInt64(int64_t i64) {
+inline bool Writer<kvr::internal::json::ostream_memory>::WriteInt64(int64_t i64) {
     char *buffer = os_->Push(21);
     const char* end = internal::i64toa(i64, buffer);
     os_->Pop(21 - (end - buffer));
@@ -375,7 +375,7 @@ inline bool Writer<kvr::internal::json::omemstream_impl>::WriteInt64(int64_t i64
 }
 
 template<>
-inline bool Writer<kvr::internal::json::omemstream_impl>::WriteUint64(uint64_t u) {
+inline bool Writer<kvr::internal::json::ostream_memory>::WriteUint64(uint64_t u) {
     char *buffer = os_->Push(20);
     const char* end = internal::u64toa(u, buffer);
     os_->Pop(20 - (end - buffer));
@@ -383,7 +383,7 @@ inline bool Writer<kvr::internal::json::omemstream_impl>::WriteUint64(uint64_t u
 }
 
 template<>
-inline bool Writer<kvr::internal::json::omemstream_impl>::WriteDouble(double d) {
+inline bool Writer<kvr::internal::json::ostream_memory>::WriteDouble(double d) {
     char *buffer = os_->Push(25);
     char* end = internal::dtoa(d, buffer);
     os_->Pop(25 - (end - buffer));

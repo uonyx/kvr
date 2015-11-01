@@ -3,11 +3,13 @@ kvr: key-value runtime [alpha]
 
 [![Build Status] (https://travis-ci.org/uonyx/kvr.svg)](https://travis-ci.org/uonyx/kvr)
 
-**kvr** is a runtime system that provides dynamically typed values with reference-counted keys. In essence it is a stand-alone low-level C++ dictionary engine with powerful data transformation and serialization features, and most importantly, a simple API. 
+**kvr** is a runtime system that provides dynamically typed values and reference-counted keys. In essence it is a stand-alone low-level C++ dictionary engine with powerful data transformation and serialization features, and most importantly, a simple API. 
 
 ### Features
 - Simple API
-	* No modern C++ here. C-programmer friendly with raw pointers everywhere :o
+	* Low-level, extensible, and pluggable
+	* Explicit function calls with raw pointers everywhere :o
+	* No exceptions, no operator overloading, no modern C++ here
 - Supported value types:
 	* Integer (64-bit signed)
 	* Floating Point (Double-precision)
@@ -117,6 +119,3 @@ More [examples](https://github.com/uonyx/kvr/tree/master/example).
 	* JSON serialization
 	* Cross-platform	
 	* Not self-contained (part of the impressive-looking [Poco libs](http://pocoproject.org/features.html))
-
-### License
-[MIT](https://raw.githubusercontent.com/uonyx/kvr/master/LICENSE)

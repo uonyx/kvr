@@ -26,10 +26,10 @@ namespace kvr
   {
     namespace json
     {
-      // optimized memory stream wrapper
-      struct omemstream_impl
+      // optimized output memory stream interface wrapper
+      struct ostream_memory
       {
-        omemstream_impl (kvr::mem_ostream *mem_ostream) : m_stream (mem_ostream) {}
+        ostream_memory (kvr::mem_ostream *mem_ostream) : m_stream (mem_ostream) {}
         void  Put (char ch) { m_stream->put (ch); }
         char *Push (size_t count) { return (char *) m_stream->push (count); }
         char *Pop (size_t count) { return (char *) m_stream->pop (count); }
@@ -38,21 +38,21 @@ namespace kvr
         kvr::mem_ostream *m_stream;
       };
 
-      // custom output stream
-      struct ocustream_impl
+      // custom output stream interface wrapper
+      struct ostream_custom
       {
-        ocustream_impl (kvr::ostream *mem_ostream) : m_stream (mem_ostream) {}
+        ostream_custom (kvr::ostream *mem_ostream) : m_stream (mem_ostream) {}
         void Put (char ch) { m_stream->put (ch); }
         void Flush () { m_stream->flush (); }
 
         kvr::ostream *m_stream;
       };
 
-      // custom input stream
-      struct icustream_impl
+      // custom input stream interface wrapper
+      struct istream_custom
       {
         typedef char Ch;
-        icustream_impl (kvr::istream *mem_istream) : m_stream (mem_istream) {}
+        istream_custom (kvr::istream *mem_istream) : m_stream (mem_istream) {}
         char    Peek () const { return (char) m_stream->peek (); }
         char    Take () { uint8_t byte = 0;  m_stream->get (&byte); return (char) byte; }
         size_t  Tell () { return m_stream->tell (); }
@@ -488,7 +488,7 @@ namespace kvr
         KVR_ASSERT (dest);
 
         read_ctx rctx (dest);
-        icustream_impl ss (&istr);
+        istream_custom ss (&istr);
 
         kvr_rapidjson::Reader reader;
         kvr_rapidjson::ParseResult ok = reader.Parse<KVR_JSON_PARSE_FLAGS> (ss, rctx);
@@ -505,8 +505,8 @@ namespace kvr
         KVR_ASSERT (src);
         KVR_ASSERT (ostr);
 
-        ocustream_impl wostr (ostr);
-        writer<ocustream_impl> wrt (wostr);
+        ostream_custom wostr (ostr);
+        writer<ostream_custom> wrt (wostr);
         return wrt.print (src);
       }
 
@@ -541,8 +541,8 @@ namespace kvr
         KVR_ASSERT (src);
         KVR_ASSERT (ostr);
 
-        omemstream_impl wostr (ostr);
-        writer<omemstream_impl> wrt (wostr);
+        ostream_memory wostr (ostr);
+        writer<ostream_memory> wrt (wostr);
         return wrt.print (src);
       }
 

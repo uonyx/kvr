@@ -88,13 +88,13 @@ kvr::ctx::~ctx ()
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
   
   // clean up left-over values
-  rootvalues::iterator iter = m_rootvals.begin ();
-  while (iter != m_rootvals.end ())
+  valstore::iterator iter = m_valstore.begin ();
+  while (iter != m_valstore.end ())
   {
     kvr::value *v = *iter;
     KVR_ASSERT (v);
     this->destroy_value (v);
-    iter = m_rootvals.begin ();
+    iter = m_valstore.begin ();
   }
 
   // check left-over keys should have been cleaned up as well
@@ -126,7 +126,7 @@ kvr::value * kvr::ctx::create_value ()
 {
   kvr::value *v = this->_create_value_null (kvr::value::FLAG_PARENT_CTX);
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
-  m_rootvals.push_back (v);
+  m_valstore.push_back (v);
 #endif
   return v;
 }
@@ -138,7 +138,7 @@ kvr::value * kvr::ctx::create_value ()
 void kvr::ctx::destroy_value (value *v)
 {
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
-  m_rootvals.remove (v);
+  m_valstore.remove (v);
 #endif
   this->_destroy_value (kvr::value::FLAG_PARENT_CTX, v);
 }

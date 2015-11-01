@@ -1237,11 +1237,12 @@ namespace kvr
       ///////////////////////////////////////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////////////////////////
 
+      template<typename ostr>
       struct write_ctx
       {
         ////////////////////////////////////////////////////////////
 
-        write_ctx (kvr::ostream *os) : m_os (os)
+        write_ctx (ostr *os) : m_os (os)
         {
           KVR_ASSERT (os);
         }
@@ -1497,16 +1498,17 @@ namespace kvr
 
         ////////////////////////////////////////////////////////////
 
-        kvr::ostream *m_os;
+        ostr *m_os;
       };
 
       ///////////////////////////////////////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////////////////////////
       ///////////////////////////////////////////////////////////////////////////////////////////////
 
+      template<typename ostr>
       struct writer
       {
-        bool print (const kvr::value *val, write_ctx &ctx)
+        bool print (const kvr::value *val, write_ctx<ostr> &ctx)
         {
           KVR_ASSERT (val);
 
@@ -1595,8 +1597,8 @@ namespace kvr
         KVR_ASSERT (src);
         KVR_ASSERT (ostr);
     
-        write_ctx ctx (ostr);
-        writer wrt;
+        write_ctx<kvr::ostream> ctx (ostr);
+        writer<kvr::ostream> wrt;
         
         if (wrt.print (src, ctx))
         {
@@ -1625,8 +1627,8 @@ namespace kvr
         KVR_ASSERT (src);
         KVR_ASSERT (ostr);
 
-        write_ctx ctx (ostr);
-        writer wrt;
+        write_ctx<kvr::mem_ostream> ctx (ostr);
+        writer<kvr::mem_ostream> wrt;
 
         if (wrt.print (src, ctx))
         {
