@@ -259,8 +259,9 @@ namespace kvr
     value *       search (const char *pathexpr) const;
     value *       search (const char **path, sz_t pathsz) const;
 
-    // copy/merge
-    value *       copy (const value *rhs);
+    // move/copy/merge
+    value *       move (value *rhs);
+    value *       copy (const value *rhs);    
     value *       merge (const value *rhs);
 
     // diff/patch

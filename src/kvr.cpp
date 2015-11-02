@@ -127,6 +127,9 @@ kvr::value * kvr::ctx::create_value ()
 
 void kvr::ctx::destroy_value (value *v)
 {
+  if ((v->m_flags & kvr::value::FLAG_PARENT_CTX) == 0) 
+    return;
+
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
   m_valstore.remove (v);
 #endif
@@ -274,10 +277,8 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, const char *str, sz_t
 void kvr::ctx::_destroy_value (uint32_t parentType, value *v)
 {
   KVR_ASSERT (v);
-  KVR_ASSERT ((v->m_flags & parentType) != 0);
-  
-  if ((v->m_flags & parentType) == 0) return;
-
+  KVR_ASSERT ((v->m_flags & parentType) != 0);  
+  //if ((v->m_flags & parentType) == 0) return;
   delete v;
 }
 
@@ -1330,6 +1331,23 @@ kvr::value * kvr::value::search (const char **path, sz_t pathsz) const
   }
 
   return v;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value * kvr::value::move (value *rhs)
+{
+  if (rhs && (this != rhs))
+  {
+    KVR_ASSERT (rhs->m_flags & FLAG_PARENT_CTX);
+    this->_destruct ();
+    this->m_data = rhs->m_data;
+    m_ctx->_destroy_value (FLAG_PARENT_CTX, rhs);
+  }
+
+  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
