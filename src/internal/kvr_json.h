@@ -53,7 +53,7 @@ namespace kvr
       {
         typedef char Ch;
         istream_custom (kvr::istream *mem_istream) : m_stream (mem_istream) {}
-        char    Peek () const { return (char) m_stream->peek (); }
+        char    Peek () { return (char) m_stream->peek (); }
         char    Take () { uint8_t byte = 0;  m_stream->get (&byte); return (char) byte; }
         size_t  Tell () { return m_stream->tell (); }
         char *  PutBegin () { return NULL; }

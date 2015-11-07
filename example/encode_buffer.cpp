@@ -53,7 +53,7 @@ void example_encode_buffer ()
 
   // encode to json using kvr::obuffer with approximated capacity
   {
-    size_t bufsz = map->approx_encode_size (kvr::CODEC_JSON);
+    size_t bufsz = map->encode_bound (kvr::CODEC_JSON);
     kvr::obuffer obuf (bufsz);
     if (map->encode (kvr::CODEC_JSON, &obuf))
     {

@@ -3,13 +3,15 @@ kvr: key-value runtime [alpha]
 
 [![Build Status] (https://travis-ci.org/uonyx/kvr.svg)](https://travis-ci.org/uonyx/kvr)
 
-**kvr** is a runtime system that provides dynamically typed values and reference-counted keys. In essence it is a stand-alone low-level C++ dictionary engine with powerful data transformation and serialization features, and most importantly, a simple API. 
+All I wanted was a stand-alone, low-level C++ dictionary with a simple API, and powerful data transformation and serialization functionality. I've ended up with **kvr** - a runtime that provides reference-counted keys and dynamically typed values.
 
 ### Features
 - Simple API
 	* Low-level, extensible, and pluggable
 	* Explicit function calls with raw pointers everywhere :o
 	* No exceptions, no operator overloading, no modern C++ here
+- Self-contained and cross-platform
+	* Uses some STL (and TR1 for C++03 compilers because unordered_map)
 - Supported value types:
 	* Integer (64-bit signed)
 	* Floating Point (Double-precision)
@@ -30,8 +32,6 @@ kvr: key-value runtime [alpha]
 	* Values are 16/32 bytes on 32/64-bit systems
 	* Keys are reference-counted (if created within the same context)
 	* Values are dynamically created. (All your heap are belong to us)
-- Self-contained and cross-platform
-	* Uses some STL (and TR1 for C++03 compilers because unordered_map)
 
 ### Compatibiity
 Requires C++03 (TR1) or beyond. So far tested on:

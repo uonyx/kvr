@@ -45,12 +45,10 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef KVR_CPP11
-#if __cplusplus >= 201103L
+#if (__cplusplus >= 201103L) || (_MSC_VER >= 1600)
 #define KVR_CPP11 1
-#define KVR_FINAL final
 #else
 #define KVR_CPP11 0
-#define KVR_FINAL
 #endif
 #endif
 
@@ -67,7 +65,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if KVR_CPP11 || (_MSC_VER >= 1600)
+#if KVR_CPP11 
 #include <unordered_map>
 #define std_unordered_map std::unordered_map
 #else
@@ -216,17 +214,22 @@ namespace kvr
     value *       conv_float ();
     value *       conv_null ();
 
-    // native variant ops
+    // string variant ops
     void          set_string (const char *str, sz_t len);
     void          set_string (const char *str);
-    void          set_integer (int64_t n);
-    void          set_float (double n);
-    void          set_boolean (bool b);
-
     const char *  get_string () const;
-    const char *  get_string (sz_t *len) const;    
+    const char *  get_string (sz_t *len) const;
+
+    // integer variant ops
+    void          set_integer (int64_t n);
     int64_t       get_integer () const;
+
+    // floating-point variant ops
+    void          set_float (double n);
     double        get_float () const;
+
+    // boolean variant ops
+    void          set_boolean (bool b);
     bool          get_boolean () const;
 
     // array variant ops
@@ -259,9 +262,8 @@ namespace kvr
     value *       search (const char *pathexpr) const;
     value *       search (const char **path, sz_t pathsz) const;
 
-    // move/copy/merge
-    value *       move (value *rhs);
-    value *       copy (const value *rhs);    
+    // copy/merge
+    value *       copy (const value *rhs);
     value *       merge (const value *rhs);
 
     // diff/patch
@@ -271,16 +273,16 @@ namespace kvr
     // hash code
     uint32_t      hash (uint32_t seed = 0) const;
 
-    // serialization (data buffer)
+    // serialization (buffer)
     bool          encode (codec_t codec, obuffer *obuf);
     bool          decode (codec_t codec, const uint8_t *data, size_t size);
 
-    // serialization (stream interface)
+    // serialization (stream)
     bool          encode (codec_t codec, ostream *ostr);
     bool          decode (codec_t codec, istream &istr);
 
-    // serialization (utility)
-    size_t        approx_encode_size (codec_t codec) const;
+    // serialization (estimate buffer size)
+    size_t        encode_bound (codec_t codec) const;
     
     // debug output
     void          dump () const;
@@ -624,8 +626,8 @@ namespace kvr
   public:
     virtual bool    get (uint8_t *byte) = 0;
     virtual bool    read (uint8_t *bytes, size_t count) = 0;
-    virtual size_t  tell () const = 0;
-    virtual uint8_t peek () const = 0;
+    virtual size_t  tell () = 0;
+    virtual uint8_t peek () = 0;
     
   protected:
     ~istream () {}
@@ -636,7 +638,7 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
 
   // optimized memory output stream
-  class mem_ostream KVR_FINAL // : public ostream
+  class mem_ostream
   {
   public:
 
@@ -682,7 +684,7 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
 
   // optimized memory input stream
-  class mem_istream KVR_FINAL // : public istream
+  class mem_istream
   {
   public:
 
@@ -690,12 +692,13 @@ namespace kvr
 
     const uint8_t * buffer () const;
     size_t          size () const;
-    size_t          tell () const;
-    uint8_t         peek () const;
+    size_t          tell ();
+    uint8_t         peek ();
     void            seek (size_t pos);
     bool            get (uint8_t *byte);
     bool            read (uint8_t *bytes, size_t count);
     const uint8_t * push (size_t count);
+    const uint8_t * pop (size_t count);
 
   private:
 

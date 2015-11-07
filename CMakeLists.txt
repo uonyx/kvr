@@ -94,7 +94,7 @@ if (KVR_BUILD_TESTS)
 endif (KVR_BUILD_TESTS)
 
 if (KVR_BUILD_EXAMPLES)
-  set (KVR_EXAMPLES_LIST simple encode_buffer encode_stream)
+  set (KVR_EXAMPLES_LIST basics encode_buffer encode_stream simple_variant)
   foreach (example ${KVR_EXAMPLES_LIST})
     add_executable (example_${example} ${CMAKE_CURRENT_SOURCE_DIR}/example/${example}.cpp)
     target_link_libraries (example_${example} kvr)
