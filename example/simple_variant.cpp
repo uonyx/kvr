@@ -14,7 +14,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../src/kvr.h"
-#include <stdio.h>
+#include <cstdio>
+#include <string>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -284,11 +285,11 @@ void example_simple_variant ()
   // get raw values from vars
   bool truth = var0;
   double pi = var1;
-  long long sixtySeven = var4;
+  int sixtySeven = (int) var4;
 
   printf ("truth      = %s\n", truth ? "true" : "false");
   printf ("pi         = %.2f\n", pi);
-  printf ("sixtySeven = %lld\n", sixtySeven);
+  printf ("sixtySeven = %d\n", sixtySeven);
 
   // quirky deintialise
   SimpleVariant::Deinit ();
