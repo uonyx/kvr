@@ -89,6 +89,12 @@ public:
     return m_os.tell ();
   }
 
+  void reset ()
+  {
+    m_os.seek (0);
+    m_os.flush ();
+  }
+
 private:
 
   hex_ostream (const hex_ostream &);
@@ -322,14 +328,21 @@ public:
     return m_len;
   }
 
+  void reset ()
+  {
+    m_str [0] = 0;
+    m_len = 0;
+    SHA1_Init (&m_ctx);
+  }
+
 private:
 
   sha1_ostream (const sha1_ostream &);
   sha1_ostream &operator=(const sha1_ostream &);
 
-  char     m_str [64];
-  size_t   m_len;
   SHA_CTX  m_ctx;
+  size_t   m_len;
+  char     m_str [64];
 };
 #endif
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -645,7 +658,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<size_t MAX_BLOCK_SZ>
-class gzip_mem_istream : public kvr::istream
+class gzip_istream : public kvr::istream
 {
 #if KVR_CPP11
   static_assert (MAX_BLOCK_SZ < (64 * 1024), "block size can't be more than 64kb");
@@ -653,13 +666,13 @@ class gzip_mem_istream : public kvr::istream
 
 public:
 
-  gzip_mem_istream (const uint8_t *buf, size_t sz) : m_is (buf, sz), m_sz (0), m_pos (0)
+  gzip_istream (const uint8_t *buf, size_t sz) : m_is (buf, sz), m_sz (0), m_pos (0)
   {
     memset (&m_zs, 0, sizeof (m_zs));
     inflateInit2 (&m_zs, (15 + 16));    
   }
 
-  ~gzip_mem_istream ()
+  ~gzip_istream ()
   {
     inflateEnd (&m_zs);
   }
@@ -773,7 +786,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<size_t MAX_BLOCK_SZ>
-class gzip_mem_ostream : public kvr::ostream
+class gzip_ostream : public kvr::ostream
 {
 #if KVR_CPP11
   static_assert (MAX_BLOCK_SZ < (64 * 1024), "block size can't be more than 64kb");
@@ -781,13 +794,13 @@ class gzip_mem_ostream : public kvr::ostream
 
 public:
 
-  gzip_mem_ostream (size_t size = 1024) : m_os (size), m_pos (0)
+  gzip_ostream (size_t size = 1024) : m_os (size), m_pos (0)
   {
     memset (&m_zs, 0, sizeof (m_zs));
     deflateInit2 (&m_zs, Z_DEFAULT_COMPRESSION, Z_DEFLATED, (15 + 16), 8, Z_DEFAULT_STRATEGY);
   }
 
-  ~gzip_mem_ostream ()
+  ~gzip_ostream ()
   {
     deflateEnd (&m_zs);
   }

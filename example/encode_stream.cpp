@@ -69,24 +69,23 @@ void example_encode_stream ()
 #if KVR_EXAMPLE_HAVE_ZLIB
   // encode JSON-encoded value to GZIP file
   {
-    gzip_file_ostream<4096> gzfile1 ("data/ARN-x.json.gz");
-    if (val->encode (kvr::CODEC_JSON, &gzfile1))
+    gzip_file_ostream<4096> gzfileos ("data/ARN-x.json.gz");
+    if (val->encode (kvr::CODEC_JSON, &gzfileos))
     {
       printf ("%s\n", "JSON-GZIP FILE: Encoded to \"ARN-x.json.gz\"");
-      gzfile1.close ();
+      gzfileos.close ();
 
-      gzip_file_istream<4096> gzfile2 ("data/ARN-x.json.gz");
-      if (val->decode (kvr::CODEC_JSON, gzfile2))
+      gzip_file_istream<4096> gzfileis ("data/ARN-x.json.gz");
+      if (val->decode (kvr::CODEC_JSON, gzfileis))
       {
         printf ("%s\n", "JSON-GZIP FILE: Encoded from \"ARN-x.json.gz\"");
       }
     }
   }
-#endif
 
-#if KVR_EXAMPLE_HAVE_ZLIB
+  // encode JSON-encoded value to GZIP memory stream
   {
-    gzip_mem_ostream<4096> gzos;
+    gzip_ostream<4096> gzos;
     if (val->encode (kvr::CODEC_MSGPACK, &gzos))
     {
       size_t rsize = val->encode_bound (kvr::CODEC_MSGPACK);
@@ -96,7 +95,7 @@ void example_encode_stream ()
       // verify decode
       {
         kvr::value *val2 = ctx->create_value ();
-        gzip_mem_istream<4096> gzis (gzos.data (), gzos.size ());
+        gzip_istream<4096> gzis (gzos.data (), gzos.size ());
         if (val2->decode (kvr::CODEC_MSGPACK, gzis))
         {
           uint32_t hash1 = val->hash ();
