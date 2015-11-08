@@ -22,13 +22,13 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// SimpleVariant is a skeleton-wrapper class that demonstrates 
-// how kvr can be used to create a higher-level variant system
+// SimpleVariant is a proof-of-concept wrapper class that demonstrates 
+// how kvr can be used to create a higher-level modern variant type API
 //
-// SimpleVariant can be extended with more features like; better
-// type deduction for operator[] indexing; better error-handling
-// and exception handling; more serialization options; better 
-// performance; and more.
+// SimpleVariant is no where near performant but can be extended with 
+// more overloaded operators; better type deduction for operator[] indexing; 
+// better error-handling and exception handling; more serialization options; 
+// and much better performance.
 
 class SimpleVariant
 {
