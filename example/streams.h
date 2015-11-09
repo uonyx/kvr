@@ -106,7 +106,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// buffered input file stream : native buffering
+// buffered input file stream 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -198,7 +198,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// buffered output file stream : native buffering
+// buffered output file stream 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -365,38 +365,52 @@ public:
 
   gzip_file_istream (const char *filename) : m_fp (NULL), m_sz (0), m_pos (0), m_ctr (0)
   {
-    this->open (filename);    
-    memset (&m_zs, 0, sizeof (m_zs));
-    inflateInit2 (&m_zs, (15 + 16));
+    this->open (filename);
   }
 
   ~gzip_file_istream ()
   {
-    inflateEnd (&m_zs);
     this->close ();
   }
 
   bool open (const char *filename)
   {
-    if (!m_fp)
+    if (m_fp)
     {
-#ifdef _MSC_VER
-      fopen_s (&m_fp, filename, "rb");
-#else
-      m_fp = fopen (filename, "rb");
-#endif
+      return false;
     }
 
-    return (m_fp == NULL) ? false : true;
+    memset (&m_zs, 0, sizeof (m_zs));
+    int err = inflateInit2 (&m_zs, (15 + 16));
+    if (err != Z_OK)
+    {
+      return false;
+    }
+
+#ifdef _MSC_VER
+    fopen_s (&m_fp, filename, "rb");
+#else
+    m_fp = fopen (filename, "rb");
+#endif
+    if (!m_fp)
+    {
+      inflateEnd (&m_zs);
+      return false;
+    }
+
+    return true;
   }
 
   void close ()
   {
-    if (m_fp)
+    if (!m_fp)
     {
-      fclose (m_fp);
-      m_fp = NULL;
+      return;
     }
+
+    fclose (m_fp);
+    m_fp = NULL;
+    inflateEnd (&m_zs);
   }
 
   bool get (uint8_t *byte)
@@ -540,37 +554,50 @@ public:
   gzip_file_ostream (const char *filename) : m_fp (NULL), m_pos (0)
   {
     this->open (filename);
-    memset (&m_zs, 0, sizeof (m_zs));
-    deflateInit2 (&m_zs, Z_DEFAULT_COMPRESSION, Z_DEFLATED, (15 + 16), 8, Z_DEFAULT_STRATEGY);
   }
 
   ~gzip_file_ostream ()
-  {
-    deflateEnd (&m_zs);
+  {    
     this->close ();    
   }
 
   bool open (const char *filename)
   {
-    if (!m_fp)
+    if (m_fp)
     {
-#ifdef _MSC_VER
-      fopen_s (&m_fp, filename, "wb");
-#else
-      m_fp = fopen (filename, "wb");
-#endif
+      return false;
     }
 
-    return (m_fp == NULL) ? false : true;
+    memset (&m_zs, 0, sizeof (m_zs));
+    int err = deflateInit2 (&m_zs, Z_DEFAULT_COMPRESSION, Z_DEFLATED, (15 + 16), 8, Z_DEFAULT_STRATEGY);
+    if (err != Z_OK)
+    {
+      return false;
+    }
+#ifdef _MSC_VER
+    fopen_s (&m_fp, filename, "wb");
+#else
+    m_fp = fopen (filename, "wb");
+#endif
+    if (!m_fp)
+    {
+      deflateEnd (&m_zs);
+      return false;
+    }
+
+    return true;
   }
 
   void close ()
   {
-    if (m_fp)
+    if (!m_fp)
     {
-      fclose (m_fp);
-      m_fp = NULL;
+      return;
     }
+
+    fclose (m_fp);
+    m_fp = NULL;
+    deflateEnd (&m_zs);
   }
 
   void put (uint8_t byte)
