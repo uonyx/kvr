@@ -22,7 +22,7 @@
 
 #define KVR_EXAMPLE_HAVE_OPENSSL 0
 #define KVR_EXAMPLE_HAVE_ZLIB 0
-#define KVR_EXAMPLE_HAVE_LZ4 0
+#define KVR_EXAMPLE_HAVE_LZ4 1
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -403,14 +403,12 @@ public:
 
   void close ()
   {
-    if (!m_fp)
+    if (m_fp)
     {
-      return;
+      fclose (m_fp);
+      m_fp = NULL;
+      inflateEnd (&m_zs);
     }
-
-    fclose (m_fp);
-    m_fp = NULL;
-    inflateEnd (&m_zs);
   }
 
   bool get (uint8_t *byte)
@@ -590,14 +588,12 @@ public:
 
   void close ()
   {
-    if (!m_fp)
+    if (m_fp)
     {
-      return;
+      fclose (m_fp);
+      m_fp = NULL;
+      deflateEnd (&m_zs);
     }
-
-    fclose (m_fp);
-    m_fp = NULL;
-    deflateEnd (&m_zs);
   }
 
   void put (uint8_t byte)
@@ -688,7 +684,7 @@ template<size_t MAX_BLOCK_SZ>
 class gzip_istream : public kvr::istream
 {
 #if KVR_CPP11
-  static_assert (MAX_BLOCK_SZ < (64 * 1024), "block size can't be more than 64kb");
+  static_assert (MAX_BLOCK_SZ <= (64 * 1024), "block size can't be more than 64kb");
 #endif
 
 public:
@@ -816,7 +812,7 @@ template<size_t MAX_BLOCK_SZ>
 class gzip_ostream : public kvr::ostream
 {
 #if KVR_CPP11
-  static_assert (MAX_BLOCK_SZ < (64 * 1024), "block size can't be more than 64kb");
+  static_assert (MAX_BLOCK_SZ <= (64 * 1024), "block size can't be more than 64kb");
 #endif
 
 public:
@@ -931,7 +927,7 @@ template<size_t MAX_BLOCK_SZ>
 class lz4_istream : public kvr::istream
 {
 #if KVR_CPP11
-  static_assert (MAX_BLOCK_SZ < (64 * 1024), "block size can't be more than 64kb");
+  static_assert (MAX_BLOCK_SZ <= (64 * 1024), "block size can't be more than 64kb");
 #endif
 
 public:
@@ -1017,19 +1013,27 @@ private:
 
   size_t decompress_buf (char *dst, size_t sz)
   {
-    char cbuf [LZ4_COMPRESSBOUND (MAX_BLOCK_SZ)];
-    int cbufsz = 0;
-
     // get compressed block
-    bool ok = m_is.read ((uint8_t *) &cbufsz, sizeof (cbufsz)) &&
-              m_is.read ((uint8_t *) cbuf, cbufsz);
-    if (!ok)
+    int cbufsz = 0;    
+    if (!m_is.read ((uint8_t *) &cbufsz, sizeof (cbufsz)))
     {
       return 0;
     }
+    
+    const char *cbuf = (const char * ) m_is.push (cbufsz);
+    if (!cbuf)
+    {
+      return 0;
+    }
+
     // decompress to buffer
     int dbufsz = LZ4_decompress_safe_continue (&m_lz4s, cbuf, dst, cbufsz, sz);
-    return (dbufsz < 0) ? 0 : (size_t) dbufsz;
+    if (dbufsz < 0)
+    {
+      return 0;
+    }
+
+    return static_cast<size_t>(dbufsz);
   }
 
   void swap_buf ()
@@ -1058,7 +1062,7 @@ template<size_t MAX_BLOCK_SZ>
 class lz4_ostream : public kvr::ostream
 {
 #if KVR_CPP11
-  static_assert (MAX_BLOCK_SZ < (64 * 1024), "block size can't be more than 64kb");
+  static_assert (MAX_BLOCK_SZ <= (64 * 1024), "block size can't be more than 64kb");
 #endif
 
 public:
@@ -1129,12 +1133,24 @@ private:
   void compress_buf (const char *src, size_t sz)
   {
     const size_t cbufsz = LZ4_COMPRESSBOUND (MAX_BLOCK_SZ);
-    char cbuf [cbufsz];
-    int csz = LZ4_compress_fast_continue (&m_lz4s, src, cbuf, sz, cbufsz, 1);
-    if (csz > 0)
+    uint8_t *c = m_os.push (sizeof (int) + cbufsz);
+    if (!c)
     {
-      m_os.write (reinterpret_cast<uint8_t *>(&csz), sizeof (csz));
-      m_os.write (reinterpret_cast<uint8_t *>(cbuf), csz);
+      return;
+    }
+
+    int *csz = reinterpret_cast<int *>(c);
+    char *cbuf = reinterpret_cast<char *>(c + sizeof (int));
+
+    *csz = LZ4_compress_fast_continue (&m_lz4s, src, cbuf, sz, cbufsz, 1);
+    if (*csz > 0)
+    {
+      m_os.pop (cbufsz - *csz);
+    }
+    else
+    {
+      m_os.pop (cbufsz);
+      m_os.pop (sizeof (int));
     }
   }
 
