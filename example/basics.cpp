@@ -15,6 +15,7 @@
 
 #include "../src/kvr.h"
 #include <stdio.h>
+#include "allocators.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,9 +74,60 @@ void example_basics ()
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+void example_basics_allocator ()
+{
+  // instantiate bump allocator reserving 1kb of memory
+  bump_allocator<1024> allocator;
+
+  // create a kvr context with bump allocator
+  kvr::ctx *ctx = kvr::ctx::create (&allocator);
+
+  // create a map
+  kvr::value *map = ctx->create_value ()->conv_map ();
+
+  // populate map
+  map->insert ("street", "sesame");
+  map->insert ("flag", true);
+  map->insert ("int", 123);
+  map->insert ("pi", 3.1416);
+  map->insert_null ("null");
+  kvr::value *array = map->insert_array ("array");
+
+  // populate child array
+  array->push (256);
+  array->push (42);
+  array->push (-1);
+  array->push (-255);
+
+  // change street value  
+  map->find ("street")->set_string ("pigeon");
+
+  // remove null value
+  map->remove ("null");
+
+  // serialize to JSON with bump allocator
+  kvr::obuffer buf (128, &allocator);
+  map->encode (kvr::CODEC_JSON, &buf);
+
+  // get memory usage
+  printf ("\nMemory used: %zu bytes\n", allocator.get_memory_usage ());
+
+  // clean up
+  ctx->destroy_value (map);
+
+  // destroy context
+  kvr::ctx::destroy (ctx);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+
 int main ()
 {
   example_basics ();
+
+  example_basics_allocator ();
 
   return 0;
 }
