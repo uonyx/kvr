@@ -14,12 +14,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../src/kvr.h"
-
-#if KVR_CPP11
-
 #include <cstdio>
 #include <string>
-#include <type_traits>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -36,6 +32,31 @@
 // - handling of more complex data types
 // - more data serialisation functionality
 //
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace Util
+{
+  // C++03-compatible functionality (equivalent to C++11 type_traits) to resolve operator [] 
+  // indexing ambiguity (int vs char *) for SimpleVariant. (Copied from rapidjson).
+
+  template <bool Cond> struct BoolType 
+  {
+    static const bool Value = Cond;
+    typedef BoolType Type;
+  };
+  typedef BoolType<true> TrueType;
+  typedef BoolType<false> FalseType;
+
+  template <typename T> struct IsPointer : FalseType {};
+  template <typename T> struct IsPointer<T*> : TrueType {};
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 class SimpleVariant
 {
@@ -113,16 +134,16 @@ public:
     m_val->copy (var.m_val);
     return *this;
   }
-    
-  template <typename T>
-  SimpleVariant operator[](T const& t)
-  {
-    return operator_index (t, std::is_pointer<typename std::decay<T>::type> ());
-  }
 
   SimpleVariant operator [] (const std::string &key)
   {
-    return operator_index (key.c_str (), std::true_type ());
+    return operator_index (key.c_str (), Util::TrueType ());
+  }
+
+  template <typename T>
+  SimpleVariant operator[](T t)
+  {
+    return operator_index (t, Util::IsPointer<T> ());
   }
 
   operator std::string () const
@@ -189,7 +210,7 @@ public:
 
 private:
 
-  SimpleVariant operator_index (size_t index, std::false_type)
+  SimpleVariant operator_index (size_t index, Util::FalseType)
   {
     kvr::value *v = NULL;
 
@@ -210,7 +231,7 @@ private:
     return SimpleVariant (v);
   }
 
-  SimpleVariant operator_index (const char *key, std::true_type)
+  SimpleVariant operator_index (const char *key, Util::TrueType)
   {
     kvr::value *v = NULL;
 
@@ -322,15 +343,6 @@ int main ()
 
   return 0;
 }
-
-#else
-
-int main ()
-{
-  return 0;
-}
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////

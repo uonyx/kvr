@@ -94,9 +94,9 @@ public:
     void *p = NULL;
     switch (sz)
     {
-      case SIZE_VALUE: { p = m_pool_v.malloc (); break; }
-      case SIZE_KEY: { p = m_pool_k.malloc (); break; }
-      default: { p = std::malloc (sz); break; }
+      case SIZE_VALUE:  { p = m_pool_v.malloc (); break; }
+      case SIZE_KEY:    { p = m_pool_k.malloc (); break; }
+      default:          { p = std::malloc (sz); break; }
     }
     return p;
   }
@@ -108,9 +108,9 @@ public:
     {
       switch (sz)
       {
-        case SIZE_VALUE: { m_pool_v.free (p); break; }
-        case SIZE_KEY: { m_pool_k.free (p); break; }
-        default: { std::free (p); break; }
+        case SIZE_VALUE:  { m_pool_v.free (p); break; }
+        case SIZE_KEY:    { m_pool_k.free (p); break; }
+        default:          { std::free (p); break; }
       }
     }
   }
