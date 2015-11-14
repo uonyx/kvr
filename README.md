@@ -103,8 +103,7 @@ int main ()
 More [examples](https://github.com/uonyx/kvr/tree/master/example).
 
 ### Caveats
-- No support for custom memory allocators (yet)
-- No exception safety (so please use that 'if' statement)
+- No exception safety
 - No UTF8-validation on strings (until serialization)
 - No documenation yet (kvr.h has sparse comments though)
 

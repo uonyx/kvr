@@ -22,13 +22,16 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 //
-// SimpleVariant is a proof-of-concept wrapper class that demonstrates 
-// how kvr can be used to create a higher-level modern variant type API
+// SimpleVariant is a proof-of-concept wrapper class that demonstrates how 
+// kvr can be used to create a higher-level modern variant/dictionary API.
 //
-// SimpleVariant is no where near performant but can be extended with 
-// more overloaded operators; better type deduction for operator[] indexing; 
-// better error-handling and exception handling; more serialization options; 
-// and much better performance.
+// This is a very simple and non-optimal demo that can however, be extended 
+// and improved upon with features such as: 
+// - more overloaded operators for optimal assignments and map insertions
+// - better error/exception handling
+// - handling of more complex data types
+// - more data serialisation functionality
+//
 
 class SimpleVariant
 {
@@ -106,47 +109,16 @@ public:
     m_val->copy (var.m_val);
     return *this;
   }
+    
+  template <typename T>
+  SimpleVariant operator[](T const& t)
+  {
+    return operator_index (t, std::is_pointer<typename std::decay<T>::type> ());
+  }
 
   SimpleVariant operator [] (const std::string &key)
   {
-    kvr::value *v = NULL;
-
-    if (m_val->is_map ())
-    {
-      v = m_val->find (key.c_str ());
-    }
-    else
-    {
-      m_val->conv_map ();
-    }
-
-    if (!v)
-    {
-      v = m_val->insert_null (key.c_str ());
-    }
-
-    return SimpleVariant (v);
-  }
-
-  SimpleVariant operator [] (size_t index)
-  {
-    kvr::value *v = NULL;
-
-    if (m_val->is_array ())
-    {
-      v = m_val->element (static_cast<kvr::sz_t>(index));
-    }
-    else
-    {
-      m_val->conv_array ();
-    }
-
-    if (!v)
-    {
-      v = m_val->push_null ();
-    }
-
-    return SimpleVariant (v);
+    return operator_index (key.c_str (), std::true_type ());
   }
 
   operator std::string () const
@@ -213,6 +185,48 @@ public:
 
 private:
 
+  SimpleVariant operator_index (size_t index, std::false_type)
+  {
+    kvr::value *v = NULL;
+
+    if (m_val->is_array ())
+    {
+      v = m_val->element (static_cast<kvr::sz_t>(index));
+    }
+    else
+    {
+      m_val->conv_array ();
+    }
+
+    if (!v)
+    {
+      v = m_val->push_null ();
+    }
+
+    return SimpleVariant (v);
+  }
+
+  SimpleVariant operator_index (const char *key, std::true_type)
+  {
+    kvr::value *v = NULL;
+
+    if (m_val->is_map ())
+    {
+      v = m_val->find (key);
+    }
+    else
+    {
+      m_val->conv_map ();
+    }
+
+    if (!v)
+    {
+      v = m_val->insert_null (key);
+    }
+
+    return SimpleVariant (v);
+  }
+
   SimpleVariant (kvr::value *v)
   {
     m_val = v;
@@ -269,29 +283,28 @@ void example_simple_variant ()
   var2 [1] = 15;
 
   // convert var3 to a map
-  // explict std::string wrapper used to avoid type collision (this can be improved using templates)
-  var3 [std::string ("papa")] = var1;
-  var3 [std::string ("wawa")] = 67;
-  var3 [std::string ("jack")] = std::string ("nimble");
+  var3 ["papa"] = var1;
+  var3 ["wawa"] = 67;
+  var3 ["jack"] = std::string ("nimble");
 
   // copy var2 array to child of var3 object and serialise to JSON
-  var3 [std::string ("array")] = var2;
+  var3 ["array"] = var2;
   std::string json = var3.toJSON ();
   printf ("JSON: %s\n", json.c_str ());
 
   // get var from var3 map
-  SimpleVariant var4 = var3 [std::string ("wawa")];
+  SimpleVariant var4 = var3 ["wawa"];
 
   // get raw values from vars
   bool truth = var0;
   double pi = var1;
-  int sixtySeven = (int) var4;
+  long long sixtySeven = var4;
 
   printf ("truth      = %s\n", truth ? "true" : "false");
   printf ("pi         = %.2f\n", pi);
-  printf ("sixtySeven = %d\n", sixtySeven);
+  printf ("sixtySeven = %lld\n", sixtySeven);
 
-  // quirky deintialise
+  // quirky deinitialise
   SimpleVariant::Deinit ();
 }
 

@@ -36,17 +36,55 @@ static const uint32_t KVR_VALUE_TYPE_MASK = 0xffffff00;
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
+// default allocator
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if KVR_DEBUG
+#define kvr_memory_track_ctr_decl(X) kvr_default_allocator (): m_ctr (0) {} ~kvr_default_allocator () { KVR_ASSERT (m_ctr == 0); } int X
+#define kvr_memory_track_ctr_incr(X) X++
+#define kvr_memory_track_ctr_decr(X) X--
+#else
+#define kvr_memory_track_ctr_incr(X)
+#define kvr_memory_track_ctr_decr(X)
+#define kvr_memory_track_ctr_decl(x)
+#endif
+
+#if KVR_CPP11
+#define kvr_final final
+#else
+#define kvr_final 
+#endif
+
+static kvr::allocator * get_default_allocator ()
+{
+  class kvr_default_allocator kvr_final : public kvr::allocator
+  {
+  public:
+    void * allocate (size_t sz)            { kvr_memory_track_ctr_incr (m_ctr); return ::operator new (sz); }
+    void   deallocate (void *p, size_t sz) { kvr_memory_track_ctr_decr (m_ctr);  KVR_REF_UNUSED (sz); return ::operator delete (p); }
+
+    kvr_memory_track_ctr_decl (m_ctr);
+  };
+
+  static kvr_default_allocator a;
+  return &a;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 // kvr::ctx
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::ctx * kvr::ctx::create (uint32_t flags)
+kvr::ctx * kvr::ctx::create (allocator *alloc)
 {
-  KVR_REF_UNUSED (flags);
-
-  kvr::ctx *ctx = new KVR_STD_NEW_FORM kvr::ctx ();
-
+  allocator *a = alloc ? alloc : get_default_allocator ();
+  void *p = a->allocate (sizeof (kvr::ctx));
+  kvr::ctx *ctx = p ? (new (p) kvr::ctx (a)) : NULL;
   return ctx;
 }
 
@@ -56,16 +94,17 @@ kvr::ctx * kvr::ctx::create (uint32_t flags)
 
 void kvr::ctx::destroy (kvr::ctx *ctx)
 {
-  KVR_ASSERT (ctx);
-
-  delete ctx;
+  KVR_ASSERT_SAFE (ctx, (void) 0);
+  allocator *a = ctx->m_allocator;
+  ctx->~ctx ();
+  a->deallocate (ctx, sizeof (kvr::ctx));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::ctx::ctx () : m_keystore (256)
+kvr::ctx::ctx (allocator *a) : m_allocator (a), m_keystore (256)
 {
 }
 
@@ -101,7 +140,10 @@ kvr::ctx::~ctx ()
   {
     kvr::key *k = (*iter).second;
     KVR_ASSERT (k);
-    delete k;
+    
+    m_allocator->deallocate (k->m_str);
+    m_allocator->deallocate (k);
+
     m_keystore.erase (iter);
     iter = m_keystore.begin ();
   }
@@ -182,7 +224,7 @@ void kvr::ctx::dump (int id)
 
 kvr::value * kvr::ctx::_create_value_null (uint32_t parentType)
 {
-  value *v = new KVR_STD_NEW_FORM value (this, parentType);
+  value *v = _create_value (parentType);
   v->conv_null ();
   return v;
 }
@@ -193,7 +235,7 @@ kvr::value * kvr::ctx::_create_value_null (uint32_t parentType)
 
 kvr::value * kvr::ctx::_create_value_map (uint32_t parentType)
 {
-  value *v = new KVR_STD_NEW_FORM value (this, parentType);
+  value *v = _create_value (parentType);
   v->conv_map ();
   return v;
 }
@@ -204,10 +246,8 @@ kvr::value * kvr::ctx::_create_value_map (uint32_t parentType)
 
 kvr::value * kvr::ctx::_create_value_array (uint32_t parentType)
 {
-  value *v = new KVR_STD_NEW_FORM value (this, parentType);
-
+  value *v = _create_value (parentType);
   v->conv_array ();
-
   return v;
 }
 
@@ -215,9 +255,9 @@ kvr::value * kvr::ctx::_create_value_array (uint32_t parentType)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::ctx::_create_value (uint32_t parentType, int64_t number)
+kvr::value * kvr::ctx::_create_value_integer (uint32_t parentType, int64_t number)
 {
-  value *v = new KVR_STD_NEW_FORM value (this, parentType);
+  value *v = _create_value (parentType);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_integer ();
 #endif
@@ -229,10 +269,9 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, int64_t number)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-kvr::value * kvr::ctx::_create_value (uint32_t parentType, double number)
+kvr::value * kvr::ctx::_create_value_float (uint32_t parentType, double number)
 {
-  value *v = new KVR_STD_NEW_FORM value (this, parentType);
+  value *v = _create_value (parentType);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_float ();
 #endif
@@ -244,9 +283,9 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, double number)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::ctx::_create_value (uint32_t parentType, bool boolean)
+kvr::value * kvr::ctx::_create_value_boolean (uint32_t parentType, bool boolean)
 {
-  value *v = new KVR_STD_NEW_FORM value (this, parentType);
+  value *v = _create_value (parentType);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_boolean ();
 #endif
@@ -258,11 +297,11 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, bool boolean)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::ctx::_create_value (uint32_t parentType, const char *str, sz_t len)
+kvr::value * kvr::ctx::_create_value_string (uint32_t parentType, const char *str, sz_t len)
 {
   KVR_ASSERT (str);
 
-  value *v = new KVR_STD_NEW_FORM value (this, parentType);
+  value *v = _create_value (parentType);
 #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
   v->conv_string ();
 #endif
@@ -274,12 +313,66 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType, const char *str, sz_t
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+kvr::value * kvr::ctx::_create_value (uint32_t parentType)
+{
+  void *p = m_allocator->allocate (sizeof (kvr::value));
+  kvr::value *v = p ? (new (p) kvr::value (this, parentType)) : NULL;
+  return v;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 void kvr::ctx::_destroy_value (uint32_t parentType, value *v)
 {
   KVR_ASSERT (v);
   KVR_ASSERT ((v->m_flags & parentType) != 0);  
-  //if ((v->m_flags & parentType) == 0) return;
-  delete v;
+  
+  if (v)
+  {
+    v->~value ();
+    m_allocator->deallocate (v, sizeof (kvr::value));
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::key *kvr::ctx::_add_key (const char *str)
+{
+  KVR_ASSERT (str);
+
+  sz_t len = static_cast<sz_t> (strlen (str));
+  char *cstr = (char * ) m_allocator->allocate (len + 1);
+  kvr_strcpy (cstr, len + 1, str);
+
+  key *k = this->_create_key (cstr, len);
+  if (k && (k->m_ref > 1)) { m_allocator->deallocate (cstr, len + 1); }
+
+  return k;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::key * kvr::ctx::_add_key_if_not_exists (const char *str) // preferred over '_create_key' if str is likely to already exist
+{
+  KVR_ASSERT (str);
+
+  key *k = this->_find_key (str);
+  if (k)
+  {
+    k->m_ref++;
+  }
+  else
+  {
+    k = this->_add_key (str);
+  }
+
+  return k;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -305,62 +398,11 @@ kvr::key * kvr::ctx::_find_key (const char *str)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::key *kvr::ctx::_create_key (const char *str)
-{
-  KVR_ASSERT (str);
-
-#if KVR_INTERNAL_FLAG_DEBUG_ORIGINAL_KEY_SEARCH
-  key *k = this->_find_key (str);
-  if (k)
-  {
-    k->m_ref++;
-  }
-  else
-  {
-    k = new KVR_STD_NEW_FORM key (str);
-    std::pair<const char *, key *> p (k->m_str, k);
-    bool s = m_keystore.insert (p).second;
-    KVR_ASSERT (s); KVR_REF_UNUSED (s);
-  }
-
-  return k;
-#else
-  sz_t len = static_cast<sz_t> (strlen (str));
-  char *cstr = new KVR_STD_NEW_FORM char [len + 1];
-  kvr_strcpy (cstr, len + 1, str);
-
-  key *k = this->_create_key (cstr, len);
-  if (k->m_ref > 1) { delete [] cstr; }
-
-  return k;
-#endif
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (len > 0);
 
-#if KVR_INTERNAL_FLAG_DEBUG_ORIGINAL_KEY_SEARCH
-  key *k = this->_find_key (str);
-  if (k)
-  {
-    k->m_ref++;
-  }
-  else
-  {
-    k = new KVR_STD_NEW_FORM key (str, len);
-    std::pair<const char *, key *> p (k->m_str, k);
-    bool s = m_keystore.insert (p).second;
-    KVR_ASSERT (s); KVR_REF_UNUSED (s);
-  }
-
-  return k;
-#else
   std::pair<const char *, key *> p (str, NULL);
   std::pair<keystore::iterator, bool> res = m_keystore.insert (p);
 
@@ -369,7 +411,8 @@ kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
   {
     // insert succeeded: update value
     KVR_ASSERT (!res.first->second);
-    k = res.first->second = new KVR_STD_NEW_FORM key (str, len);
+    void *ptr = m_allocator->allocate (sizeof (kvr::key));
+    k = res.first->second = ptr ? (new (ptr) kvr::key (str, len)) : NULL;
     k->m_ref = 1;
   }
   else
@@ -378,35 +421,6 @@ kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
     KVR_ASSERT (res.first->second);
     k = res.first->second;
     k->m_ref++;
-  }
-
-  return k;
-#endif
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-// preferred over '_create_key' if str is known as likely to already exist
-kvr::key * kvr::ctx::_create_key_if_not_exists (const char *str)
-{
-  KVR_ASSERT (str);
-
-  key *k = NULL;
-
-  keystore::iterator iter = m_keystore.find (str);
-  if (iter != m_keystore.end ())
-  {
-    k = (*iter).second;
-    k->m_ref++;
-  }
-  else
-  {
-    k = new KVR_STD_NEW_FORM key (str);
-    std::pair<const char *, key *> p (k->m_str, k);
-    bool s = m_keystore.insert (p).second;
-    KVR_ASSERT (s); KVR_REF_UNUSED (s);
   }
 
   return k;
@@ -423,7 +437,8 @@ void kvr::ctx::_destroy_key (kvr::key *k)
   if ((--k->m_ref) == 0)
   {
     m_keystore.erase (k->m_str);
-    delete k;
+    m_allocator->deallocate (k->m_str, k->m_len + 1);
+    m_allocator->deallocate (k, sizeof (kvr::key));
   }
 }
 
@@ -434,6 +449,7 @@ void kvr::ctx::_destroy_key (kvr::key *k)
 char * kvr::ctx::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) const
 {
   KVR_ASSERT (pathsz > 0);
+  KVR_ASSERT (exprsz);
 
   char *expr = NULL;
 
@@ -456,7 +472,7 @@ char * kvr::ctx::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz
     if (expsz > 0)
     {
       // create key
-      expr = new KVR_STD_NEW_FORM char [expsz];
+      expr = (char *) m_allocator->allocate (expsz);
 
       char *dst = expr;
       const char delim = KVR_CONSTANT_TOKEN_DELIMITER;
@@ -486,30 +502,17 @@ char * kvr::ctx::_create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::ctx::_destroy_path_expr (char *expr)
+void kvr::ctx::_destroy_path_expr (char *expr, sz_t exprsz)
 {
   KVR_ASSERT (expr);
-  delete [] expr;
+
+  m_allocator->deallocate (expr, exprsz);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // kvr::key
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::key::key (const char *str) : m_str (NULL), m_len (0), m_ref (1)
-{
-  KVR_ASSERT (str);
-
-  sz_t len = (sz_t) strlen (str);  
-  m_len = len;
-  m_str = new KVR_STD_NEW_FORM char [len + 1];
-  kvr_strcpy (m_str, len + 1, str);
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -526,7 +529,6 @@ kvr::key::key (char *str, sz_t len) : m_str (str), m_len (len), m_ref (1)
 
 kvr::key::~key ()
 {
-  delete [] m_str;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -828,8 +830,8 @@ kvr::value * kvr::value::push (int64_t num)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, num);
-  this->m_data.a.push (v);
+  kvr::value *v = m_ctx->_create_value_integer (FLAG_PARENT_ARRAY, num);
+  this->m_data.a.push (v, v->m_ctx);
   return v;
 }
 
@@ -846,8 +848,8 @@ kvr::value * kvr::value::push (double num)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, num);
-  this->m_data.a.push (v);
+  kvr::value *v = m_ctx->_create_value_float (FLAG_PARENT_ARRAY, num);
+  this->m_data.a.push (v, v->m_ctx);
   return v;
 }
 
@@ -863,8 +865,8 @@ kvr::value * kvr::value::push (bool b)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, b);
-  this->m_data.a.push (v);
+  kvr::value *v = m_ctx->_create_value_boolean (FLAG_PARENT_ARRAY, b);
+  this->m_data.a.push (v, v->m_ctx);
   return v;
 }
 
@@ -882,8 +884,8 @@ kvr::value * kvr::value::push (const char *str)
   conv_array ();
 #endif
 
-  kvr::value *v = m_ctx->_create_value (FLAG_PARENT_ARRAY, str, static_cast<sz_t>(strlen (str)));
-  this->m_data.a.push (v);
+  kvr::value *v = m_ctx->_create_value_string (FLAG_PARENT_ARRAY, str, static_cast<sz_t>(strlen (str)));
+  this->m_data.a.push (v, v->m_ctx);
   return v;
 }
 
@@ -900,7 +902,7 @@ kvr::value * kvr::value::push_map ()
 #endif
 
   kvr::value *v = m_ctx->_create_value_map (FLAG_PARENT_ARRAY);
-  this->m_data.a.push (v);
+  this->m_data.a.push (v, v->m_ctx);
   return v;
 }
 
@@ -917,7 +919,7 @@ kvr::value * kvr::value::push_array ()
 #endif
 
   kvr::value *v = m_ctx->_create_value_array (FLAG_PARENT_ARRAY);
-  this->m_data.a.push (v);
+  this->m_data.a.push (v, v->m_ctx);
   return v;
 }
 
@@ -934,7 +936,7 @@ kvr::value * kvr::value::push_null ()
 #endif
 
   kvr::value *v = m_ctx->_create_value_null (FLAG_PARENT_ARRAY);
-  this->m_data.a.push (v);
+  this->m_data.a.push (v, v->m_ctx);
   return v;
 }
 
@@ -1004,7 +1006,7 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key (keystr);
+  key *k = m_ctx->_add_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1017,7 +1019,7 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (FLAG_PARENT_MAP, num));
+    n = m_data.m.insert (k, m_ctx->_create_value_integer (FLAG_PARENT_MAP, num), this->m_ctx);
     KVR_ASSERT (n);
   }
 
@@ -1040,7 +1042,7 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key (keystr);
+  key *k = m_ctx->_add_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1053,7 +1055,7 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (FLAG_PARENT_MAP, num));
+    n = m_data.m.insert (k, m_ctx->_create_value_float (FLAG_PARENT_MAP, num), this->m_ctx);
     KVR_ASSERT (n);
   }
 
@@ -1075,7 +1077,7 @@ kvr::value * kvr::value::insert (const char *keystr, bool b)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key (keystr);
+  key *k = m_ctx->_add_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1088,7 +1090,7 @@ kvr::value * kvr::value::insert (const char *keystr, bool b)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (FLAG_PARENT_MAP, b));
+    n = m_data.m.insert (k, m_ctx->_create_value_boolean (FLAG_PARENT_MAP, b), this->m_ctx);
     KVR_ASSERT (n);
   }
 
@@ -1111,7 +1113,7 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key (keystr);
+  key *k = m_ctx->_add_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1124,7 +1126,7 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value (FLAG_PARENT_MAP, str, (sz_t) strlen (str)));
+    n = m_data.m.insert (k, m_ctx->_create_value_string (FLAG_PARENT_MAP, str, (sz_t) strlen (str)), this->m_ctx);
     KVR_ASSERT (n);
   }
 
@@ -1146,7 +1148,7 @@ kvr::value * kvr::value::insert_map (const char *keystr)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key (keystr);
+  key *k = m_ctx->_add_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1159,7 +1161,7 @@ kvr::value * kvr::value::insert_map (const char *keystr)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_map (FLAG_PARENT_MAP));
+    n = m_data.m.insert (k, m_ctx->_create_value_map (FLAG_PARENT_MAP), this->m_ctx);
     KVR_ASSERT (n);
   }
 
@@ -1181,7 +1183,7 @@ kvr::value * kvr::value::insert_array (const char *keystr)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key (keystr);
+  key *k = m_ctx->_add_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1194,7 +1196,7 @@ kvr::value * kvr::value::insert_array (const char *keystr)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_array (FLAG_PARENT_MAP));
+    n = m_data.m.insert (k, m_ctx->_create_value_array (FLAG_PARENT_MAP), this->m_ctx);
     KVR_ASSERT (n);
   }
 
@@ -1216,7 +1218,7 @@ kvr::value * kvr::value::insert_null (const char *keystr)
 #endif
 
   map::node *n = NULL;
-  key *k = m_ctx->_create_key (keystr);
+  key *k = m_ctx->_add_key (keystr);
   KVR_ASSERT (k);
 
 #if !KVR_OPTIMIZATION_FAST_MAP_INSERT_ON
@@ -1229,7 +1231,7 @@ kvr::value * kvr::value::insert_null (const char *keystr)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_null (FLAG_PARENT_MAP));
+    n = m_data.m.insert (k, m_ctx->_create_value_null (FLAG_PARENT_MAP), this->m_ctx);
     KVR_ASSERT (n);
   }
   
@@ -1355,12 +1357,6 @@ kvr::value * kvr::value::copy (const value *rhs)
       pair rp;
       while (c.get (&rp))
       {
-#if KVR_INTERNAL_FLAG_DEBUG_ORIGINAL_KEY_SEARCH
-        const char *rk = rp.get_key ()->get_string ();
-        value *lv = this->insert_null (rk);
-        value *rv = rp.get_value ();
-        lv->copy (rv);
-#else
         value *rv = rp.get_value ();
         if (rhs->m_ctx == this->m_ctx)
         {
@@ -1375,7 +1371,6 @@ kvr::value * kvr::value::copy (const value *rhs)
           value *lv = this->insert_null (rk);
           lv->copy (rv);
         }
-#endif
       }
     }
 
@@ -1470,37 +1465,37 @@ kvr::value * kvr::value::merge (const value *rhs)
       // if pair.key from [rhs] exists in [this], move to [this]
 
       value::cursor c (rhs);
-      pair op;
+      pair rp;
 
-      while (c.get (&op))
+      while (c.get (&rp))
       {
-        key *ok = op.get_key ();
-        value *ov = op.get_value ();
+        key *rk = rp.get_key ();
+        value *rv = rp.get_value ();
 
-        KVR_ASSERT (ok);
-        KVR_ASSERT (ov);
+        KVR_ASSERT (rk);
+        KVR_ASSERT (rv);
 
-        const char *k = ok->get_string ();
-        value *tv = this->find (k);
+        const char *k = rk->get_string ();
+        value *lv = this->find (k);
 
-        if (tv == NULL)
+        if (lv == NULL)
         {
-          key *tk = NULL;
-          if (m_ctx == ov->m_ctx) // same ctx so simple increment reference count
+          key *lk = NULL;
+          if (m_ctx == rv->m_ctx) // same ctx so simple increment reference count
           {
-            tk = ok;
-            tk->m_ref++;
+            lk = rk;
+            lk->m_ref++;
           }
           else
           {
-            tk = m_ctx->_create_key (k);
+            lk = m_ctx->_add_key (k);
           }          
-          tv = m_ctx->_create_value_null (FLAG_PARENT_MAP)->copy (ov);
-          this->_insert_kv (op.get_key (), tv);
+          lv = m_ctx->_create_value_null (FLAG_PARENT_MAP)->copy (rv);
+          this->_insert_kv (lk, lv);
         }
         else
         {
-          tv->copy (ov);
+          lv->copy (rv);
         }
       }
     }
@@ -1511,9 +1506,9 @@ kvr::value * kvr::value::merge (const value *rhs)
       // append [rhs] to [this]
       for (sz_t i = 0, c = rhs->length (); i < c; ++i)
       {
-        value *oe = rhs->element (i);
-        KVR_ASSERT (oe);
-        this->push_null ()->copy (oe);        
+        value *re = rhs->element (i);
+        KVR_ASSERT (re);
+        this->push_null ()->copy (re); 
       }
     }
     //////////////////////////////////
@@ -1521,15 +1516,14 @@ kvr::value * kvr::value::merge (const value *rhs)
     //////////////////////////////////
     {
       // append [rhs] to [this]
+      sz_t lvlen = 0, rvlen = 0;
+      const char *lv = this->get_string (&lvlen);
+      const char *rv = rhs->get_string (&rvlen);
 
-      sz_t tvlen = 0, ovlen = 0;
-      const char *tv = this->get_string (&tvlen);      
-      const char *ov = rhs->get_string (&ovlen);
-
-      sz_t bufsize = tvlen + ovlen + 1;
-      char *buf = new char [bufsize];
-      kvr_strcpy (buf, bufsize, tv);
-      kvr_strcpy ((buf + tvlen), (bufsize - tvlen), ov);
+      sz_t bufsize = lvlen + rvlen + 1;
+      char *buf = (char *) m_ctx->m_allocator->allocate (bufsize);
+      kvr_strcpy (buf, bufsize, lv);
+      kvr_strcpy ((buf + lvlen), (bufsize - lvlen), rv);
 
       this->_move_string (buf, bufsize - 1); 
     }
@@ -1538,27 +1532,27 @@ kvr::value * kvr::value::merge (const value *rhs)
     //////////////////////////////////
     {
       // sum
-      int64_t tv = this->get_integer ();
-      int64_t ov = rhs->get_integer ();
-      this->set_integer (tv + ov);
+      int64_t lv = this->get_integer ();
+      int64_t rv = rhs->get_integer ();
+      this->set_integer (lv + rv);
     }
     //////////////////////////////////
     else if (this->is_float ())
     //////////////////////////////////
     {
       // sum
-      double tv = this->get_float ();
-      double ov = rhs->get_float ();
-      this->set_float (tv + ov);
+      double lv = this->get_float ();
+      double rv = rhs->get_float ();
+      this->set_float (lv + rv);
     }
     //////////////////////////////////
     else if (this->is_boolean ())
     //////////////////////////////////
     {
       // XOR
-      bool tv = this->get_boolean ();
-      bool ov = rhs->get_boolean ();
-      this->set_boolean (tv ^ ov);
+      bool lv = this->get_boolean ();
+      bool rv = rhs->get_boolean ();
+      this->set_boolean (lv ^ rv);
     }
   }
 
@@ -2034,7 +2028,7 @@ void kvr::value::_set_string (const char *str, sz_t len)
   
   if (this->_is_string_dynamic ())
   {
-    this->m_data.s.m_dyn.set (str, len);
+    this->m_data.s.m_dyn.set (str, len, this->m_ctx);
   }
   else
   {
@@ -2289,7 +2283,7 @@ void kvr::value::_destruct ()
       m_ctx->_destroy_key (p.m_k);
       m_ctx->_destroy_value (FLAG_PARENT_MAP, p.m_v);      
     }
-    m_data.m.deinit ();
+    m_data.m.deinit (this->m_ctx);
   }
   else if (this->is_array ())
   {
@@ -2299,11 +2293,11 @@ void kvr::value::_destruct ()
       this->pop ();
       c = this->length ();
     }
-    m_data.a.deinit ();
+    m_data.a.deinit (this->m_ctx);
   }
   else if (this->_is_string_dynamic ())
   {
-    m_data.s.m_dyn.cleanup ();
+    m_data.s.m_dyn.cleanup (this->m_ctx);
   }
 }
 
@@ -2478,7 +2472,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
       if (pathcnt == 1)
       {
         const char *pk = path [0];
-        k = (ctx == og->m_ctx) ? ctx->_create_key_if_not_exists (pk) : ctx->_create_key (pk); 
+        k = (ctx == og->m_ctx) ? ctx->_add_key_if_not_exists (pk) : ctx->_add_key (pk); 
       }
       else
       {
@@ -2486,7 +2480,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
         KVR_ASSERT (pk && pksz);
         k = ctx->_create_key (pk, pksz - 1);
-        if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+        if (k->m_ref > 1) { ctx->_destroy_path_expr (pk, pksz); pk = NULL; }
       }
 
       value *v = ctx->_create_value_null (FLAG_PARENT_MAP);
@@ -2561,7 +2555,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         if (pathcnt == 1)
         {
           const char *pk = path [0];
-          k = (ctx == og->m_ctx) ? ctx->_create_key_if_not_exists (pk) : ctx->_create_key (pk);
+          k = (ctx == og->m_ctx) ? ctx->_add_key_if_not_exists (pk) : ctx->_add_key (pk);
         }
         else
         {
@@ -2569,10 +2563,10 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
           char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
           KVR_ASSERT (pk && pksz);
           k = ctx->_create_key (pk, pksz - 1);
-          if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+          if (k->m_ref > 1) { ctx->_destroy_path_expr (pk, pksz); pk = NULL; }
         }
 
-        value *v = ctx->_create_value (FLAG_PARENT_MAP, mdstr, mdstrlen);
+        value *v = ctx->_create_value_string (FLAG_PARENT_MAP, mdstr, mdstrlen);
         set->_insert_kv (k, v);
       }
     }
@@ -2596,7 +2590,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
           if (pathcnt == 1)
           {
             const char *pk = path [0];
-            k = (ctx == og->m_ctx) ? ctx->_create_key_if_not_exists (pk) : ctx->_create_key (pk);
+            k = (ctx == og->m_ctx) ? ctx->_add_key_if_not_exists (pk) : ctx->_add_key (pk);
           }
           else
           {
@@ -2604,10 +2598,10 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
             char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
             KVR_ASSERT (pk && pksz);
             k = ctx->_create_key (pk, pksz - 1);
-            if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+            if (k->m_ref > 1) { ctx->_destroy_path_expr (pk, pksz); pk = NULL; }
           }
 
-          value *v = ctx->_create_value (FLAG_PARENT_MAP, mdn);
+          value *v = ctx->_create_value_integer (FLAG_PARENT_MAP, mdn);
           set->_insert_kv (k, v);
         }
       }
@@ -2623,7 +2617,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
           if (pathcnt == 1)
           {
             const char *pk = path [0];
-            k = (ctx == og->m_ctx) ? ctx->_create_key_if_not_exists (pk) : ctx->_create_key (pk);
+            k = (ctx == og->m_ctx) ? ctx->_add_key_if_not_exists (pk) : ctx->_add_key (pk);
           }
           else
           {
@@ -2631,10 +2625,10 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
             char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
             KVR_ASSERT (pk && pksz);
             k = ctx->_create_key (pk, pksz - 1);
-            if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+            if (k->m_ref > 1) { ctx->_destroy_path_expr (pk, pksz); pk = NULL; }
           }
 
-          value *v = ctx->_create_value (FLAG_PARENT_MAP, mdn);
+          value *v = ctx->_create_value_float (FLAG_PARENT_MAP, mdn);
           set->_insert_kv (k, v);
         }
       }
@@ -2657,7 +2651,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         if (pathcnt == 1)
         {
           const char *pk = path [0];
-          k = (ctx == og->m_ctx) ? ctx->_create_key_if_not_exists (pk) : ctx->_create_key (pk);
+          k = (ctx == og->m_ctx) ? ctx->_add_key_if_not_exists (pk) : ctx->_add_key (pk);
         }
         else
         {
@@ -2665,10 +2659,10 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
           char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
           KVR_ASSERT (pk && pksz);
           k = ctx->_create_key (pk, pksz - 1);
-          if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+          if (k->m_ref > 1) { ctx->_destroy_path_expr (pk, pksz); pk = NULL; }
         }
 
-        value *v = ctx->_create_value (FLAG_PARENT_MAP, mdn);
+        value *v = ctx->_create_value_float (FLAG_PARENT_MAP, mdn);
         set->_insert_kv (k, v);
       }
     }
@@ -2690,7 +2684,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         if (pathcnt == 1)
         {
           const char *pk = path [0];
-          k = (ctx == og->m_ctx) ? ctx->_create_key_if_not_exists (pk) : ctx->_create_key (pk);
+          k = (ctx == og->m_ctx) ? ctx->_add_key_if_not_exists (pk) : ctx->_add_key (pk);
         }
         else
         {
@@ -2698,10 +2692,10 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
           char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
           KVR_ASSERT (pk && pksz);
           k = ctx->_create_key (pk, pksz - 1);
-          if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+          if (k->m_ref > 1) { ctx->_destroy_path_expr (pk, pksz); pk = NULL; }
         }
 
-        value *v = ctx->_create_value (FLAG_PARENT_MAP, mdb);
+        value *v = ctx->_create_value_boolean (FLAG_PARENT_MAP, mdb);
         set->_insert_kv (k, v);
       }
     }
@@ -2743,7 +2737,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
       if (pathcnt == 1)
       {
         const char *pk = path [0];
-        k = (ctx == md->m_ctx) ? ctx->_create_key_if_not_exists (pk) : ctx->_create_key (pk);
+        k = (ctx == md->m_ctx) ? ctx->_add_key_if_not_exists (pk) : ctx->_add_key (pk);
       }
       else
       {
@@ -2751,7 +2745,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
         char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
         KVR_ASSERT (pk && pksz);
         k = ctx->_create_key (pk, pksz - 1);
-        if (k->m_ref > 1) { ctx->_destroy_path_expr (pk); pk = NULL; }
+        if (k->m_ref > 1) { ctx->_destroy_path_expr (pk, pksz); pk = NULL; }
       }
 
       value *v = ctx->_create_value_null (FLAG_PARENT_MAP);
@@ -2963,7 +2957,7 @@ void kvr::value::_insert_kv (key *k, value *v)
   KVR_ASSERT (n == NULL);
 #endif
 
-  n = m_data.m.insert (k, v);
+  n = m_data.m.insert (k, v, this->m_ctx);
   KVR_ASSERT (n != NULL);
 }
 
@@ -2976,7 +2970,7 @@ void kvr::value::_push_v (value *v)
   KVR_ASSERT (v);
   KVR_ASSERT (is_array ());
 
-  this->m_data.a.push (v);
+  this->m_data.a.push (v, v->m_ctx);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2989,7 +2983,7 @@ kvr::value * kvr::value::_conv_map (sz_t cap)
   {
     this->_clear ();
     m_flags |= FLAG_TYPE_MAP;
-    m_data.m.init (cap);
+    m_data.m.init (cap, this->m_ctx);
   }
 
   return this;
@@ -3005,7 +2999,7 @@ kvr::value * kvr::value::_conv_array (sz_t cap)
   {
     this->_clear ();
     m_flags |= FLAG_TYPE_ARRAY;
-    m_data.a.init (cap);
+    m_data.a.init (cap, this->m_ctx);
   }
 
   return this;
@@ -3089,7 +3083,7 @@ kvr::sz_t kvr::value::string::dyn_str::length () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::string::dyn_str::set (const char *str, sz_t len)
+void kvr::value::string::dyn_str::set (const char *str, sz_t len, ctx *ctx)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (len > 0);
@@ -3097,8 +3091,8 @@ void kvr::value::string::dyn_str::set (const char *str, sz_t len)
   sz_t allocsz = ((len + 1) + string::dyn_str::PAD) & ~string::dyn_str::PAD;  
   if (allocsz > m_size)
   {
-    if (m_data) { delete [] m_data; }
-    m_data = new KVR_STD_NEW_FORM char [allocsz];
+    if (m_data) { ctx->m_allocator->deallocate (m_data, m_size); }
+    m_data = (char *) ctx->m_allocator->allocate (allocsz);
     m_size = allocsz;
   }
 
@@ -3110,9 +3104,13 @@ void kvr::value::string::dyn_str::set (const char *str, sz_t len)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::string::dyn_str::cleanup ()
+void kvr::value::string::dyn_str::cleanup (ctx *ctx)
 {
-  if (m_data) { delete [] m_data; }
+  if (m_data)
+  {
+    ctx->m_allocator->deallocate (m_data, m_size);
+    m_data = NULL;
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3123,12 +3121,13 @@ void kvr::value::string::dyn_str::cleanup ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::array::init (sz_t size)
+void kvr::value::array::init (sz_t size, ctx *ctx)
 {
   KVR_ASSERT (size > 0);
+  KVR_ASSERT (ctx);
 
   sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
-  m_ptr = new KVR_STD_NEW_FORM kvr::value * [allocsz];
+  m_ptr = (kvr::value **) ctx->m_allocator->allocate (sizeof (kvr::value *) * allocsz);
 #if KVR_DEBUG
   memset (m_ptr, 0, sizeof (kvr::value *) * allocsz); // debug-only
 #endif
@@ -3140,10 +3139,12 @@ void kvr::value::array::init (sz_t size)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::array::deinit ()
+void kvr::value::array::deinit (ctx *ctx)
 {
   KVR_ASSERT (m_ptr);
-  delete [] m_ptr;
+  KVR_ASSERT (ctx);
+
+  ctx->m_allocator->deallocate (m_ptr, m_cap);
   m_ptr = NULL;
 }
 
@@ -3151,9 +3152,10 @@ void kvr::value::array::deinit ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::array::push (value *v)
+void kvr::value::array::push (value *v, ctx *ctx)
 {
   KVR_ASSERT (v);
+  KVR_ASSERT (ctx);
 
   if (m_len >= m_cap)
   {
@@ -3161,12 +3163,12 @@ void kvr::value::array::push (value *v)
 
     // resize
     sz_t new_cap = m_cap + CAP_INCR;
-    value ** new_ptr = new KVR_STD_NEW_FORM value * [new_cap];
+    value ** new_ptr = (kvr::value **) ctx->m_allocator->allocate (sizeof (kvr::value *) * new_cap);
 #if KVR_DEBUG
     memset (new_ptr, 0, sizeof (kvr::value *) * new_cap);
 #endif
     memcpy (new_ptr, m_ptr, sizeof (kvr::value *) * m_len);
-    delete [] m_ptr;
+    ctx->m_allocator->deallocate (m_ptr, m_cap);
 
     m_ptr = new_ptr;
     m_cap = new_cap;
@@ -3238,12 +3240,15 @@ kvr::value * kvr::value::array::elem (sz_t index) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::map::init (sz_t size)
+void kvr::value::map::init (sz_t size, ctx *ctx)
 {
+  KVR_ASSERT (m_ptr == NULL);
+  KVR_ASSERT (ctx);
   KVR_ASSERT (size > 0); //if (size == 0) { size = 1U; }
 
   sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
-  m_ptr = new KVR_STD_NEW_FORM node [allocsz];
+  m_ptr = (node *) ctx->m_allocator->allocate (sizeof (node) * allocsz);
+  memset (m_ptr, 0, sizeof (node) * allocsz);
   m_cap = allocsz;
   m_len = 0;
 }
@@ -3252,9 +3257,16 @@ void kvr::value::map::init (sz_t size)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::map::deinit ()
+void kvr::value::map::deinit (ctx *ctx)
 {
-  delete [] m_ptr;
+  KVR_ASSERT (ctx);
+
+#if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
+  sz_t cap = _cap ();
+#else
+  sz_t cap = m_cap;
+#endif
+  ctx->m_allocator->deallocate (m_ptr, cap);
   m_ptr = NULL;
 }
 
@@ -3262,16 +3274,17 @@ void kvr::value::map::deinit ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
+kvr::value::map::node *kvr::value::map::insert (key *k, value *v, ctx *ctx)
 {
   KVR_ASSERT (k);
   KVR_ASSERT (v);
+  KVR_ASSERT (ctx);
   KVR_ASSERT (m_ptr);
 
 #if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
 
   sz_t cap = _cap ();
-  // see if we can garbage-collect nullified (i.e removed) nodes first
+  // see if we can 'garbage-collect' nullified removed nodes first
   if ((m_len >= cap) && ((m_cap % CAP_INCR) != 0))
   {
     sz_t ir = 0, iw = 0;
@@ -3296,9 +3309,10 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
   {
     // resize
     sz_t new_cap = cap + CAP_INCR;
-    node *new_ptr = new KVR_STD_NEW_FORM node [new_cap];
+    node *new_ptr = (node *) ctx->m_allocator->allocate (sizeof (node) * new_cap);
+    memset (new_ptr, 0, sizeof (node) * new_cap);
     memcpy (new_ptr, m_ptr, sizeof (node) * cap);
-    delete [] m_ptr;
+    ctx->m_allocator->deallocate (m_ptr, cap);
 
     m_ptr = new_ptr;
     m_cap += CAP_INCR;
@@ -3312,9 +3326,10 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
 
     // resize
     sz_t new_cap = m_cap + CAP_INCR;
-    node *new_ptr = new KVR_STD_NEW_FORM node [new_cap];
+    node *new_ptr = (node *) ctx->m_allocator->allocate (sizeof (node) * new_cap);
+    memset (new_ptr, 0, sizeof (node) * new_cap);
 
-#if 1 // slower than memcpy but garbage-collects nullified (i.e. removed) nodes
+#if 1 // slower than memcpy but 'garbage-collects' removed nodes
     sz_t ir = 0, iw = 0;
     while (ir < m_cap)
     {
@@ -3326,18 +3341,14 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v)
       {
         ir++;
       }
-    }
-    
-    delete [] m_ptr;
-    m_ptr = new_ptr;
-    m_cap = new_cap;
+    }    
     m_len -= (ir - iw);
 #else
     memcpy (new_ptr, m_ptr, sizeof (node) * m_cap);
-    delete [] m_ptr;
+#endif
+    ctx->m_allocator->deallocate (m_ptr, m_cap);
     m_ptr = new_ptr;
     m_cap = new_cap;
-#endif
   }
 
 #endif
@@ -3546,20 +3557,23 @@ const size_t kvr::mem_ostream::MIN_BUF_SZ = 64u;
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::mem_ostream::mem_ostream (uint8_t *buf, size_t sz) : m_buf (buf), m_sz (sz), m_pos (0), m_btype (BUF_EXTERNAL)
+kvr::mem_ostream::mem_ostream (uint8_t *buf, size_t sz, allocator *alloc) : m_buf (buf), m_sz (sz), m_pos (0), m_btype (BUF_EXTERNAL)
 {
   KVR_ASSERT (m_buf);
   KVR_ASSERT (m_sz > 0);
+
+  m_alloc = alloc ? alloc : get_default_allocator ();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::mem_ostream::mem_ostream (size_t sz) : m_buf (NULL), m_sz (0), m_pos (0), m_btype (BUF_INTERNAL)
+kvr::mem_ostream::mem_ostream (size_t sz, allocator *alloc) : m_buf (NULL), m_sz (0), m_pos (0), m_btype (BUF_INTERNAL)
 {
+  m_alloc = alloc ? alloc : get_default_allocator ();
   m_sz = kvr::internal::max (MIN_BUF_SZ, sz);
-  m_buf = this->alloc (m_sz);
+  m_buf = (uint8_t *) m_alloc->allocate (m_sz); KVR_ASSERT (m_buf);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3568,7 +3582,7 @@ kvr::mem_ostream::mem_ostream (size_t sz) : m_buf (NULL), m_sz (0), m_pos (0), m
 
 kvr::mem_ostream::~mem_ostream ()
 {
-  if (m_btype == BUF_INTERNAL) { this->free (m_buf); }
+  if (m_btype == BUF_INTERNAL) { m_alloc->deallocate (m_buf, m_sz); }  
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3691,39 +3705,18 @@ void kvr::mem_ostream::reserve (size_t sz)
 {
   if (sz > m_sz)
   {
-    uint8_t *buf = this->alloc (sz);
+    uint8_t *buf = (uint8_t *) m_alloc->allocate (sz);
 
     if (m_buf)
     {
       memcpy (buf, m_buf, m_sz);
-      if (m_btype == BUF_INTERNAL) { this->free (m_buf); }
+      if (m_btype == BUF_INTERNAL) { m_alloc->deallocate (m_buf, m_sz); }
     }
 
     m_buf = buf;
     m_sz = sz;
     m_btype = BUF_INTERNAL;
   }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-uint8_t * kvr::mem_ostream::alloc (size_t sz)
-{
-  KVR_ASSERT (sz > 0);
-  uint8_t *bytes = new KVR_STD_NEW_FORM uint8_t [sz];
-  return bytes;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-void kvr::mem_ostream::free (uint8_t *buf)
-{
-  KVR_ASSERT (buf);
-  delete [] buf;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

@@ -504,7 +504,7 @@ namespace kvr
           if (is->read ((uint8_t *) &len, 2))
           {
             m_ss.seek (0);
-            uint16_t slen = bigendian16 (len);
+            uint16_t slen = kvr_bigendian16 (len);
             uint8_t *str = m_ss.push (slen + 1);
             KVR_ASSERT (str);
             if (is->read (str, slen))
@@ -524,7 +524,7 @@ namespace kvr
           if (is->read ((uint8_t *) &len, 4))
           {
             m_ss.seek (0);
-            uint32_t slen = bigendian32 (len);
+            uint32_t slen = kvr_bigendian32 (len);
             uint8_t *str = m_ss.push (slen + 1);
             KVR_ASSERT (str);
             if (is->read (str, slen))
@@ -559,11 +559,11 @@ namespace kvr
           {
 #if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
             union { float f; uint32_t u; } mem;
-            mem.u = bigendian32 (u);
+            mem.u = kvr_bigendian32 (u);
             return ctx.read_float (mem.f);
 #else
             float f = 0;
-            uint32_t u32 = bigendian32 (u);
+            uint32_t u32 = kvr_bigendian32 (u);
             KVR_ASSERT (sizeof (f) == sizeof (u32));
             memcpy (&f, &u32, sizeof (u32));
             return ctx.read_float (f);
@@ -581,11 +581,11 @@ namespace kvr
           {
 #if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
             union { double f; uint64_t u; } mem;
-            mem.u = bigendian64 (u);
+            mem.u = kvr_bigendian64 (u);
             return ctx.read_float (mem.f);
 #else
             double f = 0;
-            uint64_t u64 = bigendian64 (u);
+            uint64_t u64 = kvr_bigendian64 (u);
             KVR_ASSERT (sizeof (f) == sizeof (u64));
             memcpy (&f, &u64, sizeof (u64));
             return ctx.read_float (f);
@@ -618,7 +618,7 @@ namespace kvr
           uint16_t len = 0;
           if (is->read ((uint8_t *) &len, 2))
           {
-            uint16_t alen = bigendian16 (len);
+            uint16_t alen = kvr_bigendian16 (len);
             ok = ctx.read_array_start (alen);
             for (uint16_t i = 0; ok && (i < alen); ++i)
             {
@@ -639,7 +639,7 @@ namespace kvr
           uint32_t len = 0;
           if (is->read ((uint8_t *) &len, 4))
           {
-            uint32_t alen = bigendian32 (len);
+            uint32_t alen = kvr_bigendian32 (len);
             ok = ctx.read_array_start (alen);
             for (uint32_t i = 0; ok && (i < alen); ++i)
             {
@@ -677,7 +677,7 @@ namespace kvr
           uint16_t len = 0;
           if (is->read ((uint8_t *) &len, 2))
           {
-            uint16_t msz = bigendian16 (len);
+            uint16_t msz = kvr_bigendian16 (len);
             ok = ctx.read_map_start (msz);
             for (uint16_t i = 0; ok && (i < msz); ++i)
             {
@@ -699,7 +699,7 @@ namespace kvr
           uint32_t len = 0;
           if (is->read ((uint8_t *) &len, 4))
           {
-            uint32_t msz = bigendian32 (len);
+            uint32_t msz = kvr_bigendian32 (len);
             ok = ctx.read_map_start (msz);
             for (uint32_t i = 0; ok && (i < msz); ++i)
             {
@@ -758,7 +758,7 @@ namespace kvr
           if (is->read ((uint8_t *) &len, 2))
           {
             m_ss.seek (0);
-            uint16_t slen = bigendian16 (len);
+            uint16_t slen = kvr_bigendian16 (len);
             uint8_t *str = m_ss.push (slen + 1);
             KVR_ASSERT (str);
             if (is->read (str, slen))
@@ -778,7 +778,7 @@ namespace kvr
           if (is->read ((uint8_t *) &len, 4))
           {
             m_ss.seek (0);
-            uint32_t slen = bigendian32 (len);
+            uint32_t slen = kvr_bigendian32 (len);
             uint8_t *str = m_ss.push (slen + 1);
             KVR_ASSERT (str);
             if (is->read (str, slen))
@@ -816,7 +816,7 @@ namespace kvr
           uint16_t u16 = 0;
           if (is->read ((uint8_t *) &u16, 2))
           {
-            uint16_t i = bigendian16 (u16);
+            uint16_t i = kvr_bigendian16 (u16);
             return ctx.read_integer (i);
           }
           return false;
@@ -829,7 +829,7 @@ namespace kvr
           uint32_t u32 = 0;
           if (is->read ((uint8_t *) &u32, 4))
           {
-            uint32_t i = bigendian32 (u32);
+            uint32_t i = kvr_bigendian32 (u32);
             return ctx.read_integer (i);
           }
           return false;
@@ -848,7 +848,7 @@ namespace kvr
           uint64_t u64 = 0;
           if (is->get ((uint8_t *) &u64, 8))
           {
-            uint64_t i = bigendian64 (u64);
+            uint64_t i = kvr_bigendian64 (u64);
             return ctx._read_uint64 (i);
           }
           return false;
@@ -883,7 +883,7 @@ namespace kvr
           uint16_t u16 = 0;
           if (is->read ((uint8_t *) &u16, 2))
           {
-            uint16_t u = bigendian16 (u16);
+            uint16_t u = kvr_bigendian16 (u16);
             int16_t i = (int16_t) u;
             return ctx.read_integer (i);
           }
@@ -897,7 +897,7 @@ namespace kvr
           uint32_t u32 = 0;
           if (is->read ((uint8_t *) &u32, 4))
           {
-            uint32_t u = bigendian32 (u32);
+            uint32_t u = kvr_bigendian32 (u32);
             int32_t i = (int32_t) u;
             return ctx.read_integer (i);
           }
@@ -911,7 +911,7 @@ namespace kvr
           uint64_t u64 = 0;
           if (is->read ((uint8_t *) &u64, 8))
           {
-            uint64_t u = bigendian64 (u64);
+            uint64_t u = kvr_bigendian64 (u64);
             int64_t i = (int64_t) u;
             return ctx.read_integer (i);
           }
@@ -949,7 +949,7 @@ namespace kvr
         uint16_t len = 0;
         if (is->read ((uint8_t *) &len, 2))
         {
-          uint16_t slen = bigendian16 (len);
+          uint16_t slen = kvr_bigendian16 (len);
           const char *str = (const char *) is->push (slen);
           return str ? ctx.read_string (str, slen) : false;
         }
@@ -962,7 +962,7 @@ namespace kvr
         uint32_t len = 0;
         if (is->read ((uint8_t *) &len, 4))
         {
-          uint32_t slen = bigendian32 (len);
+          uint32_t slen = kvr_bigendian32 (len);
           const char *str = (const char *) is->push (slen);
           return str ? ctx.read_key (str, slen) : false;
         }
@@ -995,7 +995,7 @@ namespace kvr
         uint16_t len = 0;
         if (is->read ((uint8_t *) &len, 2))
         {
-          uint16_t slen = bigendian16 (len);
+          uint16_t slen = kvr_bigendian16 (len);
           const char *str = (const char *) is->push (slen);
           return str ? ctx.read_key (str, slen) : false;
         }
@@ -1008,7 +1008,7 @@ namespace kvr
         uint32_t len = 0;
         if (is->read ((uint8_t *) &len, 4))
         {
-          uint32_t slen = bigendian32 (len);
+          uint32_t slen = kvr_bigendian32 (len);
           const char *str = (const char *) is->push (slen);
           return str ? ctx.read_key (str, slen) : false;
         }
@@ -1048,13 +1048,13 @@ namespace kvr
           }
           else if (size <= 0xffff)
           {
-            uint16_t sz = bigendian16 (size);
+            uint16_t sz = kvr_bigendian16 (size);
             m_os->put (MSGPACK_HEADER_ARRAY_16);            
             m_os->write ((uint8_t *) &sz, 2);
           }
           else if (size <= 0xffffffff)
           {
-            uint32_t sz = bigendian32 (size);
+            uint32_t sz = kvr_bigendian32 (size);
             m_os->put (MSGPACK_HEADER_ARRAY_32);            
             m_os->write ((uint8_t *) &sz, 4);
           }
@@ -1077,13 +1077,13 @@ namespace kvr
           }
           else if (size <= 0xffff)
           {
-            uint16_t sz = bigendian16 (size);
+            uint16_t sz = kvr_bigendian16 (size);
             m_os->put (MSGPACK_HEADER_MAP_16);            
             m_os->write ((uint8_t *) &sz, 2);
           }
           else if (size <= 0xffffffff)
           {
-            uint16_t sz = bigendian32 (size);
+            uint16_t sz = kvr_bigendian32 (size);
             m_os->put (MSGPACK_HEADER_MAP_32);            
             m_os->write ((uint8_t *) &sz, 4);
           }
@@ -1108,13 +1108,13 @@ namespace kvr
           }
           else if (slen <= 0xffff)
           {
-            uint16_t len = bigendian16 (slen);
+            uint16_t len = kvr_bigendian16 (slen);
             m_os->put (MSGPACK_HEADER_STRING_16);            
             m_os->write ((uint8_t *) &len, 2);
           }
           else if (slen <= 0xffffffff)
           {
-            uint32_t len = bigendian32 (slen);
+            uint32_t len = kvr_bigendian32 (slen);
             m_os->put (MSGPACK_HEADER_STRING_32);            
             m_os->write ((uint8_t *) &len, 4);
           }
@@ -1147,19 +1147,19 @@ namespace kvr
             }
             else if (i64 <= 0xffff)
             {
-              uint16_t i = bigendian16 (i64);
+              uint16_t i = kvr_bigendian16 (i64);
               m_os->put (MSGPACK_HEADER_UNSIGNED_16);              
               m_os->write ((uint8_t *) &i, 2);
             }
             else if (i64 <= 0xffffffff)
             {
-              uint32_t i = bigendian32 (i64);
+              uint32_t i = kvr_bigendian32 (i64);
               m_os->put (MSGPACK_HEADER_UNSIGNED_32);              
               m_os->write ((uint8_t *) &i, 4);
             }
             else // max is int64_t;
             {
-              uint64_t i = bigendian64 (i64);
+              uint64_t i = kvr_bigendian64 (i64);
               m_os->put (MSGPACK_HEADER_SIGNED_64);              
               m_os->write ((uint8_t *) &i, 8);
             }
@@ -1184,19 +1184,19 @@ namespace kvr
             }
             else if (i64 >= nint16)
             {
-              uint16_t i = bigendian16 (i64);
+              uint16_t i = kvr_bigendian16 (i64);
               m_os->put (MSGPACK_HEADER_SIGNED_16);              
               m_os->write ((uint8_t *) &i, 2);
             }
             else if (i64 >= nint32)
             {
-              uint32_t i = bigendian32 (i64);
+              uint32_t i = kvr_bigendian32 (i64);
               m_os->put (MSGPACK_HEADER_SIGNED_32);              
               m_os->write ((uint8_t *) &i, 4);
             }
             else
             {
-              uint64_t i = bigendian64 (i64);
+              uint64_t i = kvr_bigendian64 (i64);
               m_os->put (MSGPACK_HEADER_SIGNED_64);              
               m_os->write ((uint8_t *) &i, 8);
             }
@@ -1217,12 +1217,12 @@ namespace kvr
 #if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
             union { float f; uint32_t u; } mem;
             mem.f = (float) f;
-            uint32_t f32 = bigendian32 (mem.u);
+            uint32_t f32 = kvr_bigendian32 (mem.u);
 #else
             float ff = (float) f;
             uint32_t u = 0;
             memcpy (&u, &ff, sizeof (ff));
-            uint32_t f32 = bigendian32 (u);
+            uint32_t f32 = kvr_bigendian32 (u);
 #endif
             m_os->put (MSGPACK_HEADER_FLOAT_32);
             m_os->write ((uint8_t *) &f32, 4);
@@ -1233,11 +1233,11 @@ namespace kvr
 #if KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON
           union { double f; uint64_t u; } mem;
           mem.f = f;
-          uint64_t f64 = bigendian64 (mem.u);
+          uint64_t f64 = kvr_bigendian64 (mem.u);
 #else
           uint64_t u = 0;
           memcpy (&u, &f, sizeof (f));
-          uint64_t f64 = bigendian64 (u);
+          uint64_t f64 = kvr_bigendian64 (u);
 #endif
           m_os->put (MSGPACK_HEADER_FLOAT_64);
           m_os->write ((uint8_t *) &f64, 8);

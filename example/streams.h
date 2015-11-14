@@ -29,9 +29,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../src/kvr.h"
-#include <new>
-#include <cstdio>
-
+#include <cassert>
 #if KVR_EXAMPLE_HAVE_OPENSSL
 #include <openssl/sha.h>
 #endif
@@ -116,45 +114,43 @@ class file_istream : public kvr::istream
 {
 public:
 
-  file_istream (const char *filename) : m_fp (0)
+  file_istream (const char *filename) : m_fp (NULL)
   {
     this->open (filename);
   }
 
   ~file_istream ()
   {
-    this->close ();
+    if (m_fp) { this->close (); }
   }
 
   bool open (const char *filename)
   {
-    if (!m_fp)
-    {
+    assert (!m_fp);
 #ifdef _MSC_VER
-      fopen_s (&m_fp, filename, "rb");
+    fopen_s (&m_fp, filename, "rb");
 #else
-      m_fp = fopen (filename, "rb");
+    m_fp = fopen (filename, "rb");
 #endif
-      if (m_fp)
-      {
-        setvbuf (m_fp, m_buf, _IOFBF, MAX_BUF_SZ);
-        return true;
-      }
+    if (m_fp)
+    {
+      setvbuf (m_fp, m_buf, _IOFBF, MAX_BUF_SZ);
+      return true;
     }
+
     return false;
   }
 
   void close ()
   {
-    if (m_fp)
-    {
-      fclose (m_fp);
-      m_fp = NULL;
-    }
+    assert (m_fp);
+    fclose (m_fp);
+    m_fp = NULL;
   }
 
   bool get (uint8_t *byte)
   {
+    assert (m_fp);
 #ifdef _MSC_VER
     fread_s (byte, 1, sizeof (uint8_t), 1, m_fp);
 #else
@@ -165,6 +161,7 @@ public:
 
   bool read (uint8_t *bytes, size_t count)
   {
+    assert (m_fp);
 #ifdef _MSC_VER
     fread_s (bytes, count, sizeof (uint8_t), count, m_fp);
 #else
@@ -175,12 +172,14 @@ public:
 
   size_t tell ()
   {
+    assert (m_fp);
     long p = ftell (m_fp);
     return static_cast<size_t>(p);
   }
 
   uint8_t peek ()
   {
+    assert (m_fp);
     int c = fgetc (m_fp);
     ungetc (c, m_fp);
     return (c == EOF) ? 0u : static_cast<uint8_t>(c);
@@ -215,23 +214,21 @@ public:
 
   ~file_ostream ()
   {
-    this->close ();
+    if (m_fp) { this->close (); }
   }
 
   bool open (const char *filename)
   {
-    if (!m_fp)
-    {
+    assert (!m_fp);
 #ifdef _MSC_VER
-      fopen_s (&m_fp, filename, "wb");
+    fopen_s (&m_fp, filename, "wb");
 #else
-      m_fp = fopen (filename, "wb");
+    m_fp = fopen (filename, "wb");
 #endif
-      if (m_fp)
-      {
-        setvbuf (m_fp, m_buf, _IOFBF, MAX_BUF_SZ);
-        return true;
-      }
+    if (m_fp)
+    {
+      setvbuf (m_fp, m_buf, _IOFBF, MAX_BUF_SZ);
+      return true;
     }
 
     return false;
@@ -239,25 +236,26 @@ public:
 
   void close ()
   {
-    if (m_fp)
-    {
-      fclose (m_fp);
-      m_fp = NULL;
-    }
+    assert (m_fp);
+    fclose (m_fp);
+    m_fp = NULL;
   }
 
   void put (uint8_t byte)
   {
+    assert (m_fp);
     fwrite (&byte, sizeof (uint8_t), 1, m_fp);
   }
 
   void write (uint8_t *bytes, size_t count)
   {
+    assert (m_fp);
     fwrite (bytes, sizeof (uint8_t), count, m_fp);
   }
 
   void flush ()
   {
+    assert (m_fp);
     fflush (m_fp);
   }
 
@@ -363,22 +361,19 @@ class gzip_file_istream : public kvr::istream
 
 public:
 
-  gzip_file_istream (const char *filename) : m_fp (NULL), m_sz (0), m_pos (0), m_ctr (0)
+  gzip_file_istream (const char *filename) : m_fp (NULL), m_sz (0), m_pos (0), m_tlp (0)
   {
     this->open (filename);
   }
 
   ~gzip_file_istream ()
   {
-    this->close ();
+    if (m_fp) { this->close (); }
   }
 
   bool open (const char *filename)
   {
-    if (m_fp)
-    {
-      return false;
-    }
+    assert (!m_fp);
 
     memset (&m_zs, 0, sizeof (m_zs));
     int err = inflateInit2 (&m_zs, (15 + 16));
@@ -398,24 +393,26 @@ public:
       return false;
     }
 
+    m_pos = 0;
+    m_tlp = 0;
+    m_sz  = 0;
+
     return true;
   }
 
   void close ()
   {
-    if (m_fp)
-    {
-      fclose (m_fp);
-      m_fp = NULL;
-      inflateEnd (&m_zs);
-    }
+    assert (m_fp);
+    fclose (m_fp);
+    m_fp = NULL;
+    inflateEnd (&m_zs);
   }
 
   bool get (uint8_t *byte)
   {
     if (m_pos >= m_sz)
     {
-      m_pos = 0;
+      this->reset_buf ();
       m_sz = this->decompress_buf (m_buf, MAX_BLOCK_SZ);
     }
 
@@ -430,6 +427,8 @@ public:
 
   bool read (uint8_t *bytes, size_t count)
   {
+    assert (m_fp);
+
     // requesting more the remaining buffer size
     size_t left = m_sz - m_pos;
     if (left && (count > left))
@@ -444,7 +443,7 @@ public:
     // more than max buffer size
     while (count >= MAX_BLOCK_SZ)
     {
-      m_pos = 0;
+      this->reset_buf ();
       m_sz = this->decompress_buf (m_buf, MAX_BLOCK_SZ);
       
       memcpy (bytes, &m_buf, m_sz);
@@ -455,7 +454,7 @@ public:
 
     if ((m_pos + count) > m_sz)
     {
-      m_pos = 0;
+      this->reset_buf ();
       m_sz = this->decompress_buf (m_buf, MAX_BLOCK_SZ);
     }
 
@@ -463,7 +462,6 @@ public:
     {
       memcpy (bytes, &m_buf [m_pos], count);
       m_pos += count;
-
       return true;
     }
 
@@ -472,15 +470,17 @@ public:
 
   size_t tell ()
   {
-    size_t t = m_ctr ? ((m_ctr - 1) * MAX_BLOCK_SZ) + m_pos : 0;
-    return t;
+    assert (m_fp);    
+    return m_tlp + m_pos;
   }
 
   uint8_t peek ()
   {
+    assert (m_fp);
+
     if (m_pos >= m_sz)
     {
-      m_pos = 0;
+      this->reset_buf ();
       m_sz = this->decompress_buf (m_buf, MAX_BLOCK_SZ);
     }
 
@@ -493,13 +493,11 @@ private:
   size_t decompress_buf (uint8_t *dst, size_t sz)
   {
     uint8_t in [MAX_BLOCK_SZ];
-
 #ifdef _MSC_VER
     m_sz = fread_s (in, MAX_BLOCK_SZ, sizeof (uint8_t), MAX_BLOCK_SZ, m_fp);
 #else
     m_sz = fread (in, sizeof (uint8_t), MAX_BLOCK_SZ, m_fp);
 #endif
-
     if (ferror (m_fp)) 
     { 
       return 0u; 
@@ -518,17 +516,22 @@ private:
     }
 
     fseek (m_fp, -((int) m_zs.avail_in), SEEK_CUR);        
-    ++m_ctr;
-
+    
     size_t have = sz - m_zs.avail_out;
     return have;
+  }
+
+  void reset_buf ()
+  {
+    m_pos = 0;
+    m_tlp += m_sz;
   }
 
   z_stream            m_zs;
   FILE              * m_fp;
   size_t              m_sz;
   size_t              m_pos;
-  size_t              m_ctr;
+  size_t              m_tlp;
   uint8_t             m_buf [MAX_BLOCK_SZ];  
 };
 
@@ -555,16 +558,13 @@ public:
   }
 
   ~gzip_file_ostream ()
-  {    
-    this->close ();    
+  {
+    if (m_fp) { this->close (); }
   }
 
   bool open (const char *filename)
   {
-    if (m_fp)
-    {
-      return false;
-    }
+    assert (!m_fp);
 
     memset (&m_zs, 0, sizeof (m_zs));
     int err = deflateInit2 (&m_zs, Z_DEFAULT_COMPRESSION, Z_DEFLATED, (15 + 16), 8, Z_DEFAULT_STRATEGY);
@@ -583,21 +583,23 @@ public:
       return false;
     }
 
+    m_pos = 0;
+
     return true;
   }
 
   void close ()
   {
-    if (m_fp)
-    {
-      fclose (m_fp);
-      m_fp = NULL;
-      deflateEnd (&m_zs);
-    }
+    assert (m_fp);
+    fclose (m_fp);
+    m_fp = NULL;
+    deflateEnd (&m_zs);
   }
 
   void put (uint8_t byte)
   {
+    assert (m_fp);
+
     if (m_pos >= MAX_BLOCK_SZ)
     {
       this->compress_buf (m_buf, m_pos, Z_NO_FLUSH);
@@ -609,6 +611,8 @@ public:
 
   void write (uint8_t *bytes, size_t count)
   {
+    assert (m_fp);
+
     if ((m_pos + count) > MAX_BLOCK_SZ)
     {
       this->compress_buf (m_buf, m_pos, Z_NO_FLUSH);
@@ -633,6 +637,8 @@ public:
 
   void flush ()
   {
+    assert (m_fp);
+
     if (m_pos > 0)
     {
       this->compress_buf (m_buf, m_pos, Z_FINISH);
@@ -657,9 +663,8 @@ private:
       m_zs.next_out = out;
 
       int ret = deflate (&m_zs, zflush);
-      //assert (ret != Z_STREAM_ERROR);
-      (void) ret;
-
+      assert (ret != Z_STREAM_ERROR);
+      
       size_t have = MAX_BLOCK_SZ - m_zs.avail_out;
       fwrite (out, 1, have, m_fp);
     } 
@@ -689,7 +694,7 @@ class gzip_istream : public kvr::istream
 
 public:
 
-  gzip_istream (const uint8_t *buf, size_t sz) : m_is (buf, sz), m_sz (0), m_pos (0)
+  gzip_istream (const uint8_t *buf, size_t sz) : m_is (buf, sz), m_sz (0), m_pos (0), m_tlp (0)
   {
     memset (&m_zs, 0, sizeof (m_zs));
     inflateInit2 (&m_zs, (15 + 16));    
@@ -704,7 +709,7 @@ public:
   {
     if (m_pos >= m_sz)
     {
-      m_pos = 0;
+      this->reset_buf ();
       m_sz = this->decompress_buf (m_buf, MAX_BLOCK_SZ);
     }
 
@@ -733,7 +738,7 @@ public:
     // more than max buffer size
     while (count >= MAX_BLOCK_SZ)
     {
-      m_pos = 0;
+      this->reset_buf ();
       m_sz = this->decompress_buf (m_buf, MAX_BLOCK_SZ);
       
       memcpy (bytes, &m_buf, m_sz);
@@ -744,26 +749,30 @@ public:
 
     if ((m_pos + count) > m_sz)
     {
-      m_pos = 0;
+      this->reset_buf ();
       m_sz = this->decompress_buf (m_buf, MAX_BLOCK_SZ);
     }
 
-    memcpy (bytes, &m_buf [m_pos], count);
-    m_pos += count;
+    if (m_sz)
+    {
+      memcpy (bytes, &m_buf [m_pos], count);
+      m_pos += count;
+      return true;
+    }
 
-    return true;
+    return false;
   }
 
   size_t tell ()
   {
-    return m_pos;
+    return m_tlp + m_pos;
   }
 
   uint8_t peek ()
   {
     if (m_pos >= m_sz)
     {
-      m_pos = 0;
+      this->reset_buf ();
       m_sz = this->decompress_buf (m_buf, MAX_BLOCK_SZ);
     }
 
@@ -787,16 +796,23 @@ private:
     {
       return 0u;
     }
-
+    
     m_is.pop (m_zs.avail_in);
     size_t have = sz - m_zs.avail_out;
     return have;
+  }
+
+  void reset_buf ()
+  {
+    m_pos = 0;
+    m_tlp += m_sz;
   }
 
   z_stream            m_zs;
   kvr::mem_istream    m_is;
   size_t              m_sz;
   size_t              m_pos;
+  size_t              m_tlp; 
   uint8_t             m_buf [MAX_BLOCK_SZ];
 };
 
@@ -900,9 +916,8 @@ private:
       m_zs.next_out = out;
 
       int ret = deflate (&m_zs, zflush);
-      //assert (ret != Z_STREAM_ERROR);
-      (void) ret;
-
+      assert (ret != Z_STREAM_ERROR);
+      
       m_os.pop (m_zs.avail_out);
     } 
     while (m_zs.avail_out == 0);
@@ -932,7 +947,7 @@ class lz4_istream : public kvr::istream
 
 public:
 
-  lz4_istream (const uint8_t *buf, size_t sz) : m_is (buf, sz), m_sz (0), m_pos (0), m_bid (1)
+  lz4_istream (const uint8_t *buf, size_t sz) : m_is (buf, sz), m_sz (0), m_pos (0), m_idx (1), m_tlp (0)
   {
     LZ4_setStreamDecode (&m_lz4s, NULL, 0);
   }
@@ -942,12 +957,12 @@ public:
     if (m_pos >= m_sz)
     {
       this->swap_buf ();
-      m_sz = this->decompress_buf (m_buf [m_bid], MAX_BLOCK_SZ);
+      m_sz = this->decompress_buf (m_buf [m_idx], MAX_BLOCK_SZ);
     }
 
     if (m_sz)
     {
-      *byte = m_buf [m_bid][m_pos++];
+      *byte = m_buf [m_idx][m_pos++];
       return true;
     }
 
@@ -961,7 +976,7 @@ public:
     if (left && (count > left))
     {
       // read everything in buffer first      
-      memcpy (bytes, &m_buf [m_bid][m_pos], left);
+      memcpy (bytes, &m_buf [m_idx][m_pos], left);
       m_pos += left;
       bytes += left;
       count -= left;
@@ -971,9 +986,9 @@ public:
     while (count >= MAX_BLOCK_SZ)
     {
       this->swap_buf ();
-      m_sz = this->decompress_buf (m_buf [m_bid], MAX_BLOCK_SZ);
+      m_sz = this->decompress_buf (m_buf [m_idx], MAX_BLOCK_SZ);
 
-      memcpy (bytes, &m_buf [m_bid][m_pos], m_sz);
+      memcpy (bytes, &m_buf [m_idx][m_pos], m_sz);
       
       m_pos += m_sz;
       bytes += m_sz;
@@ -983,29 +998,33 @@ public:
     if ((m_pos + count) > m_sz)
     {
       this->swap_buf ();
-      m_sz = this->decompress_buf (m_buf [m_bid], MAX_BLOCK_SZ);
+      m_sz = this->decompress_buf (m_buf [m_idx], MAX_BLOCK_SZ);
     }
 
-    memcpy (bytes, &m_buf [m_bid][m_pos], count);
-    m_pos += count;
+    if (m_sz)
+    {
+      memcpy (bytes, &m_buf [m_idx][m_pos], count);
+      m_pos += count;
+      return true;
+    }
 
-    return true;
+    return false;
   }
 
   size_t tell ()
   {
-    return m_pos;
+    return m_tlp += m_pos;
   }
 
   uint8_t peek ()
   {
     if (m_pos >= m_sz)
     {
-      this->swap_buf ();
-      m_sz = this->decompress_buf (m_buf [m_bid], MAX_BLOCK_SZ);
+      this->swap_buf ();      
+      m_sz = this->decompress_buf (m_buf [m_idx], MAX_BLOCK_SZ);
     }
 
-    uint8_t ch = (m_sz > 0) ? m_buf [m_bid][m_pos] : 0u;
+    uint8_t ch = (m_sz > 0) ? m_buf [m_idx][m_pos] : 0u;
     return ch;
   }
 
@@ -1015,18 +1034,18 @@ private:
   {
     // get compressed block
     int cbufsz = 0;    
-    if (!m_is.read ((uint8_t *) &cbufsz, sizeof (cbufsz)))
+    if (!m_is.read (reinterpret_cast<uint8_t *>(&cbufsz), sizeof (cbufsz)))
     {
       return 0;
     }
-    
-    const char *cbuf = (const char * ) m_is.push (cbufsz);
-    if (!cbuf)
+    const char *c = (const char *) m_is.push (cbufsz);
+    if (!c)
     {
       return 0;
     }
 
     // decompress to buffer
+    const char *cbuf = reinterpret_cast<const char *>(c);
     int dbufsz = LZ4_decompress_safe_continue (&m_lz4s, cbuf, dst, cbufsz, sz);
     if (dbufsz < 0)
     {
@@ -1038,15 +1057,17 @@ private:
 
   void swap_buf ()
   {
-    m_bid = (m_bid + 1) % 2;
+    m_idx = (m_idx + 1) % 2;
     m_pos = 0;
+    m_tlp += m_sz;
   }
 
   LZ4_streamDecode_t  m_lz4s;
   kvr::mem_istream    m_is;
   size_t              m_sz;
   size_t              m_pos;
-  uint8_t             m_bid;
+  uint8_t             m_idx;
+  size_t              m_tlp;
   char                m_buf [2] [MAX_BLOCK_SZ];
 };
 
@@ -1067,7 +1088,7 @@ class lz4_ostream : public kvr::ostream
 
 public:
 
-  lz4_ostream (size_t size = 1024) : m_os (size), m_bid (0), m_pos (0)
+  lz4_ostream (size_t size = 1024) : m_os (size), m_idx (0), m_pos (0)
   {
     LZ4_resetStream (&m_lz4s);
   }
@@ -1076,34 +1097,34 @@ public:
   {
     if (m_pos >= MAX_BLOCK_SZ)
     {
-      this->compress_buf (m_buf [m_bid], m_pos);
+      this->compress_buf (m_buf [m_idx], m_pos);
       this->swap_buf ();
     }
 
-    m_buf [m_bid][m_pos++] = byte;
+    m_buf [m_idx][m_pos++] = byte;
   }
 
   void write (uint8_t *bytes, size_t count)
   {
     if ((m_pos + count) > MAX_BLOCK_SZ)
     {
-      this->compress_buf (m_buf [m_bid], m_pos);
+      this->compress_buf (m_buf [m_idx], m_pos);
       this->swap_buf ();
     }
 
     while (count >= MAX_BLOCK_SZ)
     {
-      memcpy (&m_buf [m_bid] [m_pos], bytes, MAX_BLOCK_SZ);
+      memcpy (&m_buf [m_idx] [m_pos], bytes, MAX_BLOCK_SZ);
       m_pos += MAX_BLOCK_SZ;
 
-      this->compress_buf (m_buf [m_bid], m_pos);
+      this->compress_buf (m_buf [m_idx], m_pos);
       this->swap_buf ();
 
       bytes += MAX_BLOCK_SZ;
       count -= MAX_BLOCK_SZ;
     }
 
-    memcpy (&m_buf [m_bid][m_pos], bytes, count);
+    memcpy (&m_buf [m_idx][m_pos], bytes, count);
     m_pos += count;
   }
 
@@ -1111,7 +1132,7 @@ public:
   {
     if (m_pos > 0)
     {
-      this->compress_buf (m_buf [m_bid], m_pos);
+      this->compress_buf (m_buf [m_idx], m_pos);
       this->swap_buf ();
     }
 
@@ -1149,21 +1170,20 @@ private:
     }
     else
     {
-      m_os.pop (cbufsz);
-      m_os.pop (sizeof (int));
+      m_os.pop (sizeof (int) + cbufsz);
     }
   }
 
   void swap_buf ()
   {
-    m_bid = (m_bid + 1) % 2;
+    m_idx = (m_idx + 1) % 2;
     m_pos = 0;
   }
 
   LZ4_stream_t      m_lz4s;
   kvr::mem_ostream  m_os;
   size_t            m_pos;
-  uint8_t           m_bid;
+  uint8_t           m_idx;
   char              m_buf [2] [MAX_BLOCK_SZ];
 };
 #endif

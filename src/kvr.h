@@ -56,15 +56,10 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <stdint.h>
-#include <inttypes.h>
+#include <cstdlib>
+#include <cstdint>
 #include <cstring>
 #include <list>
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
 #if KVR_CPP11 
 #include <unordered_map>
 #define std_unordered_map std::unordered_map
@@ -119,8 +114,6 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class ctx;
-
 #if KVR_64
   typedef uint32_t sz_t;
 #if KVR_DEBUG
@@ -148,8 +141,51 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  class istream;
-  class ostream;  
+  class allocator
+  {
+  public:
+    virtual void * allocate (size_t sz) = 0;
+    virtual void   deallocate (void *p, size_t sz) = 0;
+
+  protected:
+    ~allocator () {}
+  };
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  class ostream
+  {
+  public:
+    virtual void put (uint8_t byte) = 0;
+    virtual void write (uint8_t *bytes, size_t count) = 0;
+    virtual void flush () = 0;
+
+  protected:
+    ~ostream () {}
+  };
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  class istream
+  {
+  public:
+    virtual bool    get (uint8_t *byte) = 0;
+    virtual bool    read (uint8_t *bytes, size_t count) = 0;
+    virtual size_t  tell () = 0;
+    virtual uint8_t peek () = 0;
+
+  protected:
+    ~istream () {}
+  };
+
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////
+
   class obuffer;
   class pair;
 
@@ -166,7 +202,6 @@ namespace kvr
 
   private:
 
-    key (const char *str);
     key (char *str, sz_t len);
     ~key ();
 
@@ -304,8 +339,8 @@ namespace kvr
 
         const char *get () const;
         sz_t length () const;
-        void set (const char *str, sz_t len);
-        void cleanup ();
+        void set (const char *str, sz_t len, ctx *ctx);
+        void cleanup (ctx *ctx);
       } m_dyn;
 
       struct stt_str
@@ -337,9 +372,9 @@ namespace kvr
     {
       static const sz_t CAP_INCR = KVR_CONSTANT_COMMON_BLOCK_SZ;
 
-      void    init (sz_t size);
-      void    deinit ();
-      void    push (value *v);
+      void    init (sz_t size, ctx *ctx);
+      void    deinit (ctx *ctx);
+      void    push (value *v, ctx *ctx);
       value * pop ();
       value * elem (sz_t index) const;
 
@@ -363,9 +398,9 @@ namespace kvr
         node () : k (NULL), v (NULL) {}
       };
 
-      void    init (sz_t size);
-      void    deinit ();
-      node *  insert (key *k, value *v);
+      void    init (sz_t size, ctx *ctx);
+      void    deinit (ctx *ctx);
+      node *  insert (key *k, value *v, ctx *ctx);
       void    remove (node *n);
       node *  find (const key *k) const;
       sz_t    size_l () const;
@@ -519,7 +554,7 @@ namespace kvr
   {
   public:
 
-    static ctx * create (uint32_t flags = 0);
+    static ctx * create (allocator *allocator = NULL);
     static void  destroy (ctx *ctx);
 
     value * create_value ();
@@ -569,68 +604,41 @@ namespace kvr
     value * _create_value_null (uint32_t parentType);
     value * _create_value_map (uint32_t parentType);
     value * _create_value_array (uint32_t parentType);
-    value * _create_value (uint32_t parentType, int64_t number);
-    value * _create_value (uint32_t parentType, double number);
-    value * _create_value (uint32_t parentType, bool boolean);
-    value * _create_value (uint32_t parentType, const char *str, sz_t len);
+    value * _create_value_integer (uint32_t parentType, int64_t number);
+    value * _create_value_float (uint32_t parentType, double number);
+    value * _create_value_boolean (uint32_t parentType, bool boolean);
+    value * _create_value_string (uint32_t parentType, const char *str, sz_t len);
+
+    value * _create_value (uint32_t parentType);
     void    _destroy_value (uint32_t parentType, value *v);
 
+    
+    key *   _add_key (const char *str);
+    key *   _add_key_if_not_exists (const char *str);
     key *   _find_key (const char *str);
-    key *   _create_key (const char *str);
-    key *   _create_key (char *str, sz_t len);
-    key *   _create_key_if_not_exists (const char *str);
+
+    key *   _create_key (char *str, sz_t len);    
     void    _destroy_key (key *k);
 
-    char *  _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz = NULL) const;
-    void    _destroy_path_expr (char *expr);
-
+    char *  _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) const;
+    void    _destroy_path_expr (char *expr, sz_t exprsz);
+    
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
   private:
 
-    ctx ();
+    ctx (allocator *a);
     ctx (const ctx &);
     ~ctx ();
 
-    friend class value;
-
-    keystore  m_keystore;
+    allocator * m_allocator;
+    keystore    m_keystore;
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
-    valstore  m_valstore;
+    valstore    m_valstore;
 #endif
-  };
-  
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  
-  class ostream
-  {
-  public:
-    virtual void put (uint8_t byte) = 0;
-    virtual void write (uint8_t *bytes, size_t count) = 0;
-    virtual void flush () = 0;
-
-  protected:
-    ~ostream () {}
-  };
-
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-  ///////////////////////////////////////////////////////////////
-
-  class istream
-  {
-  public:
-    virtual bool    get (uint8_t *byte) = 0;
-    virtual bool    read (uint8_t *bytes, size_t count) = 0;
-    virtual size_t  tell () = 0;
-    virtual uint8_t peek () = 0;
-    
-  protected:
-    ~istream () {}
+    friend class value;
   };
 
   ///////////////////////////////////////////////////////////////
@@ -642,8 +650,8 @@ namespace kvr
   {
   public:
 
-    mem_ostream (uint8_t *buf, size_t sz);
-    mem_ostream (size_t sz);
+    mem_ostream (uint8_t *buf, size_t sz, allocator *alloc = NULL);
+    mem_ostream (size_t sz, allocator *alloc = NULL);
     ~mem_ostream ();
 
     void            put (uint8_t byte);
@@ -659,9 +667,6 @@ namespace kvr
 
   private:
 
-    uint8_t *       alloc (size_t sz);
-    void            free (uint8_t *buf);    
-
     mem_ostream (const mem_ostream &);
     mem_ostream &operator=(const mem_ostream &);
 
@@ -673,10 +678,11 @@ namespace kvr
 
     static const size_t MIN_BUF_SZ;
 
-    uint8_t * m_buf;
-    size_t    m_sz;
-    size_t    m_pos;
-    buf_type  m_btype;
+    uint8_t *   m_buf;
+    size_t      m_sz;
+    size_t      m_pos;
+    buf_type    m_btype;
+    allocator * m_alloc;
   };
 
   ///////////////////////////////////////////////////////////////
@@ -717,10 +723,10 @@ namespace kvr
   class obuffer
   {
   public:
-    // uses internal buffer with minimum size of 256 bytes
-    obuffer (size_t size = 256u) : m_stream (size) {}
-    // uses external 'data' buffer but an internal buffer will be created if size is insufficient
-    obuffer (uint8_t *data, size_t size) : m_stream (data, size) {}    
+    // outputs to internal buffer with minimum size of 256 bytes
+    obuffer (size_t size = 256u, allocator *alloc = NULL) : m_stream (size, alloc) {}
+    // outputs to external 'data' buffer. if size is insufficient, an internal buffer will be created 
+    obuffer (uint8_t *data, size_t size, allocator *alloc = NULL) : m_stream (data, size, alloc) {}    
 
     const uint8_t * get_data () const;
     size_t          get_size () const;
