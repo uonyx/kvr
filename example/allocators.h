@@ -58,7 +58,7 @@ public:
   }
 
   // deallocate: do nothing
-  void deallocate (void *p, size_t sz) {}
+  void deallocate (void *p, size_t sz) {(void) p; (void) sz;}
 
   // memory usage
   size_t get_memory_usage () const { return m_ptr; }
