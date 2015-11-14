@@ -22,7 +22,6 @@
 
 #include <cstdio>
 #include <cmath>
-#include <cinttypes>
 #include <limits>
 
 #include "../kvr.h"

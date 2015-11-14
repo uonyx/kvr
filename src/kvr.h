@@ -57,13 +57,14 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>
-#include <cstdint>
 #include <cstring>
 #include <list>
 #if KVR_CPP11 
+#include <cstdint>
 #include <unordered_map>
 #define std_unordered_map std::unordered_map
 #else
+#include <tr1/cstdint>
 #include <tr1/unordered_map>
 #define std_unordered_map std::tr1::unordered_map
 #endif
@@ -186,6 +187,7 @@ namespace kvr
   ///////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////
 
+  class ctx;
   class obuffer;
   class pair;
 
