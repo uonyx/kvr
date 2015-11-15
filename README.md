@@ -110,4 +110,4 @@ More [examples](https://github.com/uonyx/kvr/tree/master/example).
 ### Alternatives
 - [folly/dynamic](https://github.com/facebook/folly/blob/master/folly/docs/Dynamic.md)
 - [Poco::Dynamic](http://pocoproject.org/docs-1.5.0/Poco.Dynamic.html)
-- [github search](https://github.com/search?l=C%2B%2B&q=variant&type=Repositories&utf8=%E2%9C%93)
+- [[GitHub Search]](https://github.com/search?l=C%2B%2B&q=variant&type=Repositories&utf8=%E2%9C%93)

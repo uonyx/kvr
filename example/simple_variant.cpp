@@ -28,6 +28,7 @@
 // This is a very simple and non-optimal demo that can however, be extended 
 // and improved upon with features such as: 
 // - more overloaded operators for optimal assignments and map insertions
+// - a pool allocator optimized for dynamic allocation of kvr::value objects
 // - better error/exception handling
 // - handling of more complex data types
 // - more data serialisation functionality
@@ -129,19 +130,28 @@ public:
     }
   }
 
+  bool operator== (const SimpleVariant& other) const
+  {
+    if (m_val && other.m_val)
+    {
+      return (m_val->hash () == other.m_val->hash ());
+    }
+    return false;
+  }
+
   SimpleVariant &operator= (const SimpleVariant &var)
   {
     m_val->copy (var.m_val);
     return *this;
   }
 
-  SimpleVariant operator [] (const std::string &key)
+  SimpleVariant operator[] (const std::string &key)
   {
     return operator_index (key.c_str (), Util::TrueType ());
   }
 
   template <typename T>
-  SimpleVariant operator[](T t)
+  SimpleVariant operator[] (T t)
   {
     return operator_index (t, Util::IsPointer<T> ());
   }
@@ -302,6 +312,12 @@ void example_simple_variant ()
 
   // copy operation
   var3 = var2;
+
+  // equivalence test
+  if (var2 == var3)
+  {
+    printf ("var2 is equal to var3");
+  }
 
   // convert var2 to an array
   var2 [0] = 5;

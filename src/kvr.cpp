@@ -329,7 +329,7 @@ void kvr::ctx::_destroy_value (uint32_t parentType, value *v)
   KVR_ASSERT (v);
   KVR_ASSERT ((v->m_flags & parentType) != 0);  
   
-  if (v)
+  if (v && ((v->m_flags & parentType) != 0))
   {
     v->~value ();
     m_allocator->deallocate (v, sizeof (kvr::value));
@@ -512,28 +512,6 @@ void kvr::ctx::_destroy_path_expr (char *expr, sz_t exprsz)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-// kvr::key
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::key::key (char *str, sz_t len) : m_str (str), m_len (len), m_ref (1)
-{
-  KVR_ASSERT (str);
-  KVR_ASSERT (len);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::key::~key ()
-{
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
 // kvr::value
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -678,7 +656,7 @@ void kvr::value::set_string (const char *str, sz_t len)
 #else
   conv_string ();
 #endif
-  this->_set_string (str, len);
+  this->_string_set (str, len);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -696,7 +674,7 @@ void kvr::value::set_string (const char *str)
 #endif
   size_t len = strlen (str);  
   KVR_ASSERT ((uint64_t) len <= SZ_T_MAX);
-  this->_set_string (str, (sz_t) len);
+  this->_string_set (str, (sz_t) len);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1291,14 +1269,14 @@ kvr::sz_t kvr::value::size () const
   KVR_ASSERT_SAFE (is_map (), 0);
 
 #if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
-  sz_t sz2 = this->_size2 ();
+  sz_t sz2 = this->_map_size_constant ();
 #if KVR_DEBUG
-  sz_t sz1 = this->_size1 ();
+  sz_t sz1 = this->_map_size_linear ();
   KVR_ASSERT (sz1 == sz2);
 #endif
   return sz2;
 #else
-  return this->_size1 ();
+  return this->_map_size_linear ();
 #endif
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1503,7 +1481,7 @@ kvr::value * kvr::value::merge (const value *rhs)
     else if (this->is_array ())
     //////////////////////////////////
     {
-      // append [rhs] to [this]
+      // append
       for (sz_t i = 0, c = rhs->length (); i < c; ++i)
       {
         value *re = rhs->element (i);
@@ -1515,7 +1493,7 @@ kvr::value * kvr::value::merge (const value *rhs)
     else if (this->is_string ())
     //////////////////////////////////
     {
-      // append [rhs] to [this]
+      // append
       sz_t lvlen = 0, rvlen = 0;
       const char *lv = this->get_string (&lvlen);
       const char *rv = rhs->get_string (&rvlen);
@@ -1525,7 +1503,7 @@ kvr::value * kvr::value::merge (const value *rhs)
       kvr_strcpy (buf, bufsize, lv);
       kvr_strcpy ((buf + lvlen), (bufsize - lvlen), rv);
 
-      this->_move_string (buf, bufsize - 1); 
+      this->_string_move (buf, bufsize - 1); 
     }
     //////////////////////////////////
     else if (this->is_integer ())
@@ -1549,10 +1527,9 @@ kvr::value * kvr::value::merge (const value *rhs)
     else if (this->is_boolean ())
     //////////////////////////////////
     {
-      // XOR
-      bool lv = this->get_boolean ();
+      // copy
       bool rv = rhs->get_boolean ();
-      this->set_boolean (lv ^ rv);
+      this->set_boolean (rv);
     }
   }
 
@@ -1607,7 +1584,6 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
     {
       const char *ogstr = og->get_string ();
       const char *mdstr = md->get_string ();
-
       if (strcmp (ogstr, mdstr) != 0)
       {
         diff->copy (md);
@@ -1624,7 +1600,6 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
       {
         int64_t ogn = og->get_integer ();
         int64_t mdn = md->get_integer ();
-
         if (ogn != mdn)
         {
           diff->copy (md);
@@ -1634,7 +1609,6 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
       {
         double ogn = og->get_float ();
         double mdn = md->get_float ();
-
         if (!kvr::internal::fp_equal (ogn, mdn, KVR_CONSTANT_DIFF_FP_EQ_EPSILON))
         {
           diff->copy (md);
@@ -1648,7 +1622,6 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
     {
       double ogn = og->get_float ();
       double mdn = md->get_float ();
-
       if (!kvr::internal::fp_equal (ogn, mdn, KVR_CONSTANT_DIFF_FP_EQ_EPSILON))
       {
         diff->copy (md);
@@ -1661,7 +1634,6 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
     {
       bool ogb = og->get_boolean ();
       bool mdb = md->get_boolean ();
-
       if (ogb != mdb)
       {
         diff->copy (md);
@@ -2015,7 +1987,7 @@ void kvr::value::dump () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::_set_string (const char *str, sz_t len)
+void kvr::value::_string_set (const char *str, sz_t len)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (is_string ());
@@ -2040,7 +2012,7 @@ void kvr::value::_set_string (const char *str, sz_t len)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::_move_string (char *str, sz_t size)
+void kvr::value::_string_move (char *str, sz_t size)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (size > 0);
@@ -2453,7 +2425,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
       {
         sz_t pksz = 0;
         char *pk = ctx->_create_path_expr (path, pathcnt, &pksz);
-        v->_move_string (pk, pksz);
+        v->_string_move (pk, pksz);
       }
 
       rem->_push_v (v);
@@ -3009,10 +2981,9 @@ kvr::value * kvr::value::_conv_array (sz_t cap)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::sz_t kvr::value::_size1 () const
+kvr::sz_t kvr::value::_map_size_linear () const
 {
-  KVR_ASSERT (is_map ());
-  
+  KVR_ASSERT (is_map ());  
   return m_data.m.size_l ();
 }
 
@@ -3020,10 +2991,9 @@ kvr::sz_t kvr::value::_size1 () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::sz_t kvr::value::_size2 () const
+kvr::sz_t kvr::value::_map_size_constant () const
 {
   KVR_ASSERT (is_map ());
-
   return m_data.m.size_c ();
 }
 
