@@ -29,9 +29,9 @@ All I wanted was a stand-alone, low-level C++ dictionary with a simple API, and 
 - Powerful Diff and Patch functionality 
 	* kvr's true raison d'être
 - Memory-efficent (or tries to be)
+	* Keys (within the same context) are reference-counted
 	* Values are 16/32 bytes on 32/64-bit systems
-	* Keys are reference-counted (if created within the same context)
-	* Values are dynamically created. (All your heap are belong to us)
+	* Support for custom memory allocators like [these...](https://github.com/uonyx/kvr/blob/master/example/allocators.h)
 
 ### Compatibiity
 Requires C++03 (TR1) or beyond. So far tested on:
