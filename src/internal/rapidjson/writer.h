@@ -354,7 +354,7 @@ template<>
 inline bool Writer<kvr::internal::json::ostream_memory>::WriteInt(int i) {
     char *buffer = os_->Push(11);
     const char* end = internal::i32toa(i, buffer);
-    os_->Pop(11 - (end - buffer));
+    os_->Pop(static_cast<size_t>(11 - (end - buffer)));
     return true;
 }
 
@@ -362,7 +362,7 @@ template<>
 inline bool Writer<kvr::internal::json::ostream_memory>::WriteUint(unsigned u) {
     char *buffer = os_->Push(10);
     const char* end = internal::u32toa(u, buffer);
-    os_->Pop(10 - (end - buffer));
+    os_->Pop(static_cast<size_t>(10 - (end - buffer)));
     return true;
 }
 
@@ -370,7 +370,7 @@ template<>
 inline bool Writer<kvr::internal::json::ostream_memory>::WriteInt64(int64_t i64) {
     char *buffer = os_->Push(21);
     const char* end = internal::i64toa(i64, buffer);
-    os_->Pop(21 - (end - buffer));
+    os_->Pop(static_cast<size_t>(21 - (end - buffer)));
     return true;
 }
 
@@ -378,7 +378,7 @@ template<>
 inline bool Writer<kvr::internal::json::ostream_memory>::WriteUint64(uint64_t u) {
     char *buffer = os_->Push(20);
     const char* end = internal::u64toa(u, buffer);
-    os_->Pop(20 - (end - buffer));
+    os_->Pop(static_cast<size_t>(20 - (end - buffer)));
     return true;
 }
 
@@ -386,7 +386,7 @@ template<>
 inline bool Writer<kvr::internal::json::ostream_memory>::WriteDouble(double d) {
     char *buffer = os_->Push(25);
     char* end = internal::dtoa(d, buffer);
-    os_->Pop(25 - (end - buffer));
+    os_->Pop(static_cast<size_t>(25 - (end - buffer)));
     return true;
 }
 #endif
