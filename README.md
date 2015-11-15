@@ -8,10 +8,14 @@ All I wanted was a stand-alone, low-level C++ dictionary with a simple API, and 
 ### Features
 - Simple API
 	* Low-level, extensible, and pluggable
+	* No templates, no exceptions, no operator overloading, no modern C++ here
 	* Explicit function calls with raw pointers everywhere :o
-	* No exceptions, no operator overloading, no modern C++ here
 - Self-contained and cross-platform
 	* Uses some STL (and TR1 for C++03 compilers because unordered_map)
+- Memory-efficent (or tries to be)
+	* Keys (within the same context) are reference-counted
+	* Values are 16/32 bytes on 32/64-bit systems
+	* Support for custom memory allocators like [these...](https://github.com/uonyx/kvr/blob/master/example/allocators.h)
 - Supported value types:
 	* Integer (64-bit signed)
 	* Floating Point (Double-precision)
@@ -28,10 +32,6 @@ All I wanted was a stand-alone, low-level C++ dictionary with a simple API, and 
 	* File stream? Compression stream? Encryption stream? Yes you can; for [example...](https://github.com/uonyx/kvr/blob/master/example/streams.h)
 - Powerful Diff and Patch functionality 
 	* kvr's true raison d'être
-- Memory-efficent (or tries to be)
-	* Keys (within the same context) are reference-counted
-	* Values are 16/32 bytes on 32/64-bit systems
-	* Support for custom memory allocators like [these...](https://github.com/uonyx/kvr/blob/master/example/allocators.h)
 
 ### Compatibiity
 Requires C++03 (TR1) or beyond. So far tested on:
@@ -109,12 +109,5 @@ More [examples](https://github.com/uonyx/kvr/tree/master/example).
 
 ### Alternatives
 - [folly/dynamic](https://github.com/facebook/folly/blob/master/folly/docs/Dynamic.md)
-	* Nice exception-throwing APIs built with modern C++	
-	* JSON serialization
-	* Battle-tested at Facebook
-	* Not self-contained (part of [folly](https://github.com/facebook/folly) which depends on gcc and [boost](http://www.boost.org/))
 - [Poco::Dynamic](http://pocoproject.org/docs-1.5.0/Poco.Dynamic.html)
-	* Exception-throwing APIs with neat advanced features
-	* JSON serialization
-	* Cross-platform	
-	* Not self-contained (part of the impressive-looking [Poco libs](http://pocoproject.org/features.html))
+- [github search](https://github.com/search?l=C%2B%2B&q=variant&type=Repositories&utf8=%E2%9C%93)
