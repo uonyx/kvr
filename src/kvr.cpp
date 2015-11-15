@@ -991,6 +991,9 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    n->v->conv_integer ();
+#endif
     n->v->set_integer (num);
     m_ctx->_destroy_key (k);
   }
@@ -1027,6 +1030,9 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    n->v->conv_float ();
+#endif
     n->v->set_float (num);
     m_ctx->_destroy_key (k);
   }
@@ -1062,6 +1068,9 @@ kvr::value * kvr::value::insert (const char *keystr, bool b)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    n->v->conv_boolean ();
+#endif
     n->v->set_boolean (b);
     m_ctx->_destroy_key (k);
   }
@@ -1098,6 +1107,9 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
+#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+    n->v->conv_string ();
+#endif
     n->v->set_string (str);
     m_ctx->_destroy_key (k);
   }

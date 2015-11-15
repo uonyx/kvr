@@ -194,7 +194,7 @@ public:
 
     TS_ASSERT (val0->is_boolean ());
     TS_ASSERT (val1->is_boolean ());
-    TS_ASSERT_EQUALS (val0->get_boolean (), true);
+    TS_ASSERT_EQUALS (val0->get_boolean (), false);
 
     val0->set_boolean (true);
     val1->set_boolean (true);
@@ -202,7 +202,7 @@ public:
 
     TS_ASSERT (val0->is_boolean ());
     TS_ASSERT (val1->is_boolean ());
-    TS_ASSERT_EQUALS (val0->get_boolean (), false);
+    TS_ASSERT_EQUALS (val0->get_boolean (), true);
 
     ///////////////////////////////
     // string
@@ -265,7 +265,6 @@ public:
     val0->insert ("text", "the quick brown fox jumped over the moon");
     val0->insert_map ("child")->insert ("apple", "seed");
 
-    val1->conv_null ();
     val1->insert ("two", 2);
     val1->insert ("three", 3);
     val1->insert ("pi", 3.1416);
@@ -314,7 +313,6 @@ public:
 
     val0->conv_null ();
     val1->conv_null ();
-
     val0->merge (val1);
 
     TS_ASSERT (val0->is_null ());
