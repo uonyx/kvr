@@ -331,7 +331,7 @@ void kvr::ctx::_destroy_value (uint32_t parentType, value *v)
   
   if (v && ((v->m_flags & parentType) != 0))
   {
-    v->~value ();
+    v->_destruct ();
     m_allocator->deallocate (v, sizeof (kvr::value));
   }
 }
@@ -513,23 +513,6 @@ void kvr::ctx::_destroy_path_expr (char *expr, sz_t exprsz)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // kvr::value
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value::value (kvr::ctx *ctx, uint32_t flags) : m_flags (flags), m_ctx (ctx)
-{
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::value::~value ()
-{
-  this->_destruct (); 
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -809,7 +792,7 @@ kvr::value * kvr::value::push (int64_t num)
 #endif
 
   kvr::value *v = m_ctx->_create_value_integer (FLAG_PARENT_ARRAY, num);
-  this->m_data.a.push (v, v->m_ctx);
+  this->m_data.a.push (v, m_ctx->m_allocator);
   return v;
 }
 
@@ -827,7 +810,7 @@ kvr::value * kvr::value::push (double num)
 #endif
 
   kvr::value *v = m_ctx->_create_value_float (FLAG_PARENT_ARRAY, num);
-  this->m_data.a.push (v, v->m_ctx);
+  this->m_data.a.push (v, m_ctx->m_allocator);
   return v;
 }
 
@@ -844,7 +827,7 @@ kvr::value * kvr::value::push (bool b)
 #endif
 
   kvr::value *v = m_ctx->_create_value_boolean (FLAG_PARENT_ARRAY, b);
-  this->m_data.a.push (v, v->m_ctx);
+  this->m_data.a.push (v, m_ctx->m_allocator);
   return v;
 }
 
@@ -863,7 +846,7 @@ kvr::value * kvr::value::push (const char *str)
 #endif
 
   kvr::value *v = m_ctx->_create_value_string (FLAG_PARENT_ARRAY, str, static_cast<sz_t>(strlen (str)));
-  this->m_data.a.push (v, v->m_ctx);
+  this->m_data.a.push (v, m_ctx->m_allocator);
   return v;
 }
 
@@ -880,7 +863,7 @@ kvr::value * kvr::value::push_map ()
 #endif
 
   kvr::value *v = m_ctx->_create_value_map (FLAG_PARENT_ARRAY);
-  this->m_data.a.push (v, v->m_ctx);
+  this->m_data.a.push (v, m_ctx->m_allocator);
   return v;
 }
 
@@ -897,7 +880,7 @@ kvr::value * kvr::value::push_array ()
 #endif
 
   kvr::value *v = m_ctx->_create_value_array (FLAG_PARENT_ARRAY);
-  this->m_data.a.push (v, v->m_ctx);
+  this->m_data.a.push (v, m_ctx->m_allocator);
   return v;
 }
 
@@ -914,7 +897,7 @@ kvr::value * kvr::value::push_null ()
 #endif
 
   kvr::value *v = m_ctx->_create_value_null (FLAG_PARENT_ARRAY);
-  this->m_data.a.push (v, v->m_ctx);
+  this->m_data.a.push (v, m_ctx->m_allocator);
   return v;
 }
 
@@ -1000,7 +983,7 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_integer (FLAG_PARENT_MAP, num), this->m_ctx);
+    n = m_data.m.insert (k, m_ctx->_create_value_integer (FLAG_PARENT_MAP, num), m_ctx->m_allocator);
     KVR_ASSERT (n);
   }
 
@@ -1039,7 +1022,7 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_float (FLAG_PARENT_MAP, num), this->m_ctx);
+    n = m_data.m.insert (k, m_ctx->_create_value_float (FLAG_PARENT_MAP, num), m_ctx->m_allocator);
     KVR_ASSERT (n);
   }
 
@@ -1077,7 +1060,7 @@ kvr::value * kvr::value::insert (const char *keystr, bool b)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_boolean (FLAG_PARENT_MAP, b), this->m_ctx);
+    n = m_data.m.insert (k, m_ctx->_create_value_boolean (FLAG_PARENT_MAP, b), m_ctx->m_allocator);
     KVR_ASSERT (n);
   }
 
@@ -1116,7 +1099,7 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_string (FLAG_PARENT_MAP, str, (sz_t) strlen (str)), this->m_ctx);
+    n = m_data.m.insert (k, m_ctx->_create_value_string (FLAG_PARENT_MAP, str, (sz_t) strlen (str)), m_ctx->m_allocator);
     KVR_ASSERT (n);
   }
 
@@ -1151,7 +1134,7 @@ kvr::value * kvr::value::insert_map (const char *keystr)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_map (FLAG_PARENT_MAP), this->m_ctx);
+    n = m_data.m.insert (k, m_ctx->_create_value_map (FLAG_PARENT_MAP), m_ctx->m_allocator);
     KVR_ASSERT (n);
   }
 
@@ -1186,7 +1169,7 @@ kvr::value * kvr::value::insert_array (const char *keystr)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_array (FLAG_PARENT_MAP), this->m_ctx);
+    n = m_data.m.insert (k, m_ctx->_create_value_array (FLAG_PARENT_MAP), m_ctx->m_allocator);
     KVR_ASSERT (n);
   }
 
@@ -1221,7 +1204,7 @@ kvr::value * kvr::value::insert_null (const char *keystr)
   else
 #endif
   {
-    n = m_data.m.insert (k, m_ctx->_create_value_null (FLAG_PARENT_MAP), this->m_ctx);
+    n = m_data.m.insert (k, m_ctx->_create_value_null (FLAG_PARENT_MAP), m_ctx->m_allocator);
     KVR_ASSERT (n);
   }
   
@@ -1281,14 +1264,14 @@ kvr::sz_t kvr::value::size () const
   KVR_ASSERT_SAFE (is_map (), 0);
 
 #if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
-  sz_t sz2 = this->_map_size_constant ();
+  sz_t sz2 = this->m_data.m.size_c ();
 #if KVR_DEBUG
-  sz_t sz1 = this->_map_size_linear ();
+  sz_t sz1 = this->m_data.m.size_l ();
   KVR_ASSERT (sz1 == sz2);
 #endif
   return sz2;
 #else
-  return this->_map_size_linear ();
+  return this->m_data.m.size_l ();
 #endif
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1740,7 +1723,7 @@ uint32_t kvr::value::hash (uint32_t seed) const
   //////////////////////////////////
   {
     hc += (FLAG_TYPE_STRING_STATIC + FLAG_TYPE_STRING_DYNAMIC);
-    const char *str = get_string ();
+    const char *str = this->get_string ();
     hc += kvr::internal::strhash (str);
   }
 
@@ -1749,8 +1732,8 @@ uint32_t kvr::value::hash (uint32_t seed) const
   //////////////////////////////////
   {
     hc += (FLAG_TYPE_NUMBER_INTEGER);
-    int64_t i = get_integer ();
-    uint32_t hv = static_cast<uint32_t>(i % (1ULL << 32));
+    uint64_t i = static_cast<uint64_t>(this->get_integer ());
+    uint32_t hv = static_cast<uint32_t>((i & 0x00000000ffffffff) ^ (i >> 32));
     hc += hv;
   }
 
@@ -1759,7 +1742,7 @@ uint32_t kvr::value::hash (uint32_t seed) const
   //////////////////////////////////
   {
     hc += (FLAG_TYPE_NUMBER_FLOAT);
-    double f = get_float ();
+    double f = this->get_float ();
     uint32_t hv = static_cast<uint32_t>(std::floor (f));
     hc += hv;
   }
@@ -1769,7 +1752,7 @@ uint32_t kvr::value::hash (uint32_t seed) const
   //////////////////////////////////
   {
     hc += (FLAG_TYPE_BOOLEAN);
-    bool b = get_boolean ();
+    bool b = this->get_boolean ();
     uint32_t hv = b ? 4u : 5u;
     hc += hv;
   }
@@ -2012,7 +1995,7 @@ void kvr::value::_string_set (const char *str, sz_t len)
   
   if (this->_is_string_dynamic ())
   {
-    this->m_data.s.m_dyn.set (str, len, this->m_ctx);
+    this->m_data.s.m_dyn.set (str, len, m_ctx->m_allocator);
   }
   else
   {
@@ -2267,7 +2250,7 @@ void kvr::value::_destruct ()
       m_ctx->_destroy_key (p.m_k);
       m_ctx->_destroy_value (FLAG_PARENT_MAP, p.m_v);      
     }
-    m_data.m.deinit (this->m_ctx);
+    m_data.m.deinit (m_ctx->m_allocator);
   }
   else if (this->is_array ())
   {
@@ -2277,11 +2260,11 @@ void kvr::value::_destruct ()
       this->pop ();
       c = this->length ();
     }
-    m_data.a.deinit (this->m_ctx);
+    m_data.a.deinit (m_ctx->m_allocator);
   }
   else if (this->_is_string_dynamic ())
   {
-    m_data.s.m_dyn.cleanup (this->m_ctx);
+    m_data.s.m_dyn.cleanup (m_ctx->m_allocator);
   }
 }
 
@@ -2941,7 +2924,7 @@ void kvr::value::_insert_kv (key *k, value *v)
   KVR_ASSERT (n == NULL);
 #endif
 
-  n = m_data.m.insert (k, v, this->m_ctx);
+  n = m_data.m.insert (k, v, m_ctx->m_allocator);
   KVR_ASSERT (n != NULL);
 }
 
@@ -2954,7 +2937,7 @@ void kvr::value::_push_v (value *v)
   KVR_ASSERT (v);
   KVR_ASSERT (is_array ());
 
-  this->m_data.a.push (v, v->m_ctx);
+  this->m_data.a.push (v, m_ctx->m_allocator);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2967,7 +2950,7 @@ kvr::value * kvr::value::_conv_map (sz_t cap)
   {
     this->_clear ();
     m_flags |= FLAG_TYPE_MAP;
-    m_data.m.init (cap, this->m_ctx);
+    m_data.m.init (cap, m_ctx->m_allocator);
   }
 
   return this;
@@ -2983,30 +2966,10 @@ kvr::value * kvr::value::_conv_array (sz_t cap)
   {
     this->_clear ();
     m_flags |= FLAG_TYPE_ARRAY;
-    m_data.a.init (cap, this->m_ctx);
+    m_data.a.init (cap, m_ctx->m_allocator);
   }
 
   return this;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::sz_t kvr::value::_map_size_linear () const
-{
-  KVR_ASSERT (is_map ());  
-  return m_data.m.size_l ();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-kvr::sz_t kvr::value::_map_size_constant () const
-{
-  KVR_ASSERT (is_map ());
-  return m_data.m.size_c ();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3065,16 +3028,17 @@ kvr::sz_t kvr::value::string::dyn_str::length () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::string::dyn_str::set (const char *str, sz_t len, ctx *ctx)
+void kvr::value::string::dyn_str::set (const char *str, sz_t len, allocator *a)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (len > 0);
+  KVR_ASSERT (a);
 
   sz_t allocsz = ((len + 1) + string::dyn_str::PAD) & ~string::dyn_str::PAD;  
   if (allocsz > m_size)
   {
-    if (m_data) { ctx->m_allocator->deallocate (m_data, m_size); }
-    m_data = (char *) ctx->m_allocator->allocate (allocsz);
+    if (m_data) { a->deallocate (m_data, m_size); }
+    m_data = (char *) a->allocate (allocsz);
     m_size = allocsz;
   }
 
@@ -3086,11 +3050,13 @@ void kvr::value::string::dyn_str::set (const char *str, sz_t len, ctx *ctx)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::string::dyn_str::cleanup (ctx *ctx)
+void kvr::value::string::dyn_str::cleanup (allocator *a)
 {
+  KVR_ASSERT (a);
+
   if (m_data)
   {
-    ctx->m_allocator->deallocate (m_data, m_size);
+    a->deallocate (m_data, m_size);
     m_data = NULL;
   }
 }
@@ -3103,13 +3069,13 @@ void kvr::value::string::dyn_str::cleanup (ctx *ctx)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::array::init (sz_t size, ctx *ctx)
+void kvr::value::array::init (sz_t size, allocator *a)
 {
   KVR_ASSERT (size > 0);
-  KVR_ASSERT (ctx);
+  KVR_ASSERT (a);
 
   sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
-  m_ptr = (kvr::value **) ctx->m_allocator->allocate (sizeof (kvr::value *) * allocsz);
+  m_ptr = (kvr::value **) a->allocate (sizeof (kvr::value *) * allocsz);
 #if KVR_DEBUG
   memset (m_ptr, 0, sizeof (kvr::value *) * allocsz); // debug-only
 #endif
@@ -3121,12 +3087,12 @@ void kvr::value::array::init (sz_t size, ctx *ctx)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::array::deinit (ctx *ctx)
+void kvr::value::array::deinit (allocator *a)
 {
   KVR_ASSERT (m_ptr);
-  KVR_ASSERT (ctx);
+  KVR_ASSERT (a);
 
-  ctx->m_allocator->deallocate (m_ptr, m_cap);
+  a->deallocate (m_ptr, m_cap);
   m_ptr = NULL;
 }
 
@@ -3134,10 +3100,10 @@ void kvr::value::array::deinit (ctx *ctx)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::array::push (value *v, ctx *ctx)
+void kvr::value::array::push (value *v, allocator *a)
 {
   KVR_ASSERT (v);
-  KVR_ASSERT (ctx);
+  KVR_ASSERT (a);
 
   if (m_len >= m_cap)
   {
@@ -3145,12 +3111,12 @@ void kvr::value::array::push (value *v, ctx *ctx)
 
     // resize
     sz_t new_cap = m_cap + CAP_INCR;
-    value ** new_ptr = (kvr::value **) ctx->m_allocator->allocate (sizeof (kvr::value *) * new_cap);
+    value ** new_ptr = (kvr::value **) a->allocate (sizeof (kvr::value *) * new_cap);
+    memcpy (new_ptr, m_ptr, sizeof (kvr::value *) * m_cap);
 #if KVR_DEBUG
-    memset (new_ptr, 0, sizeof (kvr::value *) * new_cap);
+    memset (new_ptr + m_cap, 0, (sizeof (kvr::value *) * CAP_INCR));
 #endif
-    memcpy (new_ptr, m_ptr, sizeof (kvr::value *) * m_len);
-    ctx->m_allocator->deallocate (m_ptr, m_cap);
+    a->deallocate (m_ptr, m_cap);
 
     m_ptr = new_ptr;
     m_cap = new_cap;
@@ -3222,14 +3188,14 @@ kvr::value * kvr::value::array::elem (sz_t index) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::map::init (sz_t size, ctx *ctx)
+void kvr::value::map::init (sz_t size, allocator *a)
 {
   KVR_ASSERT (m_ptr == NULL);
-  KVR_ASSERT (ctx);
+  KVR_ASSERT (a);
   KVR_ASSERT (size > 0); //if (size == 0) { size = 1U; }
 
   sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
-  m_ptr = (node *) ctx->m_allocator->allocate (sizeof (node) * allocsz);
+  m_ptr = (node *) a->allocate (sizeof (node) * allocsz);
   memset (m_ptr, 0, sizeof (node) * allocsz);
   m_cap = allocsz;
   m_len = 0;
@@ -3239,16 +3205,16 @@ void kvr::value::map::init (sz_t size, ctx *ctx)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::value::map::deinit (ctx *ctx)
+void kvr::value::map::deinit (allocator *a)
 {
-  KVR_ASSERT (ctx);
+  KVR_ASSERT (a);
 
 #if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
   sz_t cap = _cap ();
 #else
   sz_t cap = m_cap;
 #endif
-  ctx->m_allocator->deallocate (m_ptr, cap);
+  a->deallocate (m_ptr, cap);
   m_ptr = NULL;
 }
 
@@ -3256,17 +3222,17 @@ void kvr::value::map::deinit (ctx *ctx)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value::map::node *kvr::value::map::insert (key *k, value *v, ctx *ctx)
+kvr::value::map::node *kvr::value::map::insert (key *k, value *v, allocator *a)
 {
   KVR_ASSERT (k);
   KVR_ASSERT (v);
-  KVR_ASSERT (ctx);
+  KVR_ASSERT (a);
   KVR_ASSERT (m_ptr);
 
 #if KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE
 
   sz_t cap = _cap ();
-  // see if we can 'garbage-collect' nullified removed nodes first
+  // first, see if we can garbage-collect removed nodes
   if ((m_len >= cap) && ((m_cap % CAP_INCR) != 0))
   {
     sz_t ir = 0, iw = 0;
@@ -3291,10 +3257,10 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v, ctx *ctx)
   {
     // resize
     sz_t new_cap = cap + CAP_INCR;
-    node *new_ptr = (node *) ctx->m_allocator->allocate (sizeof (node) * new_cap);
-    memset (new_ptr, 0, sizeof (node) * new_cap);
+    node *new_ptr = (node *) a->allocate (sizeof (node) * new_cap);    
     memcpy (new_ptr, m_ptr, sizeof (node) * cap);
-    ctx->m_allocator->deallocate (m_ptr, cap);
+    memset (new_ptr + cap, 0, (sizeof (node) * CAP_INCR));
+    a->deallocate (m_ptr, cap);
 
     m_ptr = new_ptr;
     m_cap += CAP_INCR;
@@ -3306,35 +3272,38 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v, ctx *ctx)
   {
     KVR_ASSERT (m_ptr);
 
-    // resize
-    sz_t new_cap = m_cap + CAP_INCR;
-    node *new_ptr = (node *) ctx->m_allocator->allocate (sizeof (node) * new_cap);
-    memset (new_ptr, 0, sizeof (node) * new_cap);
-
-#if 1 // slower than memcpy but 'garbage-collects' removed nodes
+    // first, see if we can garbage-collect removed nodes
     sz_t ir = 0, iw = 0;
     while (ir < m_cap)
     {
       if (m_ptr [ir].k)
       {
-        new_ptr [iw++] = m_ptr [ir++];
+        m_ptr [iw++] = m_ptr [ir++];
       }
       else
       {
         ir++;
       }
-    }    
+    }
     m_len -= (ir - iw);
-#else
-    memcpy (new_ptr, m_ptr, sizeof (node) * m_cap);
-#endif
-    ctx->m_allocator->deallocate (m_ptr, m_cap);
-    m_ptr = new_ptr;
-    m_cap = new_cap;
+
+    // now check again and if resize if necessary
+    if (m_len >= m_cap)
+    {
+      // resize
+      sz_t new_cap = m_cap + CAP_INCR;
+      node *new_ptr = (node *) a->allocate (sizeof (node) * new_cap);
+      // copy over old nodes and set new nodes to null
+      memcpy (new_ptr, m_ptr, sizeof (node) * m_cap);      
+      memset (new_ptr + m_cap, 0, (sizeof (node) * CAP_INCR));
+      a->deallocate (m_ptr, m_cap);
+
+      m_ptr = new_ptr;
+      m_cap = new_cap;
+    }
   }
 
 #endif
-
   node *n = &m_ptr [m_len++];
   n->k = k;
   n->v = v;
@@ -3412,19 +3381,19 @@ kvr::value::map::node *kvr::value::map::find (const key *k) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::sz_t kvr::value::map::size_l () const
+kvr::sz_t kvr::value::map::size_l () const // size in linear time
 {
   sz_t size = 0;
-  sz_t idx = 0;
+  sz_t i = 0;
 
-  while (idx < m_len)
+  while (i < m_len)
   {
-    if (m_ptr [idx].k)
+    if (m_ptr [i].k)
     {
-      KVR_ASSERT (m_ptr [idx].v);      
+      KVR_ASSERT (m_ptr [i].v);
       ++size;
     }
-    ++idx;
+    ++i;
   }
 
   return size;
@@ -3434,10 +3403,9 @@ kvr::sz_t kvr::value::map::size_l () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::sz_t kvr::value::map::size_c () const
+kvr::sz_t kvr::value::map::size_c () const // size in constant time
 {
   sz_t size = m_cap - (_cap () - m_len);
-
   return size;
 }
 
@@ -3447,14 +3415,17 @@ kvr::sz_t kvr::value::map::size_c () const
 
 kvr::sz_t kvr::value::map::_cap () const
 {
-#if 0
-  sz_t capa = m_len ? kvr::internal::align_size (m_len, CAP_INCR) : m_cap;
-#else
+  // for experimental constant time map size calculator
+  // only called if #define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE is enabled
+
   sz_t capa = 0;
 
-  if ((m_cap % CAP_INCR) == 0)
+  // (m_cap >= m_len) otherwise (m_cap % CAP_INCR) == 0) might not be correct 
+  // i.e might be less than actual capacity e.g. if m_cap is decremented to multiple of CAP_INCR
+
+  if ((m_cap >= m_len) && ((m_cap % CAP_INCR) == 0))
   {
-    capa = m_cap; // might not be correct (potential buffer overrun). hmm...
+    capa = m_cap;
   }
   else if (m_len)
   {
@@ -3464,7 +3435,6 @@ kvr::sz_t kvr::value::map::_cap () const
   {
     capa = m_cap;
   }
-#endif
 
   return capa;
 }

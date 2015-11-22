@@ -340,8 +340,8 @@ namespace kvr
 
         const char *get () const;
         sz_t length () const;
-        void set (const char *str, sz_t len, ctx *ctx);
-        void cleanup (ctx *ctx);
+        void set (const char *str, sz_t len, allocator *a);
+        void cleanup (allocator *a);
       } m_dyn;
 
       struct stt_str
@@ -373,9 +373,9 @@ namespace kvr
     {
       static const sz_t CAP_INCR = KVR_CONSTANT_COMMON_BLOCK_SZ;
 
-      void    init (sz_t size, ctx *ctx);
-      void    deinit (ctx *ctx);
-      void    push (value *v, ctx *ctx);
+      void    init (sz_t size, allocator *a);
+      void    deinit (allocator *a);
+      void    push (value *v, allocator *a);
       value * pop ();
       value * elem (sz_t index) const;
 
@@ -399,14 +399,14 @@ namespace kvr
         node () : k (NULL), v (NULL) {}
       };
 
-      void    init (sz_t size, ctx *ctx);
-      void    deinit (ctx *ctx);
-      node *  insert (key *k, value *v, ctx *ctx);
+      void    init (sz_t size, allocator *a);
+      void    deinit (allocator *a);
+      node *  insert (key *k, value *v, allocator *a);
       void    remove (node *n);
       node *  find (const key *k) const;
       sz_t    size_l () const;
       sz_t    size_c () const;
-      sz_t    _cap () const; // experimental cap
+      sz_t    _cap () const; // experimental capacity
 
       node *  m_ptr;
       sz_t    m_len;
@@ -505,15 +505,11 @@ namespace kvr
     value * _conv_map (sz_t cap);
     value * _conv_array (sz_t cap);
 
-    sz_t    _map_size_linear () const;
-    sz_t    _map_size_constant () const;
-
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
     value (ctx *ctx, uint32_t flags);
-    ~value ();
 
     ///////////////////////////////////////////
     ///////////////////////////////////////////

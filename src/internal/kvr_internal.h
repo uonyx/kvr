@@ -228,11 +228,11 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    uint32_t strhash (const char *str) // djb hash function (fast)
+    uint32_t strhash (const char *str, uint32_t seed = 5381) // djbx33a hash function
     {
       KVR_ASSERT (str);
 
-      uint32_t hash = 5381;
+      uint32_t hash = seed;
       char c;
       while ((c = *str++) != 0)
       {
