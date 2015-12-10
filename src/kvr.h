@@ -58,7 +58,6 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <list>
 #if KVR_CPP11 
 #include <cstdint>
 #include <unordered_map>
@@ -576,10 +575,25 @@ namespace kvr
     {
       uint32_t operator() (const char *s) const;
     };
+    
+    struct val_store
+    {
+      void    init (size_t cap, allocator *a);
+      void    deinit (allocator *a);
+
+      void    push_back (value *v, allocator *a);
+      void    remove (value *v);
+      size_t  size () const;
+      value * at (size_t index);
+      void    clear ();
+
+      value **m_data;
+      size_t  m_size;
+      size_t  m_ulen;
+    };
 
     typedef std_unordered_map<const char *, key *, hash_djb, equal_cstr> keystore;
-    typedef std::list<value *> valstore;
-
+    
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -616,7 +630,7 @@ namespace kvr
     allocator * m_allocator;
     keystore    m_keystore;
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
-    valstore    m_valstore;
+    val_store   m_vstore;
 #endif
     friend class value;
   };

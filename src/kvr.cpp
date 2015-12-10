@@ -104,8 +104,14 @@ void kvr::ctx::destroy (kvr::ctx *ctx)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
 kvr::ctx::ctx (allocator *a) : m_allocator (a), m_keystore (256)
 {
+  KVR_ASSERT (a);
+#if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
+  m_vstore.init (8, m_allocator);
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,17 +123,22 @@ kvr::ctx::~ctx ()
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
   
   // clean up left-over values
-  valstore::iterator iter = m_valstore.begin ();
-  while (iter != m_valstore.end ())
+  for (size_t i = 0, c = m_vstore.size (); i < c; ++i)
   {
-    kvr::value *v = *iter;
-    KVR_ASSERT (v);
+    kvr::value *v = m_vstore.at (i);
+#if 1
+    KVR_ASSERT ((v->m_flags & kvr::value::FLAG_PARENT_CTX) != 0);
+    this->_destroy_value (kvr::value::FLAG_PARENT_CTX, v);
+#else
     this->destroy_value (v);
-    iter = m_valstore.begin ();
+#endif
   }
 
   // check left-over keys should have been cleaned up as well
   KVR_ASSERT (m_keystore.empty ());
+
+  // destroy vstore
+  m_vstore.deinit (m_allocator);
 
 #else
 
@@ -141,8 +152,8 @@ kvr::ctx::~ctx ()
     kvr::key *k = (*iter).second;
     KVR_ASSERT (k);
     
-    m_allocator->deallocate (k->m_str);
-    m_allocator->deallocate (k);
+    m_allocator->deallocate (k->m_str, k->m_len + 1);
+    m_allocator->deallocate (k, sizeof (kvr::key));
 
     m_keystore.erase (iter);
     iter = m_keystore.begin ();
@@ -158,7 +169,7 @@ kvr::value * kvr::ctx::create_value ()
 {
   kvr::value *v = this->_create_value_null (kvr::value::FLAG_PARENT_CTX);
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
-  m_valstore.push_back (v);
+  m_vstore.push_back (v, m_allocator);
 #endif
   return v;
 }
@@ -171,9 +182,8 @@ void kvr::ctx::destroy_value (value *v)
 {
   if ((v->m_flags & kvr::value::FLAG_PARENT_CTX) == 0) 
     return;
-
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
-  m_valstore.remove (v);
+  m_vstore.remove (v);
 #endif
   this->_destroy_value (kvr::value::FLAG_PARENT_CTX, v);
 }
@@ -191,13 +201,13 @@ size_t kvr::ctx::get_key_count ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-
+#if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
 size_t kvr::ctx::get_value_count ()
 {
-  size_t count = m_valstore.size ();
+  size_t count = m_vstore.size ();
   return count;
 }
-
+#endif
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////

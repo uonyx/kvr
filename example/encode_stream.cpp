@@ -53,7 +53,7 @@ void example_encode_stream ()
     }
   }
 
-#if KVR_EXAMPLE_HAVE_OPENSSL
+#ifdef KVR_EXAMPLE_HAVE_OPENSSL
   // encode to SHA1 string of JSON-encoded value
   {
     sha1_ostream jsonsha1;
@@ -66,7 +66,7 @@ void example_encode_stream ()
   }
 #endif
 
-#if KVR_EXAMPLE_HAVE_ZLIB
+#ifdef KVR_EXAMPLE_HAVE_ZLIB
   // encode JSON-encoded value to GZIP file
   {
     gzip_file_ostream<4096> gzfileos ("data/ARN-x.json.gz");
@@ -108,7 +108,7 @@ void example_encode_stream ()
   }
 #endif
 
-#if KVR_EXAMPLE_HAVE_LZ4
+#ifdef KVR_EXAMPLE_HAVE_LZ4
   // encode MSGPACK-encoded value to LZ4 memory stream
   {
     lz4_ostream<4096> lz4os;

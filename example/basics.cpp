@@ -76,10 +76,10 @@ void example_basics ()
 
 void example_basics_allocator ()
 {
-  // instantiate bump allocator reserving 1kb of memory
-  bump_allocator<1024> allocator;
+  // instantiate arena allocator reserving 1kb of stack memory
+  arena_allocator<1024> allocator;
 
-  // create a kvr context with bump allocator
+  // create a kvr context with the arena allocator
   kvr::ctx *ctx = kvr::ctx::create (&allocator);
 
   // create a map
@@ -105,7 +105,7 @@ void example_basics_allocator ()
   // remove null value
   map->remove ("null");
 
-  // serialize to JSON with bump allocator
+  // serialize to JSON with the arena allocator
   kvr::obuffer buf (128, &allocator);
   map->encode (kvr::CODEC_JSON, &buf);
 
