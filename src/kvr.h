@@ -203,11 +203,12 @@ namespace kvr
 
   private:
 
-    key (char *str, sz_t len);
+    key (char *str, sz_t len, uint32_t hash);
 
-    char *  m_str;
-    sz_t    m_len;
-    sz_t    m_ref;
+    char    * m_str;
+    sz_t      m_len;
+    sz_t      m_ref;
+    uint32_t  m_hash;
 
     friend class ctx;
     friend class value;
@@ -550,7 +551,8 @@ namespace kvr
   {
   public:
 
-    static ctx * create (allocator *allocator = NULL);
+    //static ctx * create (size_t ks_size = 32, size_t vs_size = 8, allocator *allocator = NULL);
+    static ctx * create (allocator *allocator = NULL);    
     static void  destroy (ctx *ctx);
 
     value * create_value ();
@@ -558,7 +560,7 @@ namespace kvr
 
     size_t  get_key_count ();
     size_t  get_value_count ();
-    void    dump (int id = 0);
+    void    dump (int id = 0) const;
 
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -576,23 +578,42 @@ namespace kvr
       uint32_t operator() (const char *s) const;
     };
     
+    typedef std_unordered_map<const char *, key *, hash_djb, equal_cstr> keystore;
+
+    struct key_store
+    {
+      void    init (size_t cap, allocator *a);
+      void    deinit (allocator *a);
+      void    resize (allocator *a);
+      key *   insert (const char *str, allocator *a);
+      key *   insert (char *str, sz_t len, allocator *a);
+      key *   find (const char *str) const;
+      void    erase (key *k, allocator *a);
+      void    erase (const char *str, allocator *a);
+      bool    empty () const;
+      float   load_factor () const;
+      void    dump () const;
+
+      key **  m_keys;
+      size_t  m_size;
+      size_t  m_used;
+    };
+
     struct val_store
     {
       void    init (size_t cap, allocator *a);
       void    deinit (allocator *a);
-
       void    push_back (value *v, allocator *a);
       void    remove (value *v);
       size_t  size () const;
       value * at (size_t index);
       void    clear ();
+      void    dump () const;
 
       value **m_data;
       size_t  m_size;
-      size_t  m_ulen;
+      size_t  m_used;
     };
-
-    typedef std_unordered_map<const char *, key *, hash_djb, equal_cstr> keystore;
     
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -607,7 +628,7 @@ namespace kvr
     value * _create_value_string (uint32_t parentType, const char *str, sz_t len);
     value * _create_value (uint32_t parentType);
     void    _destroy_value (uint32_t parentType, value *v);
-    
+
     key *   _add_key (const char *str);
     key *   _add_key_if_not_exists (const char *str);
     key *   _find_key (const char *str);
@@ -629,6 +650,8 @@ namespace kvr
 
     allocator * m_allocator;
     keystore    m_keystore;
+
+    key_store   m_kstore;
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
     val_store   m_vstore;
 #endif

@@ -228,7 +228,7 @@ namespace kvr
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
 
-    uint32_t strhash (const char *str, uint32_t seed = 5381) // djbx33a hash function
+    uint32_t djb_hash (const char *str, uint32_t seed = 5381) // djbx33x
     {
       KVR_ASSERT (str);
 
@@ -236,7 +236,7 @@ namespace kvr
       char c;
       while ((c = *str++) != 0)
       {
-        hash = ((hash << 5) + hash) + c;
+        hash = ((hash << 5) + hash) ^ c;
       }
       return hash;
     }

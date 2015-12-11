@@ -33,6 +33,8 @@ static const char * const kvr_const_str_rem   = "rem";
 
 static const uint32_t KVR_VALUE_TYPE_MASK = 0xffffff00;
 
+#define OLD_KS 0
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +85,7 @@ static kvr::allocator * get_default_allocator ()
 kvr::ctx * kvr::ctx::create (allocator *alloc)
 {
   allocator *a = alloc ? alloc : get_default_allocator ();
-  void *p = a->allocate (sizeof (kvr::ctx));
+  void *p = a->allocate (sizeof (kvr::ctx)); KVR_ASSERT (p);
   kvr::ctx *ctx = p ? (new (p) kvr::ctx (a)) : NULL;
   return ctx;
 }
@@ -112,6 +114,8 @@ kvr::ctx::ctx (allocator *a) : m_allocator (a), m_keystore (256)
 #if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
   m_vstore.init (8, m_allocator);
 #endif
+
+  m_kstore.init (32, m_allocator);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -159,6 +163,8 @@ kvr::ctx::~ctx ()
     iter = m_keystore.begin ();
   }
 #endif
+
+  m_kstore.deinit (m_allocator);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -212,7 +218,7 @@ size_t kvr::ctx::get_value_count ()
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::ctx::dump (int id)
+void kvr::ctx::dump (int id) const
 {
 #if KVR_DEBUG
   std::fprintf (stderr, "\n--------------------------------\n");
@@ -223,6 +229,9 @@ void kvr::ctx::dump (int id)
   std::fprintf (stderr, "max_size:          %zu\n",  m_keystore.max_size ());
   std::fprintf (stderr, "max_load_factor:   %f\n",   m_keystore.max_load_factor ());
   std::fprintf (stderr, "max_bucket_count:  %zu\n",  m_keystore.max_bucket_count ());
+
+  m_vstore.dump ();
+  m_kstore.dump ();
 #else
   KVR_REF_UNUSED (id);
 #endif
@@ -325,7 +334,8 @@ kvr::value * kvr::ctx::_create_value_string (uint32_t parentType, const char *st
 
 kvr::value * kvr::ctx::_create_value (uint32_t parentType)
 {
-  void *p = m_allocator->allocate (sizeof (kvr::value));
+  KVR_ASSERT (m_allocator);
+  void *p = m_allocator->allocate (sizeof (kvr::value)); KVR_ASSERT (p);
   kvr::value *v = p ? (new (p) kvr::value (this, parentType)) : NULL;
   return v;
 }
@@ -353,7 +363,9 @@ void kvr::ctx::_destroy_value (uint32_t parentType, value *v)
 kvr::key *kvr::ctx::_add_key (const char *str)
 {
   KVR_ASSERT (str);
+  KVR_ASSERT (m_allocator);
 
+#if OLD_KS
   sz_t len = static_cast<sz_t> (strlen (str));
   char *cstr = (char * ) m_allocator->allocate (len + 1);
   kvr_strcpy (cstr, len + 1, str);
@@ -362,6 +374,11 @@ kvr::key *kvr::ctx::_add_key (const char *str)
   if (k && (k->m_ref > 1)) { m_allocator->deallocate (cstr, len + 1); }
 
   return k;
+
+#else
+  key *k = m_kstore.insert (str, m_allocator);
+  return k;
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -371,7 +388,7 @@ kvr::key *kvr::ctx::_add_key (const char *str)
 kvr::key * kvr::ctx::_add_key_if_not_exists (const char *str) // preferred over '_create_key' if str is likely to already exist
 {
   KVR_ASSERT (str);
-
+#if OLD_KS
   key *k = this->_find_key (str);
   if (k)
   {
@@ -383,6 +400,10 @@ kvr::key * kvr::ctx::_add_key_if_not_exists (const char *str) // preferred over 
   }
 
   return k;
+#else
+  key *k = m_kstore.insert (str, m_allocator);
+  return k;
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -392,7 +413,7 @@ kvr::key * kvr::ctx::_add_key_if_not_exists (const char *str) // preferred over 
 kvr::key * kvr::ctx::_find_key (const char *str)
 {
   KVR_ASSERT (str);
-
+#if OLD_KS
   key *k = NULL;
 
   keystore::iterator iter = m_keystore.find (str);
@@ -402,6 +423,10 @@ kvr::key * kvr::ctx::_find_key (const char *str)
   }
 
   return k;
+#else
+  key *k = m_kstore.find (str);
+  return k;
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -412,7 +437,7 @@ kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (len > 0);
-
+#if OLD_KS
   std::pair<const char *, key *> p (str, NULL);
   std::pair<keystore::iterator, bool> res = m_keystore.insert (p);
 
@@ -434,6 +459,10 @@ kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
   }
 
   return k;
+#else
+  key *k = m_kstore.insert (str, len, m_allocator);
+  return k;
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -443,13 +472,16 @@ kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
 void kvr::ctx::_destroy_key (kvr::key *k)
 {
   KVR_ASSERT (k);
-
+#if OLD_KS
   if ((--k->m_ref) == 0)
   {
     m_keystore.erase (k->m_str);
     m_allocator->deallocate (k->m_str, k->m_len + 1);
     m_allocator->deallocate (k, sizeof (kvr::key));
   }
+#else
+  m_kstore.erase (k, m_allocator);
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -517,6 +549,473 @@ void kvr::ctx::_destroy_path_expr (char *expr, sz_t exprsz)
   KVR_ASSERT (expr);
 
   m_allocator->deallocate (expr, exprsz);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// kvr::ctx::key_store
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::key_store::init (size_t cap, allocator *a)
+{
+  KVR_ASSERT (a);
+  m_keys = (key **) a->allocate (sizeof (key *) * cap); KVR_ASSERT (m_keys);
+  memset (m_keys, 0, sizeof (key *) * cap);
+  m_size = cap;
+  m_used = 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::key_store::deinit (allocator *a)
+{
+  KVR_ASSERT (a);
+
+  for (size_t i = 0, c = m_size; i < c; ++i)
+  {
+    key *k = m_keys [i];
+    if (k)
+    {
+      if (k->m_str)
+      {
+        a->deallocate (k->m_str, k->m_len + 1);
+      }
+      a->deallocate (k, sizeof (key));
+      k = NULL;
+    }
+  }
+
+  a->deallocate (m_keys, sizeof (key *) * m_size);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::key_store::resize (allocator *a)
+{
+  KVR_ASSERT (a);
+
+  // create new buffer
+  size_t new_sz = m_size + m_size;
+  key **new_keys = (key **) a->allocate (sizeof (key *) * new_sz); KVR_ASSERT (new_keys);
+  memset (new_keys, 0, sizeof (key *) * new_sz);
+
+  // rehash and copy to new buffer
+  size_t new_len = 0;
+  for (size_t i = 0, c = m_size; i < c; ++i)
+  {
+    key *k = m_keys [i];
+
+    if (k && !k->m_str)
+    {
+      a->deallocate (k, sizeof (key));
+      k = NULL;
+    }
+
+    if (k)
+    {
+      uint32_t ni = k->m_hash % new_sz;
+      key *nk = new_keys [ni];
+      while (nk)
+      {
+        ni = (ni + 1) % new_sz;
+        nk = new_keys [ni];
+      }
+
+      new_keys [ni] = k;
+      new_len++;
+    }
+  }
+
+  KVR_ASSERT (m_used == new_len);
+
+  // set new buffer
+  a->deallocate (m_keys, sizeof (key *) * m_size);
+  m_keys = new_keys;
+  m_size = new_sz;  
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::key * kvr::ctx::key_store::insert (const char *str, allocator *a)
+{
+  KVR_ASSERT (str);
+  KVR_ASSERT (a);
+
+#if 1
+  //if (m_used >= ((m_size * 1) / 2))
+  if (m_used >= ((m_size * 2) / 3))
+  //if (m_used >= ((m_size * 3) / 4))
+  {
+    float lf = this->load_factor (); (void) lf;
+    this->resize (a);
+  }
+#else
+  float lf = this->load_factor ();
+  if (lf >= 0.7f) { this->resize (a); }
+#endif
+
+  uint32_t h = kvr::internal::djb_hash (str);
+  uint32_t i = h % m_size;
+  key *k = m_keys [i];
+
+  while (k)
+  {
+    if (!k->m_str) // deleted
+    {
+      break;
+    }
+
+    if ((k->m_hash == h) && (std::strcmp (k->m_str, str) == 0))
+    {
+      ++(k->m_ref);
+      return k;
+    }
+
+    i = (i + 1) % m_size;
+    k = m_keys [i];
+  }
+
+  if (k == NULL)
+  {
+    k = (key *) a->allocate (sizeof (key)); KVR_ASSERT (k);
+  }
+  else
+  {
+    // re-use deleted key
+  }
+
+  sz_t len = static_cast<sz_t> (strlen (str));
+  char *cstr = (char *) a->allocate (len + 1); KVR_ASSERT (cstr);
+  kvr_strcpy (cstr, len + 1, str);
+
+  k->m_str = cstr;
+  k->m_len = len;
+  k->m_hash = h;
+  k->m_ref = 1;
+
+  m_keys [i] = k;
+  m_used++;
+
+  return k;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::key * kvr::ctx::key_store::insert (char *str, sz_t len, allocator *a)
+{
+  KVR_ASSERT (str);
+  KVR_ASSERT (a);
+
+#if 1
+  //if (m_used >= ((m_size * 1) / 2))
+  if (m_used >= ((m_size * 2) / 3))
+  //if (m_used >= ((m_size * 3) / 4))
+  {
+    float lf = this->load_factor (); (void) lf;
+    this->resize (a);
+  }
+#else
+  float lf = this->load_factor ();
+  if (lf >= 0.7f) { this->resize (a); }
+#endif
+
+  uint32_t h = kvr::internal::djb_hash (str);
+  uint32_t i = h % m_size;
+  key *k = m_keys [i];
+
+  while (k)
+  {
+    if (!k->m_str) // deleted
+    {
+      break;
+    }
+
+    if ((k->m_hash == h) && (std::strcmp (k->m_str, str) == 0))
+    {
+      ++(k->m_ref);
+      return k;
+    }
+
+    i = (i + 1) % m_size;
+    k = m_keys [i];
+  }
+
+  if (k == NULL)
+  {
+    k = (key *) a->allocate (sizeof (key)); KVR_ASSERT (k);
+  }
+  else
+  {
+    // re-use deleted key
+  }
+
+  k->m_str = str;
+  k->m_len = len;
+  k->m_hash = h;
+  k->m_ref = 1;
+
+  m_keys [i] = k;
+  m_used++;
+
+  return k;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::key * kvr::ctx::key_store::find (const char *str) const
+{
+  KVR_ASSERT (str);
+
+  uint32_t h = kvr::internal::djb_hash (str);
+  uint32_t i = h % m_size;
+  key *k = m_keys [i];
+
+  while (k)
+  {
+    if (k->m_str && (k->m_hash == h) && (std::strcmp (k->m_str, str) == 0))
+    {
+      return k;
+    }
+
+    i = (i + 1) % m_size;
+    k = m_keys [i];
+  }
+
+  return k;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::key_store::erase (key *sk, allocator *a)
+{
+  KVR_ASSERT (sk);
+  KVR_ASSERT (a);
+
+  uint32_t h = sk->m_hash;
+  uint32_t i = h % m_size;
+  key *k = m_keys [i];
+
+  while (k)
+  {
+    if (k->m_str && (k == sk))
+    {
+      if ((--k->m_ref) == 0)
+      {
+        a->deallocate (k->m_str, k->m_len + 1);
+
+        k->m_str = NULL;
+        k->m_len = 0;
+        k->m_hash = 0;
+
+        m_used--;
+      }
+      return;
+    }
+
+    i = (i + 1) % m_size;
+    k = m_keys [i];
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::key_store::erase (const char *str, allocator *a)
+{
+  KVR_ASSERT (a);
+
+  uint32_t h = kvr::internal::djb_hash (str);
+  uint32_t i = h % m_size;
+  key *k = m_keys [i];
+
+  while (k)
+  {
+    if (k->m_str && (k->m_hash == h) && (std::strcmp (k->m_str, str) == 0))
+    {
+      if ((--k->m_ref) == 0)
+      {
+        a->deallocate (k->m_str, k->m_len + 1);
+
+        k->m_str = NULL;
+        k->m_len = 0;
+        k->m_hash = 0;
+
+        m_used--;
+      }
+
+      return;
+    }
+
+    i = (i + 1) % m_size;
+    k = m_keys [i];
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool kvr::ctx::key_store::empty () const
+{
+  return (m_used == 0);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+float kvr::ctx::key_store::load_factor () const
+{
+  return static_cast<float>(m_used) / static_cast<float>(m_size);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::key_store::dump () const
+{
+#if KVR_DEBUG
+  std::fprintf (stderr, "key_store size: %zu\n", m_size);
+  std::fprintf (stderr, "key_store used: %zu\n", m_used);
+  std::fprintf (stderr, "key_store load_factor: %f\n", this->load_factor ());
+
+  std::fprintf (stderr, "key_store keys: \n");
+  for (size_t i = 0, c = m_size; i < c; ++i)
+  {
+    key *k = m_keys [i];
+    if (k && k->m_str)
+    {
+      std::fprintf (stderr, "\t%zu: %s [%u]\n", i, k->m_str, k->m_ref);
+    }
+  }
+#endif
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// kvr::ctx::val_store
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::val_store::init (size_t cap, allocator *a)
+{
+  KVR_ASSERT (a);
+  m_data = (value **) a->allocate (sizeof (value *) * cap); KVR_ASSERT (m_data);
+  m_size = cap;
+  m_used = 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::val_store::deinit (allocator *a)
+{
+  KVR_ASSERT (a);
+  a->deallocate (m_data, (sizeof (value *) * m_size));
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::val_store::push_back (value *v, allocator *a)
+{
+  KVR_ASSERT (a);
+
+  if (m_used >= m_size)
+  {
+    size_t new_sz = m_size + m_size;
+    value **new_data = (value **) a->allocate (sizeof (value *) * new_sz); KVR_ASSERT (new_data);
+    memcpy (new_data, m_data, sizeof (value *) * m_size);
+    a->deallocate (m_data, m_size);
+    m_data = new_data;
+    m_size = new_sz;
+  }
+
+  m_data [m_used++] = v;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::val_store::remove (value *v)
+{
+  KVR_ASSERT (v);
+
+  for (size_t i = m_used; i >= 1; --i)
+  {
+    size_t idx = i - 1;
+    if (m_data [idx] == v)
+    {
+      for (size_t j = idx + 1; j < m_used; ++j)
+      {
+        m_data [j - 1] = m_data [j];
+      }
+      m_data [--m_used] = NULL;
+      break;
+    }
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+size_t kvr::ctx::val_store::size () const
+{
+  return m_used;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+kvr::value * kvr::ctx::val_store::at (size_t index)
+{
+  return m_data [index];
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::val_store::clear ()
+{
+  memset (m_data, 0, sizeof (value *) * m_size);
+  m_used = 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::ctx::val_store::dump () const
+{
+#if KVR_DEBUG
+  std::fprintf (stderr, "val_store size: %zu\n", m_size);
+  std::fprintf (stderr, "val_store used: %zu\n", m_used);
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1209,7 +1708,7 @@ kvr::value * kvr::value::insert_null (const char *keystr)
   if (n)
   {
     n->v->conv_null ();
-    m_ctx->_destroy_key (k);    
+    m_ctx->_destroy_key (k);
   }
   else
 #endif
@@ -1471,7 +1970,11 @@ kvr::value * kvr::value::merge (const value *rhs)
           }
           else
           {
+#if OLD_KS
             lk = m_ctx->_add_key (k);
+#else
+            lk = m_ctx->m_kstore.insert (k, m_ctx->m_allocator);
+#endif
           }          
           lv = m_ctx->_create_value_null (FLAG_PARENT_MAP)->copy (rv);
           this->_insert_kv (lk, lv);
@@ -1504,7 +2007,7 @@ kvr::value * kvr::value::merge (const value *rhs)
       const char *rv = rhs->get_string (&rvlen);
 
       sz_t bufsize = lvlen + rvlen + 1;
-      char *buf = (char *) m_ctx->m_allocator->allocate (bufsize);
+      char *buf = (char *) m_ctx->m_allocator->allocate (bufsize); KVR_ASSERT (buf);
       kvr_strcpy (buf, bufsize, lv);
       kvr_strcpy ((buf + lvlen), (bufsize - lvlen), rv);
 
@@ -1705,7 +2208,7 @@ uint32_t kvr::value::hash (uint32_t seed) const
     {
       const char *k = p.get_key ()->get_string ();
       value *v = p.get_value ();
-      uint32_t kh = kvr::internal::strhash (k);
+      uint32_t kh = kvr::internal::djb_hash (k);
       uint32_t vh = v->hash ();
       mhc ^= (kh * vh);
     }
@@ -1734,7 +2237,7 @@ uint32_t kvr::value::hash (uint32_t seed) const
   {
     hc += (FLAG_TYPE_STRING_STATIC + FLAG_TYPE_STRING_DYNAMIC);
     const char *str = this->get_string ();
-    hc += kvr::internal::strhash (str);
+    hc += kvr::internal::djb_hash (str);
   }
 
   //////////////////////////////////
@@ -3048,7 +3551,7 @@ void kvr::value::string::dyn_str::set (const char *str, sz_t len, allocator *a)
   if (allocsz > m_size)
   {
     if (m_data) { a->deallocate (m_data, m_size); }
-    m_data = (char *) a->allocate (allocsz);
+    m_data = (char *) a->allocate (allocsz); KVR_ASSERT (m_data);
     m_size = allocsz;
   }
 
@@ -3085,8 +3588,8 @@ void kvr::value::array::init (sz_t size, allocator *a)
   KVR_ASSERT (a);
 
   sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
-  m_ptr = (kvr::value **) a->allocate (sizeof (kvr::value *) * allocsz);
-#if KVR_DEBUG
+  m_ptr = (kvr::value **) a->allocate (sizeof (kvr::value *) * allocsz); KVR_ASSERT (m_ptr);
+#if KVR_DEBUG  
   memset (m_ptr, 0, sizeof (kvr::value *) * allocsz); // debug-only
 #endif
   m_cap = allocsz;
@@ -3121,7 +3624,7 @@ void kvr::value::array::push (value *v, allocator *a)
 
     // resize
     sz_t new_cap = m_cap + CAP_INCR;
-    value ** new_ptr = (kvr::value **) a->allocate (sizeof (kvr::value *) * new_cap);
+    value ** new_ptr = (kvr::value **) a->allocate (sizeof (kvr::value *) * new_cap); KVR_ASSERT (new_ptr);
     memcpy (new_ptr, m_ptr, sizeof (kvr::value *) * m_cap);
 #if KVR_DEBUG
     memset (new_ptr + m_cap, 0, (sizeof (kvr::value *) * CAP_INCR));
@@ -3205,7 +3708,7 @@ void kvr::value::map::init (sz_t size, allocator *a)
   KVR_ASSERT (size > 0); //if (size == 0) { size = 1U; }
 
   sz_t allocsz = kvr::internal::align_size (size, CAP_INCR);
-  m_ptr = (node *) a->allocate (sizeof (node) * allocsz);
+  m_ptr = (node *) a->allocate (sizeof (node) * allocsz); KVR_ASSERT (m_ptr);
   memset (m_ptr, 0, sizeof (node) * allocsz);
   m_cap = allocsz;
   m_len = 0;
@@ -3267,7 +3770,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v, allocator *a)
   {
     // resize
     sz_t new_cap = cap + CAP_INCR;
-    node *new_ptr = (node *) a->allocate (sizeof (node) * new_cap);    
+    node *new_ptr = (node *) a->allocate (sizeof (node) * new_cap); KVR_ASSERT (new_ptr);
     memcpy (new_ptr, m_ptr, sizeof (node) * cap);
     memset (new_ptr + cap, 0, (sizeof (node) * CAP_INCR));
     a->deallocate (m_ptr, cap);
@@ -3302,7 +3805,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v, allocator *a)
     {
       // resize
       sz_t new_cap = m_cap + CAP_INCR;
-      node *new_ptr = (node *) a->allocate (sizeof (node) * new_cap);
+      node *new_ptr = (node *) a->allocate (sizeof (node) * new_cap); KVR_ASSERT (new_ptr);
       // copy over old nodes and set new nodes to null
       memcpy (new_ptr, m_ptr, sizeof (node) * m_cap);      
       memset (new_ptr + m_cap, 0, (sizeof (node) * CAP_INCR));
@@ -3667,7 +4170,7 @@ void kvr::mem_ostream::reserve (size_t sz)
 {
   if (sz > m_sz)
   {
-    uint8_t *buf = (uint8_t *) m_alloc->allocate (sz);
+    uint8_t *buf = (uint8_t *) m_alloc->allocate (sz); KVR_ASSERT (buf);
 
     if (m_buf)
     {
