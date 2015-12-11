@@ -11,7 +11,7 @@ All I wanted was a stand-alone, low-level C++ dictionary with a simple API, and 
 	* No templates, no exceptions, no operator overloading, no modern C++ here
 	* Explicit function calls with raw pointers everywhere :o
 - Self-contained and cross-platform
-	* Uses some STL (and TR1 for C++03 compilers because unordered_map)
+	* No dependency on STL
 - Memory-efficent (or tries to be)
 	* Keys (within the same context) are reference-counted
 	* Values are 16/32 bytes on 32/64-bit systems
@@ -34,7 +34,7 @@ All I wanted was a stand-alone, low-level C++ dictionary with a simple API, and 
 	* kvr's true raison d'être
 
 ### Compatibiity
-Requires C++03 (TR1) or beyond. So far tested on:
+C++98 or beyond. So far tested on:
 - Visual C++ 2015 on Windows (32/64-bit)
 - GCC 4.2.1 and Clang 3.2 on Mac OS X (64-bit)
 - GCC 4.6.3 and Clang 3.4 on Linux (64-bit)

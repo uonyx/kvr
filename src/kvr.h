@@ -60,12 +60,13 @@
 #include <cstring>
 #if KVR_CPP11 
 #include <cstdint>
-#include <unordered_map>
-#define std_unordered_map std::unordered_map
 #else
-#include <tr1/cstdint>
-#include <tr1/unordered_map>
-#define std_unordered_map std::tr1::unordered_map
+//#include <tr1/cstdint>
+#ifdef _MSC_VER
+#include "internal/rapidjson/msinttypes/stdint.h"
+#else
+#include <stdint.h>
+#endif
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -78,8 +79,8 @@
 #define KVR_OPTIMIZATION_FAST_MAP_INSERT_ON             0
 // set to 1 to compact fp precision for codec ops
 #define KVR_OPTIMIZATION_COMPACT_CODEC_FP_PRECISION_ON  0
-// set to 1 to disable tracking of context memory
-#define KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF    0
+// set to 1 to disable auto clean up of root values
+#define KVR_OPTIMIZATION_CTX_VALUE_STORE_OFF            0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -202,9 +203,7 @@ namespace kvr
     sz_t          get_length () const;
 
   private:
-
-    key (char *str, sz_t len, uint32_t hash);
-
+    
     char    * m_str;
     sz_t      m_len;
     sz_t      m_ref;
@@ -551,7 +550,7 @@ namespace kvr
   {
   public:
 
-    //static ctx * create (size_t ks_size = 32, size_t vs_size = 8, allocator *allocator = NULL);
+    static ctx * create (size_t ks_min_size, size_t vs_min_size, allocator *allocator = NULL);
     static ctx * create (allocator *allocator = NULL);    
     static void  destroy (ctx *ctx);
 
@@ -568,18 +567,6 @@ namespace kvr
 
   private:
 
-    struct equal_cstr
-    {
-      bool operator() (const char *a, const char *b) const;
-    };
-
-    struct hash_djb
-    {
-      uint32_t operator() (const char *s) const;
-    };
-    
-    typedef std_unordered_map<const char *, key *, hash_djb, equal_cstr> keystore;
-
     struct key_store
     {
       void    init (size_t cap, allocator *a);
@@ -590,7 +577,7 @@ namespace kvr
       key *   find (const char *str) const;
       void    erase (key *k, allocator *a);
       void    erase (const char *str, allocator *a);
-      bool    empty () const;
+      size_t  used () const;
       float   load_factor () const;
       void    dump () const;
 
@@ -605,7 +592,7 @@ namespace kvr
       void    deinit (allocator *a);
       void    push_back (value *v, allocator *a);
       void    remove (value *v);
-      size_t  size () const;
+      size_t  used () const;
       value * at (size_t index);
       void    clear ();
       void    dump () const;
@@ -629,9 +616,8 @@ namespace kvr
     value * _create_value (uint32_t parentType);
     void    _destroy_value (uint32_t parentType, value *v);
 
-    key *   _add_key (const char *str);
-    key *   _add_key_if_not_exists (const char *str);
     key *   _find_key (const char *str);
+    key *   _create_key (const char *str);    
     key *   _create_key (char *str, sz_t len);    
     void    _destroy_key (key *k);
 
@@ -644,15 +630,13 @@ namespace kvr
 
   private:
 
-    ctx (allocator *a);
+    ctx (size_t ks_size, size_t vs_size, allocator *a);
     ctx (const ctx &);
     ~ctx ();
 
     allocator * m_allocator;
-    keystore    m_keystore;
-
     key_store   m_kstore;
-#if !KVR_OPTIMIZATION_AUTO_CTX_MEMORY_CLEANUP_OFF
+#if !KVR_OPTIMIZATION_CTX_VALUE_STORE_OFF
     val_store   m_vstore;
 #endif
     friend class value;
