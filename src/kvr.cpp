@@ -463,7 +463,7 @@ uint32_t kvr::ctx::_get_rand ()
 
   // current time (1-second resolution)
   time_t tnow = time (0);
-  uint8_t *p = (uint8_t *) &tnow;
+  uint8_t *p = reinterpret_cast<uint8_t *>(&tnow);
   uint32_t tseed = 0;
   for (size_t i = 0; i < sizeof (tnow); ++i)
   {
