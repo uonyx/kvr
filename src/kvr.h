@@ -79,8 +79,6 @@
 #define KVR_OPTIMIZATION_FAST_MAP_INSERT_ON             0
 // set to 1 to compact fp precision for codec ops
 #define KVR_OPTIMIZATION_COMPACT_CODEC_FP_PRECISION_ON  0
-// set to 1 to disable auto clean up of root values
-#define KVR_OPTIMIZATION_CTX_VALUE_STORE_OFF            0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -277,6 +275,7 @@ namespace kvr
     value *       push_array ();
     value *       push_null ();
     bool          pop ();
+    bool          pop (sz_t index);
     value *       element (sz_t index) const;
     sz_t          length () const;
 
@@ -376,6 +375,7 @@ namespace kvr
       void    deinit (allocator *a);
       void    push (value *v, allocator *a);
       value * pop ();
+      value * pop (sz_t index);
       value * elem (sz_t index) const;
 
       value **m_ptr;
@@ -556,7 +556,6 @@ namespace kvr
 
     value * create_value ();
     void    destroy_value (value *v);
-
     size_t  get_key_count ();
     size_t  get_value_count ();
     void    dump (int id = 0) const;
@@ -569,7 +568,7 @@ namespace kvr
 
     struct key_store
     {
-      void    init (size_t cap, allocator *a);
+      void    init (size_t cap, uint32_t hfseed, allocator *a);
       void    deinit (allocator *a);
       void    resize (allocator *a);
       key *   insert (const char *str, allocator *a);
@@ -581,9 +580,10 @@ namespace kvr
       float   load_factor () const;
       void    dump () const;
 
-      key **  m_keys;
-      size_t  m_size;
-      size_t  m_used;
+      key **    m_keys;
+      size_t    m_size;
+      size_t    m_used;
+      uint32_t  m_seed;
     };
 
     struct val_store
@@ -597,32 +597,34 @@ namespace kvr
       void    clear ();
       void    dump () const;
 
-      value **m_data;
-      size_t  m_size;
-      size_t  m_used;
+      value **  m_data;
+      size_t    m_size;
+      size_t    m_used;
     };
     
     ///////////////////////////////////////////
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
-    value * _create_value_null (uint32_t parentType);
-    value * _create_value_map (uint32_t parentType);
-    value * _create_value_array (uint32_t parentType);
-    value * _create_value_integer (uint32_t parentType, int64_t number);
-    value * _create_value_float (uint32_t parentType, double number);
-    value * _create_value_boolean (uint32_t parentType, bool boolean);
-    value * _create_value_string (uint32_t parentType, const char *str, sz_t len);
-    value * _create_value (uint32_t parentType);
-    void    _destroy_value (uint32_t parentType, value *v);
+    value *   _create_value_null (uint32_t parentType);
+    value *   _create_value_map (uint32_t parentType);
+    value *   _create_value_array (uint32_t parentType);
+    value *   _create_value_integer (uint32_t parentType, int64_t number);
+    value *   _create_value_float (uint32_t parentType, double number);
+    value *   _create_value_boolean (uint32_t parentType, bool boolean);
+    value *   _create_value_string (uint32_t parentType, const char *str, sz_t len);
+    value *   _create_value (uint32_t parentType);
+    bool      _destroy_value (uint32_t parentType, value *v);
 
-    key *   _find_key (const char *str);
-    key *   _create_key (const char *str);    
-    key *   _create_key (char *str, sz_t len);    
-    void    _destroy_key (key *k);
+    key *     _find_key (const char *str);
+    key *     _create_key (const char *str);    
+    key *     _create_key (char *str, sz_t len);    
+    void      _destroy_key (key *k);
 
-    char *  _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) const;
-    void    _destroy_path_expr (char *expr, sz_t exprsz);
+    char *    _create_path_expr (const char **path, sz_t pathsz, sz_t *exprsz) const;
+    void      _destroy_path_expr (char *expr, sz_t exprsz);
+
+    uint32_t  _get_rand ();
     
     ///////////////////////////////////////////
     ///////////////////////////////////////////
@@ -636,9 +638,8 @@ namespace kvr
 
     allocator * m_allocator;
     key_store   m_kstore;
-#if !KVR_OPTIMIZATION_CTX_VALUE_STORE_OFF
     val_store   m_vstore;
-#endif
+
     friend class value;
   };
 

@@ -556,7 +556,7 @@ public:
     // pop
     {
       kvr::sz_t len1 = array->length ();
-      array->pop ();
+      array->pop (6);
       array->pop ();
       kvr::sz_t len2 = array->length ();
       TS_ASSERT_LESS_THAN (len2, len1);

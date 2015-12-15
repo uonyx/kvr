@@ -23,6 +23,11 @@
 #include <cstdio>
 #include <cmath>
 #include <limits>
+#if KVR_CPP11
+#include <random>
+#else
+#include <ctime>
+#endif
 
 #include "../kvr.h"
 #include "rapidjson/internal/itoa.h"
@@ -32,8 +37,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE  (KVR_DEBUG || 0) && 1
-#define KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON       0 // TODO: check compiler?
+#define KVR_INTERNAL_FLAG_DEBUG_CTX_KEY_STORE_RAND_OFF  (KVR_DEBUG && 0)
+#define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE    (KVR_DEBUG || 0) && 1
+#define KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON         0 // TODO: check compiler?
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
