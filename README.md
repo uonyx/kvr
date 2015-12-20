@@ -1,4 +1,4 @@
-kvr: key-value runtime [alpha]
+kvr: key-value runtime
 ========================================================================
 
 [![Build Status] (https://travis-ci.org/uonyx/kvr.svg)](https://travis-ci.org/uonyx/kvr)

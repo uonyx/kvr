@@ -42,13 +42,13 @@ static const uint32_t KVR_VALUE_TYPE_MASK = 0xffffff00;
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if KVR_DEBUG
-#define kvr_memory_track_ctr_decl(X) kvr_default_allocator (): X (0) {} ~kvr_default_allocator () { KVR_ASSERT (X == 0); } int X
+#define kvr_memory_track_ctr_decl(C, X) C (): X (0) {} ~C () { KVR_ASSERT (X == 0); } int X
 #define kvr_memory_track_ctr_incr(X) X++
 #define kvr_memory_track_ctr_decr(X) X--
 #else
+#define kvr_memory_track_ctr_decl(C, X)
 #define kvr_memory_track_ctr_incr(X)
 #define kvr_memory_track_ctr_decr(X)
-#define kvr_memory_track_ctr_decl(x)
 #endif
 
 #if KVR_CPP11
@@ -65,7 +65,7 @@ static kvr::allocator * get_default_allocator ()
     void * allocate (size_t sz)            { kvr_memory_track_ctr_incr (m_ctr); return ::operator new (sz); }
     void   deallocate (void *p, size_t sz) { kvr_memory_track_ctr_decr (m_ctr); return ::operator delete (p); KVR_REF_UNUSED (sz); }
 
-    kvr_memory_track_ctr_decl (m_ctr);
+    kvr_memory_track_ctr_decl (kvr_default_allocator, m_ctr);
   };
 
   static kvr_default_allocator a;
@@ -316,8 +316,7 @@ kvr::value * kvr::ctx::_create_value (uint32_t parentType)
 
 bool kvr::ctx::_destroy_value (uint32_t parentType, value *v)
 {
-  KVR_ASSERT (v);
-  KVR_ASSERT ((v->m_flags & parentType) != 0);  
+  KVR_ASSERT (v); 
   
   if (v && ((v->m_flags & parentType) != 0))
   {
@@ -2457,7 +2456,7 @@ kvr::value * kvr::value::_search_path_expr (const char *expr, const char **lastk
 
   while (v && e2)
   {
-    sz_t klen = e2 - e1;
+    size_t klen = static_cast<size_t>(e2 - e1);
     char *k = (char *) kos.push (klen + 1);    
     kvr_strncpy (k, kos.size (), e1, klen);
 
@@ -2518,7 +2517,7 @@ kvr::value * kvr::value::_search_key (const char *keystr) const
 
         if (s)
         {
-          sz_t sklen = s - pattern;
+          sz_t sklen = static_cast<sz_t>(s - pattern);
           const char *sk = pattern;
           const char *sv = s + 1;
 

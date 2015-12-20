@@ -37,6 +37,7 @@
 RAPIDJSON_DIAG_PUSH
 RAPIDJSON_DIAG_OFF(4127)  // conditional expression is constant
 RAPIDJSON_DIAG_OFF(4702)  // unreachable code
+RAPIDJSON_DIAG_OFF(4244)  // conversion from 'type1' to 'type2', possible loss of data
 #endif
 
 #ifdef __GNUC__
