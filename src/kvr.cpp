@@ -524,8 +524,8 @@ void kvr::ctx::key_store::resize (allocator *a)
   KVR_ASSERT (a);
 
   // create new buffer
-  size_t new_sz = m_size + m_size;
-  key **new_keys = (key **) a->allocate (sizeof (key *) * new_sz); KVR_ASSERT (new_keys);
+  size_t new_sz = m_size + m_size;  
+  key ** new_keys = (key **) a->allocate (sizeof (key *) * new_sz); KVR_ASSERT (new_keys);
   memset (new_keys, 0, sizeof (key *) * new_sz);
 
   // rehash and copy to new buffer
@@ -576,7 +576,7 @@ kvr::key * kvr::ctx::key_store::insert (const char *str, allocator *a)
   KVR_ASSERT (str);
   KVR_ASSERT (a);
 
-  if (m_used > ((m_size * 2) / 3))
+  if (m_used > (m_size * 2 / 3))
   {
     this->resize (a);
   }
@@ -632,7 +632,7 @@ kvr::key * kvr::ctx::key_store::insert (char *str, sz_t len, allocator *a)
   KVR_ASSERT (str);
   KVR_ASSERT (a);
 
-  if (m_used > ((m_size * 2) / 3))
+  if (m_used > (m_size * 2 / 3))
   {
     this->resize (a);
   }
@@ -705,34 +705,23 @@ kvr::key * kvr::ctx::key_store::find (const char *str) const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::ctx::key_store::erase (key *sk, allocator *a)
+void kvr::ctx::key_store::erase (key *k, allocator *a)
 {
-  KVR_ASSERT (sk);
+  KVR_ASSERT (k);
   KVR_ASSERT (a);
 
-  uint32_t h = sk->m_hash;
-  uint32_t i = h % m_size;
-  key *k = m_keys [i];
-
-  while (k)
+  if (k->m_str)
   {
-    if (k->m_str && (k == sk))
+    if ((--k->m_ref) == 0)
     {
-      if ((--k->m_ref) == 0)
-      {
-        a->deallocate (k->m_str, k->m_len + 1);
+      a->deallocate (k->m_str, k->m_len + 1);
 
-        k->m_str = NULL;
-        k->m_len = 0;
-        k->m_hash = 0;
+      k->m_str = NULL;
+      k->m_len = 0;
+      k->m_hash = 0;
 
-        m_used--;
-      }
-      return;
+      m_used--;
     }
-
-    i = (i + 1) % m_size;
-    k = m_keys [i];
   }
 }
 

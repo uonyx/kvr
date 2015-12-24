@@ -76,8 +76,8 @@ void example_basics ()
 
 void example_basics_allocator ()
 {
-  // instantiate arena allocator reserving 1kb of stack memory
-  arena_allocator<1024> allocator;
+  // instantiate arena allocator reserving 2kb of stack memory
+  arena_allocator<2048> allocator;
 
   // create a kvr context with the arena allocator
   kvr::ctx *ctx = kvr::ctx::create (&allocator);
