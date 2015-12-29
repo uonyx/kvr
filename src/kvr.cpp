@@ -457,7 +457,7 @@ uint32_t kvr::ctx::_get_rand ()
   // because (s)rand not thread-safe
 
   // address of ctx
-  uintptr_t addr = (uintptr_t) this;
+  uintptr_t addr = reinterpret_cast<uintptr_t>(this);
   uint32_t aseed = addr & 0xffffffff;
 
   // current time (1-second resolution)

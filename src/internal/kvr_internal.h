@@ -403,9 +403,9 @@ namespace kvr
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef KVR_LITTLE_ENDIAN
-#define kvr_bigendian16(X) kvr::internal::byteswap16 (X)
-#define kvr_bigendian32(X) kvr::internal::byteswap32 (X)
-#define kvr_bigendian64(X) kvr::internal::byteswap64 (X)
+#define kvr_bigendian16(X) kvr::internal::byteswap16 (static_cast<uint16_t>(X))
+#define kvr_bigendian32(X) kvr::internal::byteswap32 (static_cast<uint32_t>(X))
+#define kvr_bigendian64(X) kvr::internal::byteswap64 (static_cast<uint64_t>(X))
 #else
 #define kvr_bigendian16(X) (X)
 #define kvr_bigendian32(X) (X)

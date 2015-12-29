@@ -1383,13 +1383,13 @@ namespace kvr
             }
             else if (ui64 <= 0xffff)
             {
-              uint16_t i = kvr_bigendian16 (static_cast<uint16_t>(ui64));
+              uint16_t i = kvr_bigendian16 (ui64);
               m_os->put (CBOR_MAJOR_TYPE_0 | CBOR_VALUE_TYPE_UINT16);
               m_os->write ((uint8_t *) &i, 2);
             }
             else if (ui64 <= 0xffffffff)
             {
-              uint32_t i = kvr_bigendian32 (static_cast<uint32_t>(ui64));
+              uint32_t i = kvr_bigendian32 (ui64);
               m_os->put (CBOR_MAJOR_TYPE_0 | CBOR_VALUE_TYPE_UINT32);
               m_os->write ((uint8_t *) &i, 4);
             }
@@ -1417,13 +1417,13 @@ namespace kvr
             }
             else if (ni64 <= 0xffff)
             {
-              uint16_t i = kvr_bigendian16 (static_cast<uint16_t>(ni64));
+              uint16_t i = kvr_bigendian16 (ni64);
               m_os->put (CBOR_MAJOR_TYPE_1 | CBOR_VALUE_TYPE_UINT16);              
               m_os->write ((uint8_t *) &i, 2);
             }
             else if (ni64 <= 0xffffffff)
             {
-              uint32_t i = kvr_bigendian32 (static_cast<uint32_t>(ni64));
+              uint32_t i = kvr_bigendian32 (ni64);
               m_os->put (CBOR_MAJOR_TYPE_1 | CBOR_VALUE_TYPE_UINT32);              
               m_os->write ((uint8_t *) &i, 4);
             }
