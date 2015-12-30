@@ -305,6 +305,7 @@ kvr::value * kvr::ctx::_create_value_string (uint32_t parentType, const char *st
 kvr::value * kvr::ctx::_create_value (uint32_t parentType)
 {
   KVR_ASSERT (m_allocator);
+
   void *p = m_allocator->allocate (sizeof (kvr::value)); KVR_ASSERT (p);
   kvr::value *v = p ? (new (p) kvr::value (this, parentType)) : NULL;
   return v;
@@ -335,6 +336,7 @@ bool kvr::ctx::_destroy_value (uint32_t parentType, value *v)
 kvr::key * kvr::ctx::_find_key (const char *str)
 {
   KVR_ASSERT (str);
+
   key *k = m_kstore.find (str);
   return k;
 }
@@ -346,6 +348,7 @@ kvr::key * kvr::ctx::_find_key (const char *str)
 kvr::key *kvr::ctx::_create_key (const char *str)
 {
   KVR_ASSERT (str);
+
   key *k = m_kstore.insert (str, m_allocator);
   return k;
 }
@@ -358,6 +361,7 @@ kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
 {
   KVR_ASSERT (str);
   KVR_ASSERT (len > 0);
+
   key *k = m_kstore.insert (str, len, m_allocator);
   return k;
 }
@@ -369,6 +373,7 @@ kvr::key * kvr::ctx::_create_key (char *str, sz_t len)
 void kvr::ctx::_destroy_key (kvr::key *k)
 {
   KVR_ASSERT (k);
+
   m_kstore.erase (k, m_allocator);
 }
 
@@ -453,21 +458,17 @@ uint32_t kvr::ctx::_get_rand ()
   uint32_t r = mt ();
   return r;
 #else
-  // a quick/dirty random number generator
-  // because (s)rand not thread-safe
+  // a quick/dirty random number generator because (s)rand not thread-safe
 
-  // address of ctx
+  // address of ctx (low-order 4 bytes)
   uintptr_t addr = reinterpret_cast<uintptr_t>(this);
   uint32_t aseed = addr & 0xffffffff;
 
-  // current time (1-second resolution)
+  // hashed current time (1-second resolution)
   time_t tnow = time (0);
   uint8_t *p = reinterpret_cast<uint8_t *>(&tnow);
   uint32_t tseed = 0;
-  for (size_t i = 0; i < sizeof (tnow); ++i)
-  {
-    tseed = tseed * (UCHAR_MAX + 2U) + p [i];
-  }
+  for (size_t i = 0, c = sizeof (tnow); i < c; ++i) { tseed = tseed * (0xff + 2U) + p [i]; }
 
   // xor
   uint32_t r = aseed ^ tseed;
@@ -486,6 +487,7 @@ uint32_t kvr::ctx::_get_rand ()
 void kvr::ctx::key_store::init (size_t cap, uint32_t hfseed, allocator *a)
 {
   KVR_ASSERT (a);
+
   m_keys = (key **) a->allocate (sizeof (key *) * cap); KVR_ASSERT (m_keys);
   memset (m_keys, 0, sizeof (key *) * cap);
   m_size = cap;
@@ -812,6 +814,7 @@ void kvr::ctx::key_store::dump () const
 void kvr::ctx::val_store::init (size_t cap, allocator *a)
 {
   KVR_ASSERT (a);
+
   m_data = (value **) a->allocate (sizeof (value *) * cap); KVR_ASSERT (m_data);
   m_size = cap;
   m_used = 0;
@@ -824,6 +827,7 @@ void kvr::ctx::val_store::init (size_t cap, allocator *a)
 void kvr::ctx::val_store::deinit (allocator *a)
 {
   KVR_ASSERT (a);
+
   a->deallocate (m_data, (sizeof (value *) * m_size));
 }
 
@@ -1114,6 +1118,7 @@ void kvr::value::set_boolean (bool b)
 const char * kvr::value::get_string () const
 {
   KVR_ASSERT_SAFE (is_string (), NULL);
+
   const char *str = this->_is_string_dynamic () ? m_data.s.m_dyn.get () : m_data.s.m_stt.get ();
   return str;
 }
@@ -1149,6 +1154,7 @@ const char * kvr::value::get_string (sz_t *len) const
 int64_t kvr::value::get_integer () const
 {
   KVR_ASSERT_SAFE (this->_is_number (), 0);
+
   return is_integer () ? m_data.n.i : static_cast<int64_t>(m_data.n.f);
 }
 
@@ -1159,6 +1165,7 @@ int64_t kvr::value::get_integer () const
 double kvr::value::get_float () const
 {
   KVR_ASSERT_SAFE (this->_is_number (), 0.0f);
+
   return is_float () ? m_data.n.f : static_cast<double>(m_data.n.i);
 }
 
@@ -1169,6 +1176,7 @@ double kvr::value::get_float () const
 bool kvr::value::get_boolean () const
 {
   KVR_ASSERT_SAFE (is_boolean (), false);
+
   return m_data.b;
 }
 

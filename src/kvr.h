@@ -45,7 +45,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef KVR_CPP11
-#if (__cplusplus >= 201103L) || (_MSC_VER >= 1600)
+#if (__cplusplus >= 201103L) || (defined (_MSC_VER) && _MSC_VER >= 1600)
 #define KVR_CPP11 1
 #else
 #define KVR_CPP11 0

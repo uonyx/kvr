@@ -27,7 +27,6 @@
 #include <random>
 #else
 #include <ctime>
-#include <climits>
 #endif
 
 #include "../kvr.h"
