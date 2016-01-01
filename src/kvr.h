@@ -33,7 +33,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef KVR_64
-#if defined(__LP64__) || defined(_WIN64) || defined (__x86_64__) || defined (__ppc64__) || defined(__EMSCRIPTEN__)
+#if defined (__LP64__) || defined (_WIN64) || defined (__x86_64__) || defined (__ppc64__) || defined(__EMSCRIPTEN__)
 #define KVR_64 1
 #else
 #define KVR_64 0

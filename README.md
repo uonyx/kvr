@@ -45,7 +45,7 @@ Simply add the 'src/' directory to your project and include 'kvr.h' to use
 ### Example Usage
 This simple example demonstrates common use cases:
 
-~~~~~~~~~~cpp
+```cpp
 #include "kvr.h"
 
 int main ()
@@ -98,9 +98,15 @@ int main ()
   // destroy context
   kvr::ctx::destroy (ctx);
 }
-~~~~~~~~~~
+```
 
 More [examples](https://github.com/uonyx/kvr/tree/master/example).
+
+### Building Examples and Tests
+```sh
+$ ./build_tests_and_examples.sh
+$ cd build/
+```
 
 ### Caveats
 - No exception safety
@@ -108,6 +114,7 @@ More [examples](https://github.com/uonyx/kvr/tree/master/example).
 - No documenation yet (kvr.h has sparse comments though)
 
 ### Alternatives
+- [nlohmann::json](https://github.com/nlohmann/json)
 - [folly/dynamic](https://github.com/facebook/folly/blob/master/folly/docs/Dynamic.md)
 - [Poco::Dynamic](http://pocoproject.org/docs-1.5.0/Poco.Dynamic.html)
 - [[GitHub Search]](https://github.com/search?l=C%2B%2B&q=variant&type=Repositories&utf8=%E2%9C%93)
