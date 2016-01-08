@@ -104,7 +104,7 @@ More [examples](https://github.com/uonyx/kvr/tree/master/example).
 
 ### Building Examples and Tests
 ```sh
-$ ./build_tests_and_examples.sh
+$ ./build_tests_examples.sh
 $ cd build/
 ```
 
