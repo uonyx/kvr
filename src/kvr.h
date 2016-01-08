@@ -71,14 +71,16 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////           
 
-// set to 1 to explicitly perform type conversions
-#define KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF   0
-// set to 1 to allow duplicate keys in maps
-#define KVR_OPTIMIZATION_FAST_MAP_INSERT_ON             0
-// set to 1 to compact fp precision for codec ops
-#define KVR_OPTIMIZATION_COMPACT_CODEC_FP_PRECISION_ON  0
+// explicitly perform type conversions on values?
+#define KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION   0
+// allow duplicate keys and speed up insertions in map values?
+#define KVR_FLAG_ALLOW_DUPLICATE_MAP_KEYS           0
+// use compact floating point precision during serialization?
+#define KVR_FLAG_ENCODE_COMPACT_FP_PRECISION        0
+// relax strict json format parsing (allowing comments etc)?
+#define KVR_FLAG_DECODE_RELAXED_JSON                0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -88,12 +90,8 @@
 #define KVR_CONSTANT_MAX_TREE_DEPTH                     (64u)
 // epsilon for comparing floating point equality for diffs
 #define KVR_CONSTANT_DIFF_FP_EQ_EPSILON                 (1.0e-7)
-// memory (re)allocation size for map, array
+// memory (re)allocation element size for map & array
 #define KVR_CONSTANT_COMMON_BLOCK_SZ                    (8u)
-// delimiter token for path expressions
-#define KVR_CONSTANT_TOKEN_DELIMITER                     '/'
-// token for search grep expression
-#define KVR_CONSTANT_TOKEN_MAP_GREP                      '@'
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////

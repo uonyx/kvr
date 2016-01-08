@@ -120,9 +120,9 @@ namespace kvr
           if (node->is_map ())
           {
             KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
-    #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
             m_temp->conv_boolean ();
-    #endif
+#endif
             m_temp->set_boolean (b);
             m_temp = NULL;
             success = true;
@@ -150,9 +150,9 @@ namespace kvr
           if (node->is_map ())
           {
             KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
-    #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
             m_temp->conv_integer ();
-    #endif
+#endif
             m_temp->set_integer (i);
             m_temp = NULL;
             success = true;
@@ -190,9 +190,9 @@ namespace kvr
           if (node->is_map ())
           {
             KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
-    #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
             m_temp->conv_float ();
-    #endif
+#endif
             m_temp->set_float (d);
             m_temp = NULL;
             success = true;
@@ -1442,9 +1442,9 @@ namespace kvr
 
         bool write_float (double f)
         {
-#if KVR_OPTIMIZATION_COMPACT_CODEC_FP_PRECISION_ON || KVR_CBOR_WRITE_COMPACT_FP_OVERRIDE
+#if KVR_FLAG_ENCODE_COMPACT_FP_PRECISION || KVR_CBOR_WRITE_COMPACT_FP_OVERRIDE
           uint16_t hf = 0;
-          if (kvr::internal::fp_single_to_half (f, &hf))
+          if (kvr::internal::fp_single_to_half (static_cast<float>(f), &hf))
           {
             uint16_t fi = kvr_bigendian16 (hf);
             m_os->put (CBOR_MAJOR_TYPE_7 | CBOR_VALUE_TYPE_FLOAT16);
@@ -1779,10 +1779,10 @@ namespace kvr
 
         else if (val->is_float ())
         {
-#if KVR_OPTIMIZATION_COMPACT_CODEC_FP_PRECISION_ON || KVR_CBOR_WRITE_COMPACT_FP_OVERRIDE
+#if KVR_FLAG_ENCODE_COMPACT_FP_PRECISION || KVR_CBOR_WRITE_COMPACT_FP_OVERRIDE
           double f = val->get_float ();
           uint16_t hf = 0;
-          if (kvr::internal::fp_single_to_half (f, &hf))
+          if (kvr::internal::fp_single_to_half (static_cast<float>(f), &hf))
           {
             size += 3;
           }

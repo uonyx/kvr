@@ -78,19 +78,25 @@ namespace kvr
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if KVR_OPTIMIZATION_COMPACT_CODEC_FP_PRECISION_ON
-#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseStopWhenDoneFlag)
-#else
-#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseStopWhenDoneFlag | kvr_rapidjson::kParseFullPrecisionFlag)
-#endif
-
 #if KVR_DEBUG
 #define KVR_JSON_DEBUG_PARSE_FLAGS (kvr_rapidjson::kParseValidateEncodingFlag)
 #else
 #define KVR_JSON_DEBUG_PARSE_FLAGS (0)
 #endif
 
-#define KVR_JSON_PARSE_FLAGS (KVR_JSON_BASE_PARSE_FLAGS | KVR_JSON_DEBUG_PARSE_FLAGS)
+#if KVR_FLAG_DECODE_RELAXED_JSON
+#define KVR_JSON_STRICT_PARSE_FLAGS (kvr_rapidjson::kParseCommentsFlag)
+#else
+#define KVR_JSON_STRICT_PARSE_FLAGS (0)
+#endif
+
+#if KVR_FLAG_ENCODE_COMPACT_FP_PRECISION
+#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseStopWhenDoneFlag)
+#else
+#define KVR_JSON_BASE_PARSE_FLAGS (kvr_rapidjson::kParseStopWhenDoneFlag | kvr_rapidjson::kParseFullPrecisionFlag)
+#endif
+
+#define KVR_JSON_PARSE_FLAGS (KVR_JSON_BASE_PARSE_FLAGS | KVR_JSON_STRICT_PARSE_FLAGS | KVR_JSON_DEBUG_PARSE_FLAGS)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,9 +155,9 @@ namespace kvr
           if (node->is_map ())
           {
             KVR_ASSERT (m_temp && m_temp->is_null ());
-    #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
             m_temp->conv_boolean ();
-    #endif
+#endif
             m_temp->set_boolean (b);
             m_temp = NULL;
           }
@@ -193,9 +199,9 @@ namespace kvr
           if (node->is_map ())
           {
             KVR_ASSERT (m_temp && m_temp->is_null ());
-    #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
             m_temp->conv_integer ();
-    #endif
+#endif
             m_temp->set_integer (i);
             m_temp = NULL;
           }
@@ -233,9 +239,9 @@ namespace kvr
           if (node->is_map ())
           {
             KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
-    #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
             m_temp->conv_float ();
-    #endif
+#endif
             m_temp->set_float (d);
             m_temp = NULL;
           }
@@ -265,9 +271,9 @@ namespace kvr
           if (node->is_map ())
           {
             KVR_ASSERT (m_temp && m_temp->is_null ());
-    #if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
             m_temp->conv_string ();
-    #endif
+#endif
             m_temp->set_string (str, (kvr::sz_t) length);
             m_temp = NULL;
           }

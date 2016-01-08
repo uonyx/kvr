@@ -62,7 +62,7 @@ public:
     // boolean
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_boolean ();
 #endif
     val0->set_boolean (true);
@@ -76,7 +76,7 @@ public:
     // string
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_string ();
 #endif
     val0->set_string ("test_copy");
@@ -90,7 +90,7 @@ public:
     // integer
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_integer ();
 #endif
     val0->set_integer (42);
@@ -104,7 +104,7 @@ public:
     // float
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_float ();
 #endif
     val0->set_float (3.142);
@@ -118,7 +118,7 @@ public:
     // map
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_map ();
 #endif
     val0->insert ("one", 1);
@@ -135,7 +135,7 @@ public:
     // array
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_array ();
 #endif
     val0->push (1);
@@ -184,7 +184,7 @@ public:
     // boolean
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_boolean ();
     val1->conv_boolean ();
 #endif
@@ -208,7 +208,7 @@ public:
     // string
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_string ();
     val1->conv_string ();
 #endif
@@ -224,7 +224,7 @@ public:
     // integer
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_integer ();
     val1->conv_integer ();
 #endif
@@ -240,7 +240,7 @@ public:
     // float
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_float ();
     val1->conv_float ();
 #endif
@@ -256,7 +256,7 @@ public:
     // map
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_map ();
     val1->conv_map ();
 #endif
@@ -285,7 +285,7 @@ public:
     // array
     ///////////////////////////////
 
-#if KVR_OPTIMIZATION_IMPLICIT_TYPE_CONVERSION_OFF
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
     val0->conv_array ();
     val1->conv_array ();
 #endif
