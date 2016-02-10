@@ -615,12 +615,12 @@ kvr::key * kvr::ctx::key_store::insert (const char *str, allocator *a)
   }
   // else re-use erased key
 
-  sz_t len = static_cast<sz_t> (strlen (str));
+  size_t len = strlen (str);
   char *cstr = (char *) a->allocate (len + 1); KVR_ASSERT (cstr);
   kvr_strcpy (cstr, len + 1, str);
 
   k->m_str = cstr;
-  k->m_len = len;
+  k->m_len = static_cast<uint16_t>(len);
   k->m_hash = h;
   k->m_ref = 1;
 
@@ -672,7 +672,7 @@ kvr::key * kvr::ctx::key_store::insert (char *str, sz_t len, allocator *a)
   // else re-use erased key
 
   k->m_str = str;
-  k->m_len = len;
+  k->m_len = static_cast<uint16_t>(len);
   k->m_hash = h;
   k->m_ref = 1;
 

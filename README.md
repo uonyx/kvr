@@ -108,7 +108,8 @@ $ ./build_tests_examples.sh
 $ cd build/
 ```
 
-### Caveats
+### Limitations and Caveats
+- Maximum map key length is 65535
 - No exception safety
 - No UTF8-validation on strings (until serialization)
 - No documenation yet (kvr.h has sparse comments though)

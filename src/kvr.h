@@ -201,8 +201,8 @@ namespace kvr
   private:
     
     char    * m_str;
-    sz_t      m_len;
-    sz_t      m_ref;
+    uint16_t  m_len;
+    uint16_t  m_ref;
     uint32_t  m_hash;
 
     friend class ctx;
