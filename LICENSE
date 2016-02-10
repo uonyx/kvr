@@ -17,3 +17,17 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+
+Dependencies
+------------
+RapidJSON 
+Copyright (C) 2015 THL A29 Limited, a Tencent company, and Milo Yip.  
+All rights reserved.
+MIT License: https://raw.githubusercontent.com/miloyip/rapidjson/master/license.txt
+
+The msinttypes r29 
+Copyright (c) 2006-2013 Alexander Chemeris 
+All rights reserved.
+BSD License: http://opensource.org/licenses/BSD-3-Clause
+
