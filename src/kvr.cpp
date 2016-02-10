@@ -849,7 +849,7 @@ void kvr::ctx::val_store::push_back (value *v, allocator *a)
     size_t new_sz = m_size + m_size;
     value **new_data = (value **) a->allocate (sizeof (value *) * new_sz); KVR_ASSERT (new_data);
     memcpy (new_data, m_data, sizeof (value *) * m_size);
-    a->deallocate (m_data, m_size);
+    a->deallocate (m_data, sizeof (value *) * m_size);
     m_data = new_data;
     m_size = new_sz;
   }
@@ -3509,7 +3509,7 @@ void kvr::value::array::deinit (allocator *a)
   KVR_ASSERT (m_ptr);
   KVR_ASSERT (a);
 
-  a->deallocate (m_ptr, m_cap);
+  a->deallocate (m_ptr, sizeof (kvr::value *) * m_cap);
   m_ptr = NULL;
 }
 
@@ -3531,9 +3531,9 @@ void kvr::value::array::push (value *v, allocator *a)
     value ** new_ptr = (kvr::value **) a->allocate (sizeof (kvr::value *) * new_cap); KVR_ASSERT (new_ptr);
     memcpy (new_ptr, m_ptr, sizeof (kvr::value *) * m_cap);
 #if KVR_DEBUG
-    memset (new_ptr + m_cap, 0, (sizeof (kvr::value *) * CAP_INCR));
+    memset (new_ptr + m_cap, 0, sizeof (kvr::value *) * CAP_INCR);
 #endif
-    a->deallocate (m_ptr, m_cap);
+    a->deallocate (m_ptr, sizeof (kvr::value *) * m_cap);
 
     m_ptr = new_ptr;
     m_cap = new_cap;
@@ -3631,7 +3631,7 @@ void kvr::value::map::deinit (allocator *a)
 #else
   sz_t cap = m_cap;
 #endif
-  a->deallocate (m_ptr, cap);
+  a->deallocate (m_ptr, sizeof (node) * cap);
   m_ptr = NULL;
 }
 
@@ -3677,7 +3677,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v, allocator *a)
     node *new_ptr = (node *) a->allocate (sizeof (node) * new_cap); KVR_ASSERT (new_ptr);
     memcpy (new_ptr, m_ptr, sizeof (node) * cap);
     memset (new_ptr + cap, 0, (sizeof (node) * CAP_INCR));
-    a->deallocate (m_ptr, cap);
+    a->deallocate (m_ptr, sizeof (node) * cap);
 
     m_ptr = new_ptr;
     m_cap += CAP_INCR;
@@ -3713,7 +3713,7 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v, allocator *a)
       // copy over old nodes and set new nodes to null
       memcpy (new_ptr, m_ptr, sizeof (node) * m_cap);      
       memset (new_ptr + m_cap, 0, (sizeof (node) * CAP_INCR));
-      a->deallocate (m_ptr, m_cap);
+      a->deallocate (m_ptr, sizeof (node) * m_cap);
 
       m_ptr = new_ptr;
       m_cap = new_cap;
