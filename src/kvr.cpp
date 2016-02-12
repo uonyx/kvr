@@ -52,8 +52,8 @@ static const char     KVR_TOKEN_MAP_GREP  = '@';
 #define kvr_memory_track_ctr_decr(X, S) { X--; Y -= S; }
 #else
 #define kvr_memory_track_ctr_decl(C, X)
-#define kvr_memory_track_ctr_incr(X)
-#define kvr_memory_track_ctr_decr(X)
+#define kvr_memory_track_ctr_incr(X, S)
+#define kvr_memory_track_ctr_decr(X, S)
 #endif
 
 #if KVR_CPP11
