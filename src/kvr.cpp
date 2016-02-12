@@ -47,9 +47,9 @@ static const char     KVR_TOKEN_MAP_GREP  = '@';
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if KVR_DEBUG
-#define kvr_memory_track_ctr_decl(C, X) C (): X (0) {} ~C () { KVR_ASSERT (X == 0); } int X
-#define kvr_memory_track_ctr_incr(X) X++
-#define kvr_memory_track_ctr_decr(X) X--
+#define kvr_memory_track_ctr_decl(C, X) C (): X (0) {} ~C () { KVR_ASSERT (X == 0); KVR_ASSERT (Y == 0); } size_t X, Y
+#define kvr_memory_track_ctr_incr(X, S) { X++; Y += S; }
+#define kvr_memory_track_ctr_decr(X, S) { X--; Y -= S; }
 #else
 #define kvr_memory_track_ctr_decl(C, X)
 #define kvr_memory_track_ctr_incr(X)
@@ -67,8 +67,8 @@ static kvr::allocator * get_default_allocator ()
   class kvr_default_allocator kvr_final : public kvr::allocator
   {
   public:
-    void * allocate (size_t sz)            { kvr_memory_track_ctr_incr (m_ctr); return ::operator new (sz); }
-    void   deallocate (void *p, size_t sz) { kvr_memory_track_ctr_decr (m_ctr); return ::operator delete (p); KVR_REF_UNUSED (sz); }
+    void * allocate (size_t sz)            { kvr_memory_track_ctr_incr (m_ctr, sz); return ::operator new (sz); }
+    void   deallocate (void *p, size_t sz) { kvr_memory_track_ctr_decr (m_ctr, sz); return ::operator delete (p); KVR_REF_UNUSED (sz); }
 
     kvr_memory_track_ctr_decl (kvr_default_allocator, m_ctr);
   };
@@ -1915,7 +1915,7 @@ kvr::value * kvr::value::merge (const value *rhs)
       kvr_strcpy (buf, bufsize, lv);
       kvr_strcpy ((buf + lvlen), (bufsize - lvlen), rv);
 
-      this->_string_move (buf, bufsize - 1); 
+      this->_string_move (buf, bufsize); 
     }
     //////////////////////////////////
     else if (this->is_integer ())
