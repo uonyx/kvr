@@ -76,6 +76,9 @@ public:
 
     kvr::value *map1 = m_ctx->create_value ()->copy (map0);
     TS_ASSERT_EQUALS (map0->hash (), map1->hash ());
+    kvr::value *mm = map1->insert_map ("zoro");
+    mm->insert ("sword", 0);
+    mm->insert ("mask", 1);
     map1->find ("bill")->set_integer (9000LL);
     kvr::value *v1m = map1->find ("mapping");
     v1m->remove ("a");

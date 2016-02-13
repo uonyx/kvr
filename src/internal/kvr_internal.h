@@ -38,7 +38,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define KVR_INTERNAL_FLAG_DEBUG_CTX_KEY_STORE_RAND_OFF  (KVR_DEBUG && 0)
-#define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE    (KVR_DEBUG || 0) && 1
+#define KVR_INTERNAL_FLAG_REALLOC_TYPE_FIXED            0
+#define KVR_INTERNAL_FLAG_EXPERIMENTAL_FAST_MAP_SIZE    (KVR_DEBUG || 0) && KVR_INTERNAL_FLAG_REALLOC_TYPE_FIXED
 #define KVR_INTERNAL_FLAG_DEBUG_TYPE_PUNNING_ON         0 // TODO: check compiler?
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

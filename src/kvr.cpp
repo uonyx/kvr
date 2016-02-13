@@ -3524,9 +3524,11 @@ void kvr::value::array::push (value *v, allocator *a)
 
   if (m_len >= m_cap)
   {
+    // resize
+#if KVR_INTERNAL_FLAG_REALLOC_TYPE_FIXED
+    KVR_ASSERT ((uint64_t) m_len < (SZ_T_MAX - CAP_INCR));
     KVR_ASSERT (m_ptr);
 
-    // resize
     sz_t new_cap = m_cap + CAP_INCR;
     value ** new_ptr = (kvr::value **) a->allocate (sizeof (kvr::value *) * new_cap); KVR_ASSERT (new_ptr);
     memcpy (new_ptr, m_ptr, sizeof (kvr::value *) * m_cap);
@@ -3534,7 +3536,18 @@ void kvr::value::array::push (value *v, allocator *a)
     memset (new_ptr + m_cap, 0, sizeof (kvr::value *) * CAP_INCR);
 #endif
     a->deallocate (m_ptr, sizeof (kvr::value *) * m_cap);
+#else
+    KVR_ASSERT ((uint64_t) m_len < (SZ_T_MAX - m_cap));
+    KVR_ASSERT (m_ptr);
 
+    sz_t new_cap = m_cap + m_cap;
+    value ** new_ptr = (kvr::value **) a->allocate (sizeof (kvr::value *) * new_cap); KVR_ASSERT (new_ptr);
+    memcpy (new_ptr, m_ptr, sizeof (kvr::value *) * m_cap);
+#if KVR_DEBUG
+    memset (new_ptr + m_cap, 0, sizeof (kvr::value *) * m_cap);
+#endif
+    a->deallocate (m_ptr, sizeof (kvr::value *) * m_cap);
+#endif
     m_ptr = new_ptr;
     m_cap = new_cap;
   }
@@ -3685,8 +3698,11 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v, allocator *a)
   }
 #else
 
+#if KVR_INTERNAL_FLAG_REALLOC_TYPE_FIXED
+
   if (m_len >= m_cap)
   {
+    KVR_ASSERT ((uint64_t) m_len < (SZ_T_MAX - CAP_INCR));
     KVR_ASSERT (m_ptr);
 
     // first, see if we can garbage-collect removed nodes
@@ -3719,6 +3735,43 @@ kvr::value::map::node *kvr::value::map::insert (key *k, value *v, allocator *a)
       m_cap = new_cap;
     }
   }
+#else
+  if (m_len >= m_cap)
+  {
+    KVR_ASSERT ((uint64_t) m_len < (SZ_T_MAX - m_cap));
+    KVR_ASSERT (m_ptr);
+
+    // first, see if we can garbage-collect removed nodes
+    sz_t ir = 0, iw = 0;
+    while (ir < m_cap)
+    {
+      if (m_ptr [ir].k)
+      {
+        m_ptr [iw++] = m_ptr [ir++];
+      }
+      else
+      {
+        ir++;
+      }
+    }
+    m_len -= (ir - iw);
+
+    // now check again and if resize if necessary
+    if (m_len >= m_cap)
+    {
+      // resize
+      sz_t new_cap = m_cap + m_cap;
+      node *new_ptr = (node *) a->allocate (sizeof (node) * new_cap); KVR_ASSERT (new_ptr);
+      // copy over old nodes and set new nodes to null
+      memcpy (new_ptr, m_ptr, sizeof (node) * m_cap);
+      memset (new_ptr + m_cap, 0, (sizeof (node) * m_cap));
+      a->deallocate (m_ptr, sizeof (node) * m_cap);
+
+      m_ptr = new_ptr;
+      m_cap = new_cap;
+    }
+  }
+#endif
 
 #endif
   node *n = &m_ptr [m_len++];
