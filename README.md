@@ -14,7 +14,7 @@ All I wanted was a stand-alone, low-level C++ dictionary with a simple API, and 
 	* No dependency on STL
 - Memory-efficent (or tries to be)
 	* Keys (within the same context) are reference-counted
-	* Values are 16/32 bytes on 32/64-bit systems
+	* Values are 16/32 bytes on 32/64-bit systems (not counting the extra memory required strings, maps, arrays)
 	* Support for custom memory allocators like [these...](https://github.com/uonyx/kvr/blob/master/example/allocators.h)
 - Supported value types:
 	* Integer (64-bit signed)
@@ -110,7 +110,7 @@ $ cd build/
 
 ### Limitations and Caveats
 - Maximum map key length is 65535
-- No exception safety
+- No throw exception guarantee
 - No UTF8-validation on strings (until serialization)
 - No documenation yet (kvr.h has sparse comments though)
 

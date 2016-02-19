@@ -568,7 +568,7 @@ namespace kvr
     {
       void    init (size_t cap, uint32_t hfseed, allocator *a);
       void    deinit (allocator *a);
-      void    resize (allocator *a);
+      void    resize (size_t new_sz, allocator *a);
       key *   insert (const char *str, allocator *a);
       key *   insert (char *str, sz_t len, allocator *a);
       key *   find (const char *str) const;

@@ -67,8 +67,8 @@ static kvr::allocator * get_default_allocator ()
   class kvr_default_allocator kvr_final : public kvr::allocator
   {
   public:
-    void * allocate (size_t sz)            { kvr_memory_track_ctr_incr (m_ctr, sz); return ::operator new (sz); }
-    void   deallocate (void *p, size_t sz) { kvr_memory_track_ctr_decr (m_ctr, sz); return ::operator delete (p); KVR_REF_UNUSED (sz); }
+    void * allocate (size_t sz)            { kvr_memory_track_ctr_incr (m_ctr, sz); return ::operator new (sz, std::nothrow); }
+    void   deallocate (void *p, size_t sz) { kvr_memory_track_ctr_decr (m_ctr, sz); return ::operator delete (p, std::nothrow); KVR_REF_UNUSED (sz); }
 
     kvr_memory_track_ctr_decl (kvr_default_allocator, m_ctr);
   };
@@ -526,12 +526,11 @@ void kvr::ctx::key_store::deinit (allocator *a)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-void kvr::ctx::key_store::resize (allocator *a)
+void kvr::ctx::key_store::resize (size_t new_sz, allocator *a)
 {
   KVR_ASSERT (a);
 
   // create new buffer
-  size_t new_sz = m_size + m_size;  
   key ** new_keys = (key **) a->allocate (sizeof (key *) * new_sz); KVR_ASSERT (new_keys);
   memset (new_keys, 0, sizeof (key *) * new_sz);
 
@@ -585,7 +584,7 @@ kvr::key * kvr::ctx::key_store::insert (const char *str, allocator *a)
 
   if (m_used > (m_size * 2 / 3))
   {
-    this->resize (a);
+    this->resize (m_size + m_size, a);
   }
 
   uint32_t h = kvr::internal::djb_hash (str, m_seed);
@@ -641,7 +640,7 @@ kvr::key * kvr::ctx::key_store::insert (char *str, sz_t len, allocator *a)
 
   if (m_used > (m_size * 2 / 3))
   {
-    this->resize (a);
+    this->resize (m_size + m_size, a);
   }
 
   uint32_t h = kvr::internal::djb_hash (str, m_seed);
@@ -728,6 +727,13 @@ void kvr::ctx::key_store::erase (key *k, allocator *a)
       k->m_hash = 0;
 
       m_used--;
+
+#if 0
+      if ((m_size > 32) && m_used < (m_size * 1 / 3))
+      {
+        this->resize (m_size / 2, a);
+      }
+#endif
     }
   }
 }

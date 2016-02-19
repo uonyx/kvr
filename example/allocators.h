@@ -86,13 +86,13 @@ public:
   {
     m_alloc_count++;
     m_bytes_allocated += sz;
-    return malloc (sz);
+    return std::malloc (sz);
   }
 
   // deallocate
   void deallocate (void *p, size_t sz) 
   {
-    free (p);
+    std::free (p);
     m_free_count++;
     m_bytes_freed += sz;
   }
