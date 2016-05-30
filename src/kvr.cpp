@@ -92,6 +92,16 @@ kvr::ctx * kvr::ctx::create (size_t ks_size, size_t vs_size, allocator *alloc)
   allocator *a = alloc ? alloc : get_default_allocator ();
   void *p = a->allocate (sizeof (kvr::ctx)); KVR_ASSERT (p);
   kvr::ctx *ctx = p ? (new (p) kvr::ctx (ks_size, vs_size, a)) : NULL;
+
+#if KVR_DEBUG && 0
+  uintptr_t ctxptr = reinterpret_cast<uintptr_t>(ctx);
+#if KVR_64
+  KVR_ASSERT ((ctxptr & 0x07) == 0);
+#else
+  KVR_ASSERT ((ctxptr & 0x03) == 0);
+#endif
+#endif
+
   return ctx;
 }
 
@@ -3415,7 +3425,7 @@ const char *kvr::value::string::stt_str::get () const
 kvr::sz_t kvr::value::string::stt_str::length () const
 {
   size_t length = strlen (m_data);
-  return (sz_t) length;
+  return static_cast<sz_t>(length);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3913,6 +3923,7 @@ kvr::sz_t kvr::value::map::_cap () const
 kvr::value::cursor::cursor (const value *map) : m_map (map), m_index (0)
 {
   KVR_ASSERT (map);
+  KVR_ASSERT (map->is_map ());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

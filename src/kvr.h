@@ -451,7 +451,6 @@ namespace kvr
 
     enum _flags
     {
-      FLAG_NONE                 = 0,
       FLAG_TYPE_NULL            = (1 << 0),
       FLAG_TYPE_MAP             = (1 << 1),
       FLAG_TYPE_ARRAY           = (1 << 2),
@@ -506,6 +505,8 @@ namespace kvr
     ///////////////////////////////////////////
     ///////////////////////////////////////////
 
+    value ();
+    value (const value &);
     value (ctx *ctx, uint32_t flags);
 
     ///////////////////////////////////////////

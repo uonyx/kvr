@@ -188,3 +188,6 @@ FakesAssemblies/
 GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
+/kvr.vcxproj.filters
+/kvr.vcxproj
+/kvr.sln

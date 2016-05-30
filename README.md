@@ -12,10 +12,6 @@ All I wanted was a stand-alone, low-level C++ dictionary with a simple API, and 
 	* Explicit function calls with raw pointers everywhere :o
 - Self-contained and cross-platform
 	* No dependency on STL
-- Memory-efficent (or tries to be)
-	* Keys (within the same context) are reference-counted
-	* Values are 16/32 bytes on 32/64-bit systems (not counting the extra memory required strings, maps, arrays)
-	* Support for custom memory allocators like [these...](https://github.com/uonyx/kvr/blob/master/example/allocators.h)
 - Supported value types:
 	* Integer (64-bit signed)
 	* Floating Point (Double-precision)
@@ -27,7 +23,11 @@ All I wanted was a stand-alone, low-level C++ dictionary with a simple API, and 
 - Supported serialization codecs/formats:
 	* [JSON](http://json.org/) (using [RapidJSON](https://github.com/miloyip/rapidjson/))
 	* [CBOR](http://cbor.io/)
-	* [MessagePack](http://msgpack.org/)
+	* [MessagePack](http://msgpack.org/)	
+- Memory-efficent (or tries to be)
+	* Keys (within the same context) are reference-counted
+	* Values are 16/32 bytes on 32/64-bit systems (not counting the extra memory required strings, maps, arrays)
+	* Support for custom memory allocators like [these...](https://github.com/uonyx/kvr/blob/master/example/allocators.h)
 - Custom serialization stream interface
 	* File stream? Compression stream? Encryption stream? Yes you can; for [example...](https://github.com/uonyx/kvr/blob/master/example/streams.h)
 - Powerful Diff and Patch functionality 
