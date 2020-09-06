@@ -71,7 +71,7 @@ if (KVR_BUILD_TESTS)
     set (KVR_PERF_TEST_LIST basic)
     foreach (ptest ${KVR_PERF_TEST_LIST})
       add_executable (perf_test_${ptest} ${CMAKE_CURRENT_SOURCE_DIR}/test/perf/${ptest}.cpp)
-      set_target_properties (perf_test_${ptest} PROPERTIES COMPILE_FLAGS "-O0 -g")
+      set_target_properties (perf_test_${ptest} PROPERTIES COMPILE_FLAGS "-O3")
       target_link_libraries (perf_test_${ptest} kvr)
     endforeach ()
 

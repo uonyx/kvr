@@ -236,14 +236,14 @@ namespace kvr
     bool          is_float () const;
     bool          is_null () const;
 
-    // type conversion    
-    value *       conv_map (sz_t sz = 8);
-    value *       conv_array (sz_t sz = 8);
-    value *       conv_string ();
-    value *       conv_boolean ();
-    value *       conv_integer ();
-    value *       conv_float ();
-    value *       conv_null ();
+    // type conversion
+    value *       as_map (sz_t sz = 8);
+    value *       as_array (sz_t sz = 8);
+    value *       as_string ();
+    value *       as_boolean ();
+    value *       as_integer ();
+    value *       as_float ();
+    value *       as_null ();
 
     // string variant operations
     void          set_string (const char *str, sz_t len);
@@ -498,8 +498,13 @@ namespace kvr
     void    _insert_kv (key *k, value *v);
     void    _push_v (value *v);
 
-    value * _conv_map (sz_t cap);
-    value * _conv_array (sz_t cap);
+    void    _conv_map (sz_t cap = 8);
+    void    _conv_array (sz_t cap = 8);
+    void    _conv_string ();
+    void    _conv_boolean ();
+    void    _conv_integer ();
+    void    _conv_float ();
+    void    _conv_null ();
 
     ///////////////////////////////////////////
     ///////////////////////////////////////////

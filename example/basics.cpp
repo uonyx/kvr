@@ -33,7 +33,7 @@ void example_basics ()
   kvr::ctx *ctx = kvr::ctx::create ();
 
   // create a map
-  kvr::value *map = ctx->create_value ()->conv_map ();
+  kvr::value *map = ctx->create_value ()->as_map ();
 
   // populate map
   map->insert ("street", "sesame");
@@ -89,7 +89,7 @@ void example_basics_allocator ()
   kvr::ctx *ctx = kvr::ctx::create (&allocator);
 
   // create a map
-  kvr::value *map = ctx->create_value ()->conv_map ();
+  kvr::value *map = ctx->create_value ()->as_map ();
 
   // populate map
   map->insert ("street", "sesame");

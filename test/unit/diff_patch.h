@@ -54,7 +54,7 @@ public:
     // set up original
     ///////////////////////////////
 
-    kvr::value *map0 = m_ctx->create_value ()->conv_map ();
+    kvr::value *map0 = m_ctx->create_value ()->as_map ();
     map0->insert ("bill", 15);
     map0->insert ("jane", 74);
     map0->insert ("toby", 21);
@@ -126,7 +126,7 @@ public:
     // set up original
     ///////////////////////////////
 
-    kvr::value *array0 = m_ctx->create_value ()->conv_array ();
+    kvr::value *array0 = m_ctx->create_value ()->as_array ();
     array0->push (500.0);
     array0->push ("ace");
     array0->push (false);
@@ -183,10 +183,10 @@ public:
     // set up original
     ///////////////////////////////
 
-    kvr::value *int0 = m_ctx->create_value ()->conv_integer ();
-    kvr::value *float0 = m_ctx->create_value ()->conv_float ();
-    kvr::value *bool0 = m_ctx->create_value ()->conv_boolean ();
-    kvr::value *string0 = m_ctx->create_value ()->conv_string ();
+    kvr::value *int0 = m_ctx->create_value ()->as_integer ();
+    kvr::value *float0 = m_ctx->create_value ()->as_float ();
+    kvr::value *bool0 = m_ctx->create_value ()->as_boolean ();
+    kvr::value *string0 = m_ctx->create_value ()->as_string ();
 
     int0->set_integer (9876543);
     float0->set_float (1234.56);
@@ -197,10 +197,10 @@ public:
     // set up modified
     ///////////////////////////////
 
-    kvr::value *int1 = m_ctx->create_value ()->conv_integer ();
-    kvr::value *float1 = m_ctx->create_value ()->conv_float ();
-    kvr::value *bool1 = m_ctx->create_value ()->conv_boolean ();
-    kvr::value *string1 = m_ctx->create_value ()->conv_string ();
+    kvr::value *int1 = m_ctx->create_value ()->as_integer ();
+    kvr::value *float1 = m_ctx->create_value ()->as_float ();
+    kvr::value *bool1 = m_ctx->create_value ()->as_boolean ();
+    kvr::value *string1 = m_ctx->create_value ()->as_string ();
 
     int1->set_integer (3456789);
     float1->set_float (65.4321);

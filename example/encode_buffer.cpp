@@ -33,7 +33,7 @@ void example_encode_buffer ()
   kvr::ctx *ctx = kvr::ctx::create ();
 
   // create a map and populate
-  kvr::value *map = ctx->create_value ()->conv_map ();
+  kvr::value *map = ctx->create_value ()->as_map ();
   map->insert ("street", "sesame");
   map->insert ("f", false);
   map->insert ("i", 123);

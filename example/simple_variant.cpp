@@ -65,7 +65,7 @@ public:
   {
     if (m_ctx)
     {
-      m_val = m_ctx->create_value ()->conv_integer ();
+      m_val = m_ctx->create_value ()->as_integer ();
       m_val->set_integer (i);
     }
   }
@@ -74,7 +74,7 @@ public:
   {
     if (m_ctx)
     {
-      m_val = m_ctx->create_value ()->conv_integer ();
+      m_val = m_ctx->create_value ()->as_integer ();
       m_val->set_integer (i);
     }
   }
@@ -83,7 +83,7 @@ public:
   {
     if (m_ctx)
     {
-      m_val = m_ctx->create_value ()->conv_float ();
+      m_val = m_ctx->create_value ()->as_float ();
       m_val->set_float (f);
     }
   }
@@ -92,7 +92,7 @@ public:
   {
     if (m_ctx)
     {
-      m_val = m_ctx->create_value ()->conv_boolean ();
+      m_val = m_ctx->create_value ()->as_boolean ();
       m_val->set_boolean (b);
     }
   }
@@ -101,7 +101,7 @@ public:
   {
     if (m_ctx)
     {
-      m_val = m_ctx->create_value ()->conv_string ();
+      m_val = m_ctx->create_value ()->as_string ();
       m_val->set_string (str.c_str (), static_cast<kvr::sz_t>(str.length ()));
     }
   }
@@ -116,7 +116,7 @@ public:
   {
     if (m_ctx)
     {
-      m_val = m_ctx->create_value ()->conv_null ();
+      m_val = m_ctx->create_value ()->as_null ();
     }
   }
 
@@ -228,7 +228,7 @@ private:
     }
     else
     {
-      m_val->conv_array ();
+      m_val = m_val->as_array ();
     }
 
     if (!v)
@@ -249,7 +249,7 @@ private:
     }
     else
     {
-      m_val->conv_map ();
+      m_val = m_val->as_map ();
     }
 
     if (!v)

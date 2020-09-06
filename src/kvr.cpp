@@ -229,7 +229,7 @@ void kvr::ctx::dump (int id) const
 kvr::value * kvr::ctx::_create_value_null (uint32_t parentType)
 {
   value *v = _create_value (parentType);
-  v->conv_null ();
+  v->_conv_null ();
   return v;
 }
 
@@ -240,7 +240,7 @@ kvr::value * kvr::ctx::_create_value_null (uint32_t parentType)
 kvr::value * kvr::ctx::_create_value_map (uint32_t parentType)
 {
   value *v = _create_value (parentType);
-  v->conv_map ();
+  v->_conv_map ();
   return v;
 }
 
@@ -251,7 +251,7 @@ kvr::value * kvr::ctx::_create_value_map (uint32_t parentType)
 kvr::value * kvr::ctx::_create_value_array (uint32_t parentType)
 {
   value *v = _create_value (parentType);
-  v->conv_array ();
+  v->_conv_array ();
   return v;
 }
 
@@ -263,7 +263,7 @@ kvr::value * kvr::ctx::_create_value_integer (uint32_t parentType, int64_t numbe
 {
   value *v = _create_value (parentType);
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-  v->conv_integer ();
+  v->_conv_integer ();
 #endif
   v->set_integer (number);
   return v;
@@ -277,7 +277,7 @@ kvr::value * kvr::ctx::_create_value_float (uint32_t parentType, double number)
 {
   value *v = _create_value (parentType);
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-  v->conv_float ();
+  v->_conv_float ();
 #endif
   v->set_float (number);
   return v;
@@ -291,7 +291,7 @@ kvr::value * kvr::ctx::_create_value_boolean (uint32_t parentType, bool boolean)
 {
   value *v = _create_value (parentType);
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-  v->conv_boolean ();
+  v->_conv_boolean ();
 #endif
   v->set_boolean (boolean);
   return v;
@@ -307,7 +307,7 @@ kvr::value * kvr::ctx::_create_value_string (uint32_t parentType, const char *st
 
   value *v = _create_value (parentType);
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-  v->conv_string ();
+  v->_conv_string ();
 #endif
   v->set_string (str, len);
   return v;
@@ -944,113 +944,70 @@ void kvr::ctx::val_store::dump () const
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::conv_map (sz_t sz)
+kvr::value * kvr::value::as_map (sz_t sz)
 {
-  return this->_conv_map (sz);
+    this->_conv_map(sz);
+    return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::conv_array (sz_t sz)
+kvr::value * kvr::value::as_array (sz_t sz)
 {
-  return this->_conv_array (sz);
+    this->_conv_array(sz);
+    return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::conv_string ()
+kvr::value * kvr::value::as_string ()
 {
-  if (!is_string ())
-  {
-    this->_clear ();
-    m_flags |= FLAG_TYPE_STRING_STATIC;
-  }
-
-  return this;
+    this->_conv_string();
+    return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::conv_boolean ()
+kvr::value * kvr::value::as_boolean ()
 {
-  if (!is_boolean ())
-  {
-    this->_clear ();
-    m_flags |= FLAG_TYPE_BOOLEAN;
-  }
-
-  return this;
+    this->_conv_boolean();
+    return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::conv_integer ()
+kvr::value * kvr::value::as_integer ()
 {
-  if (!is_integer ())
-  {
-    if (is_float ())
-    {
-      int64_t i = static_cast<int64_t> (m_data.n.f);
-      m_data.n.i = i;
-      m_flags &= ~FLAG_TYPE_NUMBER_FLOAT;
-    }
-    else
-    {
-      this->_clear ();
-    }
-
-    m_flags |= FLAG_TYPE_NUMBER_INTEGER;
-  }
-
-  return this;
+    this->_conv_integer();
+    return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::conv_float ()
+kvr::value * kvr::value::as_float ()
 {
-  if (!is_float ())
-  {
-    if (is_integer ())
-    {
-      double f = static_cast<double> (m_data.n.i);
-      m_data.n.f = f;
-      m_flags &= ~FLAG_TYPE_NUMBER_INTEGER;
-    }
-    else
-    {
-      this->_clear ();
-    }
-
-    m_flags |= FLAG_TYPE_NUMBER_FLOAT;
-  }
-
-  return this;
+    this->_conv_float();
+    return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::conv_null ()
+kvr::value * kvr::value::as_null ()
 {
-  if (!is_null ())
-  {
-    this->_clear ();
-    m_flags |= FLAG_TYPE_NULL;
-  }
-
-  return this;
+    this->_conv_null();
+    return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1064,7 +1021,7 @@ void kvr::value::set_string (const char *str, sz_t len)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION 
   KVR_ASSERT (is_string ());
 #else
-  conv_string ();
+  this->_conv_string ();
 #endif
   this->_string_set (str, len);
 }
@@ -1080,7 +1037,7 @@ void kvr::value::set_string (const char *str)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION 
   KVR_ASSERT (is_string ());
 #else
-  conv_string ();
+  this->_conv_string ();
 #endif
   size_t len = strlen (str);  
   KVR_ASSERT ((uint64_t) len <= SZ_T_MAX);
@@ -1089,14 +1046,14 @@ void kvr::value::set_string (const char *str)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 void kvr::value::set_integer (int64_t n)
 {
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_integer ());
 #else  
-  conv_integer ();
+  this->_conv_integer ();
 #endif
 
   m_data.n.i = n;
@@ -1113,7 +1070,7 @@ void kvr::value::set_float (double n)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION 
   KVR_ASSERT (is_float ());
 #else  
-  conv_float ();
+  this->_conv_float ();
 #endif  
   m_data.n.f = n;
 }
@@ -1127,7 +1084,7 @@ void kvr::value::set_boolean (bool b)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION 
   KVR_ASSERT (is_boolean ());
 #else
-  conv_boolean ();
+  this->_conv_boolean ();
 #endif
   m_data.b = b;
 }
@@ -1219,7 +1176,7 @@ kvr::value * kvr::value::push (int64_t num)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_array ());
 #else  
-  conv_array ();
+  this->_conv_array ();
 #endif
 
   kvr::value *v = m_ctx->_create_value_integer (FLAG_PARENT_ARRAY, num);
@@ -1237,7 +1194,7 @@ kvr::value * kvr::value::push (double num)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION 
   KVR_ASSERT (is_array ());
 #else
-  conv_array ();
+  this->_conv_array ();
 #endif
 
   kvr::value *v = m_ctx->_create_value_float (FLAG_PARENT_ARRAY, num);
@@ -1254,7 +1211,7 @@ kvr::value * kvr::value::push (bool b)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_array ());
 #else  
-  conv_array ();
+  this->_conv_array ();
 #endif
 
   kvr::value *v = m_ctx->_create_value_boolean (FLAG_PARENT_ARRAY, b);
@@ -1273,7 +1230,7 @@ kvr::value * kvr::value::push (const char *str)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_array ());
 #else
-  conv_array ();
+  this->_conv_array ();
 #endif
 
   kvr::value *v = m_ctx->_create_value_string (FLAG_PARENT_ARRAY, str, static_cast<sz_t>(strlen (str)));
@@ -1290,7 +1247,7 @@ kvr::value * kvr::value::push_map ()
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION 
   KVR_ASSERT (is_array ());
 #else
-  conv_array ();
+  this->_conv_array ();
 #endif
 
   kvr::value *v = m_ctx->_create_value_map (FLAG_PARENT_ARRAY);
@@ -1307,7 +1264,7 @@ kvr::value * kvr::value::push_array ()
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_array ());
 #else
-  conv_array ();
+  this->_conv_array ();
 #endif
 
   kvr::value *v = m_ctx->_create_value_array (FLAG_PARENT_ARRAY);
@@ -1324,7 +1281,7 @@ kvr::value * kvr::value::push_null ()
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_array ());
 #else
-  conv_array ();
+  this->_conv_array ();
 #endif
 
   kvr::value *v = m_ctx->_create_value_null (FLAG_PARENT_ARRAY);
@@ -1396,7 +1353,7 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_map ());
 #else
-  conv_map ();
+  this->_conv_map ();
 #endif
 
   map::node *n = NULL;
@@ -1408,7 +1365,7 @@ kvr::value * kvr::value::insert (const char *keystr, int64_t num)
   if (n)
   {
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    n->v->conv_integer ();
+    n->v->_conv_integer ();
 #endif
     n->v->set_integer (num);
     m_ctx->_destroy_key (k);
@@ -1435,7 +1392,7 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_map ());  
 #else
-  conv_map ();
+  this->_conv_map ();
 #endif
 
   map::node *n = NULL;
@@ -1447,7 +1404,7 @@ kvr::value * kvr::value::insert (const char *keystr, double num)
   if (n)
   {
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    n->v->conv_float ();
+    n->v->_conv_float ();
 #endif
     n->v->set_float (num);
     m_ctx->_destroy_key (k);
@@ -1473,7 +1430,7 @@ kvr::value * kvr::value::insert (const char *keystr, bool b)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_map ());
 #else
-  conv_map ();
+  this->_conv_map ();
 #endif
 
   map::node *n = NULL;
@@ -1485,7 +1442,7 @@ kvr::value * kvr::value::insert (const char *keystr, bool b)
   if (n)
   {
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    n->v->conv_boolean ();
+    n->v->_conv_boolean ();
 #endif
     n->v->set_boolean (b);
     m_ctx->_destroy_key (k);
@@ -1512,7 +1469,7 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_map ());
 #else
-  conv_map ();
+  this->_conv_map ();
 #endif
 
   map::node *n = NULL;
@@ -1524,7 +1481,7 @@ kvr::value * kvr::value::insert (const char *keystr, const char *str)
   if (n)
   {
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    n->v->conv_string ();
+    n->v->_conv_string ();
 #endif
     n->v->set_string (str);
     m_ctx->_destroy_key (k);
@@ -1550,7 +1507,7 @@ kvr::value * kvr::value::insert_map (const char *keystr)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_map ());
 #else
-  conv_map ();
+  this->_conv_map ();
 #endif
 
   map::node *n = NULL;
@@ -1561,7 +1518,7 @@ kvr::value * kvr::value::insert_map (const char *keystr)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
-    n->v->conv_map ();
+    n->v->_conv_map ();
     m_ctx->_destroy_key (k);
   }
   else
@@ -1585,7 +1542,7 @@ kvr::value * kvr::value::insert_array (const char *keystr)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_map ());
 #else
-  conv_map ();
+  this->_conv_map ();
 #endif
 
   map::node *n = NULL;
@@ -1596,7 +1553,7 @@ kvr::value * kvr::value::insert_array (const char *keystr)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
-    n->v->conv_array ();
+    n->v->_conv_array ();
     m_ctx->_destroy_key (k);
   }
   else
@@ -1620,7 +1577,7 @@ kvr::value * kvr::value::insert_null (const char *keystr)
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
   KVR_ASSERT (is_map ());
 #else
-  conv_map ();
+  this->_conv_map ();
 #endif
 
   map::node *n = NULL;
@@ -1631,7 +1588,7 @@ kvr::value * kvr::value::insert_null (const char *keystr)
   n = (k->m_ref <= 1) ? NULL : m_data.m.find (k);
   if (n)
   {
-    n->v->conv_null ();
+    n->v->_conv_null ();
     m_ctx->_destroy_key (k);
   }
   else
@@ -1757,7 +1714,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     //////////////////////////////////
     {
       this->_clear ();
-      this->conv_map (rhs->size ());
+      this->_conv_map (rhs->size ());
 
       cursor c (rhs);
       pair rp;
@@ -1786,7 +1743,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     {
       this->_clear ();
       sz_t rlen = rhs->length ();
-      this->conv_array (rlen);
+      this->_conv_array (rlen);
 
       for (sz_t i = 0; i < rlen; ++i)
       {
@@ -1801,7 +1758,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     //////////////////////////////////
     {
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-      this->conv_string ();
+      this->_conv_string ();
 #endif
       const char *str = rhs->get_string ();
       this->set_string (str);
@@ -1812,7 +1769,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     //////////////////////////////////
     {
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-      this->conv_integer ();
+      this->_conv_integer ();
 #endif
       int64_t n = rhs->get_integer ();
       this->set_integer (n);
@@ -1823,7 +1780,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     //////////////////////////////////
     {
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-      this->conv_float ();
+      this->_conv_float ();
 #endif
       double n = rhs->get_float ();
       this->set_float (n);
@@ -1834,7 +1791,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     //////////////////////////////////
     {
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-      this->conv_boolean ();
+      this->_conv_boolean ();
 #endif
       bool b = rhs->get_boolean ();
       this->set_boolean (b);
@@ -1844,7 +1801,7 @@ kvr::value * kvr::value::copy (const value *rhs)
     else if (rhs->is_null ())
     //////////////////////////////////
     {
-      this->conv_null ();
+      this->_conv_null ();
     }
   }
 
@@ -1985,7 +1942,7 @@ kvr::value * kvr::value::diff (const value *original, const value *modified)
     if (og->is_map () || og->is_array ())
     //////////////////////////////////
     {
-      diff->conv_map ();
+      diff->_conv_map ();
 
       value *set = diff->insert_map (kvr_const_str_set);
       value *add = diff->insert_map (kvr_const_str_add);
@@ -2249,7 +2206,7 @@ bool kvr::value::decode (codec_t codec, const uint8_t *data, size_t size)
 {
   bool success = false;
 
-  this->conv_null ();
+  this->_conv_null ();
 
   mem_istream istr (data, size);
 
@@ -2329,7 +2286,7 @@ bool kvr::value::decode (codec_t codec, istream &istr)
 {
   bool success = false;
 
-  this->conv_null ();
+  this->_conv_null ();
 
   switch (codec)
   {
@@ -2842,7 +2799,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
       // add og to rem list
       kvr::ctx *ctx = m_ctx;
       value *v = ctx->_create_value_null (FLAG_PARENT_ARRAY);
-      v->conv_string ();
+      v->_conv_string ();
 
       if (pathcnt == 1)
       {
@@ -3377,7 +3334,7 @@ void kvr::value::_push_v (value *v)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::_conv_map (sz_t cap)
+void kvr::value::_conv_map (sz_t cap)
 {
   if (!is_map ())
   {
@@ -3385,15 +3342,13 @@ kvr::value * kvr::value::_conv_map (sz_t cap)
     m_flags |= FLAG_TYPE_MAP;
     m_data.m.init (cap, m_ctx->m_allocator);
   }
-
-  return this;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-kvr::value * kvr::value::_conv_array (sz_t cap)
+void kvr::value::_conv_array (sz_t cap)
 {
   if (!is_array ())
   {
@@ -3401,8 +3356,91 @@ kvr::value * kvr::value::_conv_array (sz_t cap)
     m_flags |= FLAG_TYPE_ARRAY;
     m_data.a.init (cap, m_ctx->m_allocator);
   }
+}
 
-  return this;
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_conv_string ()
+{
+  if (!is_string ())
+  {
+    this->_clear ();
+    m_flags |= FLAG_TYPE_STRING_STATIC;
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_conv_boolean ()
+{
+  if (!is_boolean ())
+  {
+    this->_clear ();
+    m_flags |= FLAG_TYPE_BOOLEAN;
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_conv_integer ()
+{
+  if (!is_integer ())
+  {
+    if (is_float ())
+    {
+      int64_t i = static_cast<int64_t> (m_data.n.f);
+      m_data.n.i = i;
+      m_flags &= ~FLAG_TYPE_NUMBER_FLOAT;
+    }
+    else
+    {
+      this->_clear ();
+    }
+
+    m_flags |= FLAG_TYPE_NUMBER_INTEGER;
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_conv_float()
+{
+  if (!is_float ())
+  {
+    if (is_integer ())
+    {
+      double f = static_cast<double> (m_data.n.i);
+      m_data.n.f = f;
+      m_flags &= ~FLAG_TYPE_NUMBER_INTEGER;
+    }
+    else
+    {
+      this->_clear ();
+    }
+
+    m_flags |= FLAG_TYPE_NUMBER_FLOAT;
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+void kvr::value::_conv_null()
+{
+  if (!is_null ())
+  {
+    this->_clear ();
+    m_flags |= FLAG_TYPE_NULL;
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

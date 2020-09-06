@@ -63,7 +63,7 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_boolean ();
+    val0->as_boolean ();
 #endif
     val0->set_boolean (true);
     val1->copy (val0);
@@ -77,7 +77,7 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_string ();
+    val0->as_string ();
 #endif
     val0->set_string ("test_copy");
     val1->copy (val0);
@@ -91,7 +91,7 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_integer ();
+    val0->as_integer ();
 #endif
     val0->set_integer (42);
     val1->copy (val0);
@@ -105,7 +105,7 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_float ();
+    val0->as_float ();
 #endif
     val0->set_float (3.142);
     val1->copy (val0);
@@ -119,7 +119,7 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_map ();
+    val0->as_map ();
 #endif
     val0->insert ("one", 1);
     val0->insert ("pi", 3.14);
@@ -136,7 +136,7 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_array ();
+    val0->as_array ();
 #endif
     val0->push (1);
     val0->push (3.14);
@@ -152,7 +152,7 @@ public:
     // null
     ///////////////////////////////
 
-    val0->conv_null ();
+    val0->as_null ();
     val1->copy (val0);
 
     TS_ASSERT (val0->is_null ());
@@ -185,8 +185,8 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_boolean ();
-    val1->conv_boolean ();
+    val0->as_boolean ();
+    val1->as_boolean ();
 #endif
     val0->set_boolean (true);
     val1->set_boolean (false);
@@ -209,8 +209,8 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_string ();
-    val1->conv_string ();
+    val0->as_string ();
+    val1->as_string ();
 #endif
     val0->set_string ("test_copy_");
     val1->set_string ("_copy_test");
@@ -225,8 +225,8 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_integer ();
-    val1->conv_integer ();
+    val0->as_integer ();
+    val1->as_integer ();
 #endif
     val0->set_integer (42);
     val1->set_integer (-42);
@@ -241,8 +241,8 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_float ();
-    val1->conv_float ();
+    val0->as_float ();
+    val1->as_float ();
 #endif
     val0->set_float (74.5);
     val1->set_float (25.5);
@@ -257,8 +257,8 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_map ();
-    val1->conv_map ();
+    val0->as_map ();
+    val1->as_map ();
 #endif
     val0->insert ("one", 1);
     val0->insert ("pi", 3.14);
@@ -286,8 +286,8 @@ public:
     ///////////////////////////////
 
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-    val0->conv_array ();
-    val1->conv_array ();
+    val0->as_array ();
+    val1->as_array ();
 #endif
     val0->push (1);
     val0->push (3.14);
@@ -311,8 +311,8 @@ public:
     // null
     ///////////////////////////////
 
-    val0->conv_null ();
-    val1->conv_null ();
+    val0->as_null ();
+    val1->as_null ();
     val0->merge (val1);
 
     TS_ASSERT (val0->is_null ());
@@ -336,7 +336,7 @@ public:
     // set up tree
     ///////////////////////////////
 
-    kvr::value *map = m_ctx->create_value ()->conv_map ();
+    kvr::value *map = m_ctx->create_value ()->as_map ();
     {
       map->insert ("name", "elmo");
       map->insert ("address", "1 sesame street");
@@ -423,7 +423,7 @@ public:
     const kvr::key   * null_key = NULL;
     const kvr::value * null_val = NULL;
 
-    kvr::value *map = m_ctx->create_value ()->conv_map ();
+    kvr::value *map = m_ctx->create_value ()->as_map ();
     TS_ASSERT (map->is_map ());
 
     // inserts
@@ -529,7 +529,7 @@ public:
 
   void testArray ()
   {
-    kvr::value *array = m_ctx->create_value ()->conv_array ();
+    kvr::value *array = m_ctx->create_value ()->as_array ();
     TS_ASSERT (array->is_array ());
 
     // push

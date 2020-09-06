@@ -121,7 +121,7 @@ namespace kvr
           {
             KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-            m_temp->conv_boolean ();
+            m_temp = m_temp->as_boolean ();
 #endif
             m_temp->set_boolean (b);
             m_temp = NULL;
@@ -151,7 +151,7 @@ namespace kvr
           {
             KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-            m_temp->conv_integer ();
+            m_temp = m_temp->as_integer ();
 #endif
             m_temp->set_integer (i);
             m_temp = NULL;
@@ -191,7 +191,7 @@ namespace kvr
           {
             KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-            m_temp->conv_float ();
+            m_temp = m_temp->as_float ();
 #endif
             m_temp->set_float (d);
             m_temp = NULL;
@@ -221,7 +221,9 @@ namespace kvr
           if (node->is_map ())
           {
             KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
-            m_temp->conv_string ();
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
+            m_temp = m_temp->as_string ();
+#endif
             m_temp->set_string (str, length);
             m_temp = NULL;
             success = true;
@@ -229,7 +231,9 @@ namespace kvr
           else if (node->is_array ())
           {
             kvr::value *vstr = node->push_null (); KVR_ASSERT (vstr);
-            vstr->conv_string ();
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
+            vstr = vstr->as_string ();
+#endif
             vstr->set_string (str, length);
             success = true;
           }
@@ -252,9 +256,8 @@ namespace kvr
 
             if (node->is_map ())
             {
-              node = m_temp;
               KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
-              m_temp->conv_map (size);
+              node = m_temp->as_map (size);
               m_temp = NULL;
               success = true;
             }
@@ -266,7 +269,7 @@ namespace kvr
           }
           else
           {
-            node = m_root->conv_map (size);
+            node = m_root->as_map (size);
             success = true;
           }
 
@@ -324,9 +327,8 @@ namespace kvr
 
             if (node->is_map ())
             {
-              node = m_temp;
               KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
-              m_temp->conv_array (length);
+              node = m_temp->as_array (length);
               m_temp = NULL;
               success = true;
             }
@@ -338,7 +340,7 @@ namespace kvr
           }
           else
           {
-            node = m_root->conv_array (length);
+            node = m_root->as_array (length);
             success = true;
           }
 

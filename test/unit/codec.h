@@ -52,7 +52,7 @@ public:
 
     bool ok = false;
 
-    kvr::value *val0 = m_ctx->create_value ()->conv_map ();
+    kvr::value *val0 = m_ctx->create_value ()->as_map ();
     {
       val0->insert ("sesame", "street");
       val0->insert ("t", true);
@@ -86,7 +86,7 @@ public:
     // decode
     ///////////////////////////////
 
-    kvr::value *val1 = m_ctx->create_value ()->conv_map ();
+    kvr::value *val1 = m_ctx->create_value ()->as_map ();
     ok = val1->decode (kvr::CODEC_JSON, obuf.get_data (), obuf.get_size ());
     TS_ASSERT (ok);
 
@@ -116,7 +116,7 @@ public:
 
     bool ok = false;
 
-    kvr::value *val0 = m_ctx->create_value ()->conv_map ();
+    kvr::value *val0 = m_ctx->create_value ()->as_map ();
     {
       val0->insert ("sesame", "street");
       val0->insert ("t", true);
@@ -181,7 +181,7 @@ public:
 
     bool ok = false;
 
-    kvr::value *val0 = m_ctx->create_value ()->conv_map ();
+    kvr::value *val0 = m_ctx->create_value ()->as_map ();
     {
       val0->insert ("sesame", "street");
       val0->insert ("t", true);
@@ -244,7 +244,7 @@ public:
     // set up
     ///////////////////////////////
 
-    kvr::value *val = m_ctx->create_value ()->conv_map ();
+    kvr::value *val = m_ctx->create_value ()->as_map ();
     {
       val->insert ("sesame", "street");
       val->insert ("t", true);
@@ -388,7 +388,7 @@ public:
     // set up
     ///////////////////////////////
 
-    kvr::value *val = m_ctx->create_value ()->conv_map ();
+    kvr::value *val = m_ctx->create_value ()->as_map ();
     {
       val->insert ("sesame", "street");
       val->insert ("t", true);

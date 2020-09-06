@@ -156,7 +156,7 @@ namespace kvr
           {
             KVR_ASSERT (m_temp && m_temp->is_null ());
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-            m_temp->conv_boolean ();
+            m_temp = m_temp->as_boolean ();
 #endif
             m_temp->set_boolean (b);
             m_temp = NULL;
@@ -200,7 +200,7 @@ namespace kvr
           {
             KVR_ASSERT (m_temp && m_temp->is_null ());
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-            m_temp->conv_integer ();
+            m_temp = m_temp->as_integer ();
 #endif
             m_temp->set_integer (i);
             m_temp = NULL;
@@ -240,7 +240,7 @@ namespace kvr
           {
             KVR_ASSERT_SAFE (m_temp && m_temp->is_null (), false);
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-            m_temp->conv_float ();
+            m_temp = m_temp->as_float ();
 #endif
             m_temp->set_float (d);
             m_temp = NULL;
@@ -272,7 +272,7 @@ namespace kvr
           {
             KVR_ASSERT (m_temp && m_temp->is_null ());
 #if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
-            m_temp->conv_string ();
+            m_temp = m_temp->as_string ();
 #endif
             m_temp->set_string (str, (kvr::sz_t) length);
             m_temp = NULL;
@@ -280,7 +280,9 @@ namespace kvr
           else if (node->is_array ())
           {
             kvr::value *vstr = node->push_null (); KVR_ASSERT (vstr);
-            vstr->conv_string ();
+#if KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION
+            vstr = vstr->as_string ();
+#endif
             vstr->set_string (str, (kvr::sz_t) length);
           }
           else
@@ -305,8 +307,7 @@ namespace kvr
             if (node->is_map ())
             {
               KVR_ASSERT (m_temp && m_temp->is_null ());
-              node = m_temp;
-              m_temp->conv_map ();
+              node = m_temp->as_map();
               m_temp = NULL;
             }
             else if (node->is_array ())
@@ -316,7 +317,7 @@ namespace kvr
           }
           else
           {
-            node = m_root->conv_map ();
+            node = m_root->as_map ();
           }
 
           KVR_ASSERT (m_depth < KVR_CONSTANT_MAX_TREE_DEPTH);
@@ -367,8 +368,7 @@ namespace kvr
             if (node->is_map ())
             {
               KVR_ASSERT (m_temp && m_temp->is_null ());
-              node = m_temp;          
-              m_temp->conv_array ();
+              node = m_temp->as_array();
               m_temp = NULL;
             }
             else if (node->is_array ())
@@ -378,7 +378,7 @@ namespace kvr
           }
           else
           {
-            node = m_root->conv_array ();
+            node = m_root->as_array ();
           }
 
           KVR_ASSERT (m_depth < KVR_CONSTANT_MAX_TREE_DEPTH);
@@ -527,8 +527,8 @@ namespace kvr
 
 #if KVR_DEBUG
         size_t len = istr.size ();
-        KVR_REF_UNUSED (len); 
-        KVR_ASSERT (len > 0); 
+        KVR_REF_UNUSED (len);
+        KVR_ASSERT (len > 0);
 #endif
         read_ctx rctx (dest);
         kvr_rapidjson::StringStream ss (str);
@@ -542,7 +542,7 @@ namespace kvr
 
       ////////////////////////////////////////////////////////////
 
-      bool write (const kvr::value *src, kvr::mem_ostream *ostr) 
+      bool write (const kvr::value *src, kvr::mem_ostream *ostr)
       {
         KVR_ASSERT (src);
         KVR_ASSERT (ostr);
@@ -602,7 +602,7 @@ namespace kvr
 
         else if (val->is_float ())
         {
-          //size += 13; // average (guess)     
+          //size += 13; // average (guess)
           size += 25; // 25 is max
         }
 
@@ -618,7 +618,7 @@ namespace kvr
         }
 
         return size;
-      }  
+      }
     }
   }
 }

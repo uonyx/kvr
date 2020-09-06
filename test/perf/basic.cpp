@@ -23,7 +23,7 @@ int main () //int argc, char* argv [])
 {
   kvr::ctx *ctx = kvr::ctx::create ();
 
-  kvr::value *map = ctx->create_value ()->conv_map ();
+  kvr::value *map = ctx->create_value ()->as_map ();
 
   map->insert ("int", (int64_t) 16);
   map->insert ("float", 3.14);
