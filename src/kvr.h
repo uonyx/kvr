@@ -61,7 +61,6 @@
 #if KVR_CPP11 
 #include <cstdint>
 #else
-//#include <tr1/cstdint>
 #ifdef _MSC_VER
 #include "internal/rapidjson/msinttypes/stdint.h"
 #else
@@ -75,12 +74,10 @@
 
 // explicitly perform type conversions on values?
 #define KVR_FLAG_DISABLE_IMPLICIT_TYPE_CONVERSION   0
-// allow duplicate keys and speed up insertions in map values?
+// allow duplicate keys and speed up insertions in map values? last inserted key wins
 #define KVR_FLAG_ALLOW_DUPLICATE_MAP_KEYS           0
 // use compact floating point precision during serialization?
 #define KVR_FLAG_ENCODE_COMPACT_FP_PRECISION        0
-// relax strict json format parsing (allowing comments etc)?
-#define KVR_FLAG_DECODE_RELAXED_JSON                0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////

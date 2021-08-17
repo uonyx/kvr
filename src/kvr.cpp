@@ -2792,7 +2792,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
     {
         //////////////////////////////////
         if (md == NULL)
-            //////////////////////////////////
+        //////////////////////////////////
         {
             // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
             KVR_ASSERT (pathcnt > 0);
@@ -2818,7 +2818,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         
         //////////////////////////////////
         else if (!og->_type_equiv (md))
-            //////////////////////////////////
+        //////////////////////////////////
         {
             // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
             KVR_ASSERT (pathcnt > 0);
@@ -2847,7 +2847,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         
         //////////////////////////////////
         else if (og->is_map ())
-            //////////////////////////////////
+        //////////////////////////////////
         {
             KVR_ASSERT (md->is_map ());
             
@@ -2872,7 +2872,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         
         //////////////////////////////////
         else if (og->is_array ())
-            //////////////////////////////////
+        //////////////////////////////////
         {
             KVR_ASSERT (md->is_array ());
             
@@ -2896,7 +2896,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         
         //////////////////////////////////
         else if (og->is_string ())
-            //////////////////////////////////
+        //////////////////////////////////
         {
             KVR_ASSERT (pathcnt > 0);
             KVR_ASSERT (md->is_string ());
@@ -2930,7 +2930,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         
         //////////////////////////////////
         else if (og->is_integer ())
-            //////////////////////////////////
+        //////////////////////////////////
         {
             KVR_ASSERT (pathcnt > 0);
             KVR_ASSERT (md->_is_number ());
@@ -2993,7 +2993,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         
         //////////////////////////////////
         else if (og->is_float ())
-            //////////////////////////////////
+        //////////////////////////////////
         {
             KVR_ASSERT (pathcnt > 0);
             KVR_ASSERT (md->_is_number ());
@@ -3026,7 +3026,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         
         //////////////////////////////////
         else if (og->is_boolean ())
-            //////////////////////////////////
+        //////////////////////////////////
         {
             KVR_ASSERT (pathcnt > 0);
             KVR_ASSERT (md->is_boolean ());
@@ -3059,7 +3059,7 @@ void kvr::value::_diff_set_rem (value *set, value *rem, const value *og, const v
         
         //////////////////////////////////
         else if (og->is_null ())
-            //////////////////////////////////
+        //////////////////////////////////
         {
             KVR_ASSERT (md->is_null ());
             // should already be taken care of in type check
@@ -3082,7 +3082,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
     {
         //////////////////////////////////
         if (og == NULL)
-            //////////////////////////////////
+        //////////////////////////////////
         {
             // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
             KVR_ASSERT (pathcnt > 0);
@@ -3112,7 +3112,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
         
         //////////////////////////////////
         else if (!og->_type_equiv (md))
-            //////////////////////////////////
+        //////////////////////////////////
         {
             // at this point og and md cannot be root values. therefore KVR_ASSERT (pathsz > 0)
             KVR_ASSERT (pathcnt > 0);
@@ -3121,7 +3121,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
         
         //////////////////////////////////
         else if (md->is_map ())
-            //////////////////////////////////
+        //////////////////////////////////
         {
             KVR_ASSERT (og->is_map ());
             
@@ -3146,7 +3146,7 @@ void kvr::value::_diff_add (value *add, const value *og, const value *md,
         
         //////////////////////////////////
         else if (md->is_array ())
-            //////////////////////////////////
+        //////////////////////////////////
         {
             KVR_ASSERT (og->is_array ());
             
@@ -3870,7 +3870,7 @@ kvr::value::map::node *kvr::value::map::find (const key *k) const
 #endif
     
     
-#if KVR_FLAG_ALLOW_DUPLICATE_MAP_KEYS // search from end (last inserted is active)
+#if KVR_FLAG_ALLOW_DUPLICATE_MAP_KEYS
     for (sz_t c = cap, i = c - 1; c >= 1; --c, i = c - 1)
 #else
     for (sz_t i = 0, c = cap; i < c; ++i)
